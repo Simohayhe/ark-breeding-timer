@@ -1,0 +1,2631 @@
+{
+ "source": {
+  "ase_values_version": "358.17.12291776",
+  "asa_values_version": "88.15.1",
+  "generator": "tools/build_species_db.py"
+ },
+ "species": [
+  {
+   "name": "Aberrant Achatina",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Anglerfish",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Ankylosaurus",
+   "incubation": 9472.926,
+   "gestation": 0.0,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Araneo",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 90090.09,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Arthropluera",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 185185.185,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Baryonyx",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Beelzebufo",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Carbonemys",
+   "incubation": 4499.64,
+   "gestation": 0.0,
+   "maturation": 83333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Carnotaurus",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Dimetrodon",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Dimorphodon",
+   "incubation": 4864.476,
+   "gestation": 0.0,
+   "maturation": 90090.09,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Diplocaulus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Diplodocus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Dire Bear",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Dodo",
+   "incubation": 2999.76,
+   "gestation": 0.0,
+   "maturation": 55555.556,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Doedicurus",
+   "incubation": 0.0,
+   "gestation": 17857.143,
+   "maturation": 208333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Electrophorus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Equus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Fasolasuchus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Gigantopithecus",
+   "incubation": 0.0,
+   "gestation": 23809.524,
+   "maturation": 277777.778,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Gigantoraptor",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Iguanodon",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Lystrosaurus",
+   "incubation": 2999.76,
+   "gestation": 0.0,
+   "maturation": 55555.556,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Manta",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Megalania",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Megalosaurus",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Moschops",
+   "incubation": 9472.926,
+   "gestation": 0.0,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Otter",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 142800.0
+  },
+  {
+   "name": "Aberrant Oviraptor",
+   "incubation": 4090.582,
+   "gestation": 0.0,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Ovis",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Paraceratherium",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Parasaur",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 95238.095,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Pulmonoscorpius",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Purlovia",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Raptor",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Sarco",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Spino",
+   "incubation": 13845.046,
+   "gestation": 0.0,
+   "maturation": 256410.256,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Stegosaurus",
+   "incubation": 9999.2,
+   "gestation": 0.0,
+   "maturation": 185185.185,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aberrant Triceratops",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Achatina",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Acrocanthosaurus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "アクロカントサウルス アクロ"
+  },
+  {
+   "name": "Allosaurus",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "アロサウルス アロ"
+  },
+  {
+   "name": "Amargasaurus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "アマルガサウルス アマルガ"
+  },
+  {
+   "name": "Andrewsarchus",
+   "incubation": 0.0,
+   "gestation": 17857.143,
+   "maturation": 208333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "アンドリューサルクス アンドリュー"
+  },
+  {
+   "name": "Anglerfish",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "アングラー チョウチンアンコウ"
+  },
+  {
+   "name": "Ankylosaurus",
+   "incubation": 9472.926,
+   "gestation": 0.0,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "アンキロサウルス アンキロ"
+  },
+  {
+   "name": "Araneo",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 90090.09,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "アラネオ クモ"
+  },
+  {
+   "name": "Archaeopteryx",
+   "incubation": 9472.926,
+   "gestation": 0.0,
+   "maturation": 55555.556,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Archelon",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Argentavis",
+   "incubation": 10587.388,
+   "gestation": 0.0,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "アルゲンタヴィス アルゲン"
+  },
+  {
+   "name": "Armadoggo",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Arthropluera",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 185185.185,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "アースロプレウラ ムカデ"
+  },
+  {
+   "name": "Astral Mammoth",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 296296.296,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Astral Rock Drake",
+   "incubation": 22498.2,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Astrodelphis",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Attack Drone",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Aureliax",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Baryonyx",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "バリオニクス バリオ"
+  },
+  {
+   "name": "Basilisk",
+   "incubation": 22498.2,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "バジリスク"
+  },
+  {
+   "name": "Basilosaurus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 416666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "バシロサウルス バシロ"
+  },
+  {
+   "name": "Beelzebufo",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ベールゼブフォ カエル"
+  },
+  {
+   "name": "Bison",
+   "incubation": 0.0,
+   "gestation": 12987.013,
+   "maturation": 151515.152,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Blood Crystal Wyvern",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Bloodstalker",
+   "incubation": 10587.388,
+   "gestation": 0.0,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Brontosaurus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ブロントサウルス ブロント"
+  },
+  {
+   "name": "Bulbdog",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Bunny Dodo",
+   "incubation": 2999.76,
+   "gestation": 0.0,
+   "maturation": 55555.556,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Bunny Oviraptor",
+   "incubation": 4090.582,
+   "gestation": 0.0,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Burrowbuck",
+   "incubation": 0.0,
+   "gestation": 21978.022,
+   "maturation": 256410.256,
+   "cd_min": 32400.0,
+   "cd_max": 64800.0
+  },
+  {
+   "name": "Carbonemys",
+   "incubation": 4499.64,
+   "gestation": 0.0,
+   "maturation": 83333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Carcharodontosaurus",
+   "incubation": 179985.601,
+   "gestation": 0.0,
+   "maturation": 878348.704,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "カルカロドントサウルス カルカロ"
+  },
+  {
+   "name": "Carnotaurus",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "カルノタウルス カルノ"
+  },
+  {
+   "name": "Castoroides",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 222222.222,
+   "cd_min": 64800.0,
+   "cd_max": 142800.0,
+   "jp": "カストロイデス ビーバー"
+  },
+  {
+   "name": "Cat",
+   "incubation": 0.0,
+   "gestation": 9523.81,
+   "maturation": 111111.111,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Cave Minotaur",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Ceratosaurus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 476190.476,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ケラトサウルス ケラト"
+  },
+  {
+   "name": "Chalicotherium",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 296296.296,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "カリコテリウム カリコ"
+  },
+  {
+   "name": "Compy",
+   "incubation": 2999.76,
+   "gestation": 0.0,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "コンピー"
+  },
+  {
+   "name": "Cosmo",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "コスモ"
+  },
+  {
+   "name": "Cryolophosaurus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Daeodon",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ダエオドン"
+  },
+  {
+   "name": "Deinonychus",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "デイノニクス デイノ"
+  },
+  {
+   "name": "Deinosuchus",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "デイノスクス"
+  },
+  {
+   "name": "Deinotherium",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Desmodus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 256410.256,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "デスモダス コウモリ"
+  },
+  {
+   "name": "Dilophosaur",
+   "incubation": 4090.582,
+   "gestation": 0.0,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ディロフォサウルス ディロ"
+  },
+  {
+   "name": "Dimetrodon",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Dimorphodon",
+   "incubation": 4864.476,
+   "gestation": 0.0,
+   "maturation": 90090.09,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ディモルフォドン ディモルフ"
+  },
+  {
+   "name": "Dinopithecus",
+   "incubation": 0.0,
+   "gestation": 35714.286,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ディノピテクス サル"
+  },
+  {
+   "name": "Diplocaulus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ディプロカウルス"
+  },
+  {
+   "name": "Diplodocus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ディプロドクス ディプロ"
+  },
+  {
+   "name": "Dire Bear",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ダイアベア クマ"
+  },
+  {
+   "name": "Dire Polar Bear",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Direwolf",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ダイアウルフ"
+  },
+  {
+   "name": "Dodo",
+   "incubation": 2999.76,
+   "gestation": 0.0,
+   "maturation": 55555.556,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ドードー"
+  },
+  {
+   "name": "Dodo Wyvern",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Doedicurus",
+   "incubation": 0.0,
+   "gestation": 17857.143,
+   "maturation": 208333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ドエディクルス ドエディ"
+  },
+  {
+   "name": "Drakeling (Autumn)",
+   "incubation": 4499.64,
+   "gestation": 0.0,
+   "maturation": 90090.09,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Drakeling (Spring)",
+   "incubation": 4499.64,
+   "gestation": 0.0,
+   "maturation": 90090.09,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Drakeling (Summer)",
+   "incubation": 4499.64,
+   "gestation": 0.0,
+   "maturation": 90090.09,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Drakeling (Winter)",
+   "incubation": 4499.64,
+   "gestation": 0.0,
+   "maturation": 90090.09,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Dreadmare",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 416666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Dreadnoughtus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Dunkleosteus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 296296.296,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ダンクルオステウス ダンクル"
+  },
+  {
+   "name": "Elderclaw",
+   "incubation": 100.0,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Electrophorus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Elemental Reaper King",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 4166.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Ember Crystal Wyvern",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Equus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "エクウス 馬 ウマ"
+  },
+  {
+   "name": "Fasolasuchus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ファソラスクス"
+  },
+  {
+   "name": "Featherlight",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Fenrir",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Ferox",
+   "incubation": 0.0,
+   "gestation": 35714.286,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Fire Wyvern",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Fjordhawk",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "フィヨルドホーク フィヨルド"
+  },
+  {
+   "name": "Forest Wyvern",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Gacha",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 416666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "GachaClaus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 416666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Gallimimus",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 95238.095,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ガリミムス ガリ"
+  },
+  {
+   "name": "Gasbags",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Gigadesmodus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 476190.476,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Giganotosaurus",
+   "incubation": 179985.601,
+   "gestation": 0.0,
+   "maturation": 878348.704,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ギガノトサウルス ギガ"
+  },
+  {
+   "name": "Gigantopithecus",
+   "incubation": 0.0,
+   "gestation": 23809.524,
+   "maturation": 277777.778,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Gigantoraptor",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ギガントラプトル ギガラプ"
+  },
+  {
+   "name": "Gloon",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Glowtail",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Golden Striped Megalodon",
+   "incubation": 0.0,
+   "gestation": 21978.022,
+   "maturation": 256410.256,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Grand Tortugar",
+   "incubation": 12599.622,
+   "gestation": 0.0,
+   "maturation": 279000.731,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Griffin",
+   "incubation": 10587.388,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "グリフィン"
+  },
+  {
+   "name": "Hati",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Helicoprion",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 370370.37,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Hesperornis",
+   "incubation": 5454.109,
+   "gestation": 0.0,
+   "maturation": 101010.101,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Hyaenodon",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ハイエノドン"
+  },
+  {
+   "name": "Ice Wyvern",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Ichthyornis",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "イクチオルニス"
+  },
+  {
+   "name": "Ichthyosaurus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 208333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "イクチオサウルス イルカ"
+  },
+  {
+   "name": "Iguanodon",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "イグアノドン イグア"
+  },
+  {
+   "name": "Jerboa",
+   "incubation": 0.0,
+   "gestation": 9523.81,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Kairuku",
+   "incubation": 5454.109,
+   "gestation": 0.0,
+   "maturation": 101010.101,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "カイルク ペンギン"
+  },
+  {
+   "name": "Kaprosuchus",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "カプロスクス カプロ"
+  },
+  {
+   "name": "Karkinos",
+   "incubation": 0.0,
+   "gestation": 35714.286,
+   "maturation": 416666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "カルキノス カニ"
+  },
+  {
+   "name": "Kentrosaurus",
+   "incubation": 9999.2,
+   "gestation": 0.0,
+   "maturation": 185185.185,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Kirayli",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Kraken (Shark)",
+   "incubation": 0.0,
+   "gestation": 21978.022,
+   "maturation": 256410.256,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Kraken (Squid)",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Lightning Wyvern",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Lymantria",
+   "incubation": 5454.109,
+   "gestation": 0.0,
+   "maturation": 111111.111,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Lystrosaurus",
+   "incubation": 2999.76,
+   "gestation": 0.0,
+   "maturation": 55555.556,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "リストロサウルス リストロ"
+  },
+  {
+   "name": "Maeguana",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 129600.0,
+   "cd_max": 345600.0
+  },
+  {
+   "name": "Maewing",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 129600.0,
+   "cd_max": 345600.0,
+   "jp": "メイウィング メイ"
+  },
+  {
+   "name": "Magmasaur",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "マグマサウル マグマ"
+  },
+  {
+   "name": "Malwyn",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Mammoth",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 296296.296,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "マンモス"
+  },
+  {
+   "name": "Managarmr",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "マナガルム"
+  },
+  {
+   "name": "Manta",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "マンタ エイ"
+  },
+  {
+   "name": "Mantis",
+   "incubation": 9999.2,
+   "gestation": 0.0,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Megachelon",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Megalania",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "メガラニア"
+  },
+  {
+   "name": "Megaloceros",
+   "incubation": 0.0,
+   "gestation": 21978.022,
+   "maturation": 256410.256,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "メガロケロス シカ"
+  },
+  {
+   "name": "Megalodon",
+   "incubation": 0.0,
+   "gestation": 21978.022,
+   "maturation": 256410.256,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "メガロドン サメ"
+  },
+  {
+   "name": "Megalosaurus",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "メガロサウルス メガロ"
+  },
+  {
+   "name": "Megaraptor",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Megatherium",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "メガテリウム ナマケモノ"
+  },
+  {
+   "name": "Mesopithecus",
+   "incubation": 0.0,
+   "gestation": 9523.81,
+   "maturation": 111111.111,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Microraptor",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Minotarchos",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Morellatops",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 111111.111,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Mosasaurus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "モササウルス モササ"
+  },
+  {
+   "name": "Moschops",
+   "incubation": 9472.926,
+   "gestation": 0.0,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "モスコプス"
+  },
+  {
+   "name": "Nameless",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 296296.296,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Natrix's Onyc",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 101010.101,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Onyc",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 101010.101,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Ossidon",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Otter",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 142800.0,
+   "jp": "カワウソ オッター"
+  },
+  {
+   "name": "Overseer",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Oviraptor",
+   "incubation": 4090.582,
+   "gestation": 0.0,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Ovis",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "オヴィス 羊 ヒツジ"
+  },
+  {
+   "name": "Pachy",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 95238.095,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "パキケファロサウルス パキケ"
+  },
+  {
+   "name": "Pachyrhinosaurus",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "パキリノサウルス パキリノ"
+  },
+  {
+   "name": "Paraceratherium",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "パラケラテリウム パラケラ"
+  },
+  {
+   "name": "Parasaur",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 95238.095,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "パラサウロロフス パラサウル"
+  },
+  {
+   "name": "Party Dodo",
+   "incubation": 2999.76,
+   "gestation": 0.0,
+   "maturation": 55555.556,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Pegomastax",
+   "incubation": 4090.582,
+   "gestation": 0.0,
+   "maturation": 111111.111,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Pelagornis",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ペラゴルニス ペラゴ"
+  },
+  {
+   "name": "Phiomia",
+   "incubation": 0.0,
+   "gestation": 35714.286,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "フィオミア"
+  },
+  {
+   "name": "Phoenix",
+   "incubation": 33.333,
+   "gestation": 0.0,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Plesiosaur",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 416666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "プレシオサウルス プレシオ"
+  },
+  {
+   "name": "Poison Wyvern",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Polar Bear",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Polar Purlovia",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Procoptodon",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "プロコプトドン カンガルー"
+  },
+  {
+   "name": "Pteranodon",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "プテラノドン プテラ"
+  },
+  {
+   "name": "Pulmonoscorpius",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "サソリ スコーピオン"
+  },
+  {
+   "name": "Purlovia",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Pyromane",
+   "incubation": 0.0,
+   "gestation": 8628.128,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "パイロメイン"
+  },
+  {
+   "name": "Quetzal",
+   "incubation": 59995.2,
+   "gestation": 0.0,
+   "maturation": 476190.476,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ケツァルコアトルス ケツァル"
+  },
+  {
+   "name": "R-Allosaurus",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Brontosaurus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Carbonemys",
+   "incubation": 4499.64,
+   "gestation": 0.0,
+   "maturation": 83333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Carnotaurus",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Daeodon",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Dilophosaur",
+   "incubation": 4090.582,
+   "gestation": 0.0,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Dire Bear",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Direwolf",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Equus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Gasbags",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Giganotosaurus",
+   "incubation": 179985.601,
+   "gestation": 0.0,
+   "maturation": 878348.704,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Megatherium",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Parasaur",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 95238.095,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Procoptodon",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Quetzal",
+   "incubation": 59995.2,
+   "gestation": 0.0,
+   "maturation": 476190.476,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Reaper King",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 4166.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Reaper Queen",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 1666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Snow Owl",
+   "incubation": 10587.388,
+   "gestation": 0.0,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Thylacoleo",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "R-Velonasaur",
+   "incubation": 4090.582,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Raptor",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ラプトル"
+  },
+  {
+   "name": "Ravager",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ラヴェジャー"
+  },
+  {
+   "name": "Reaper King",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 277777.778,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Reaper Queen",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 1666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Brontosaurus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Carnotaurus",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Dilophosaur",
+   "incubation": 4090.582,
+   "gestation": 0.0,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Dimorphodon",
+   "incubation": 4864.476,
+   "gestation": 0.0,
+   "maturation": 90090.09,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Direwolf",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Iguanodon",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Malwyn",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Mammoth",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 296296.296,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Ossidon",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Parasaur",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 95238.095,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Pteranodon",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Raptor",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Rex",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Sabertooth",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Spino",
+   "incubation": 13845.046,
+   "gestation": 0.0,
+   "maturation": 256410.256,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Stegosaurus",
+   "incubation": 9999.2,
+   "gestation": 0.0,
+   "maturation": 185185.185,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Therizinosaur",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 416666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Troodon",
+   "incubation": 4090.582,
+   "gestation": 0.0,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Veilwyn",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Revenant Yutyrannus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Rex",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "レックス ティラノ"
+  },
+  {
+   "name": "Rhyniognatha",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Rhyniognatha Drone",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Rock Drake",
+   "incubation": 22498.2,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ロックドレイク ドレイク"
+  },
+  {
+   "name": "Roll Rat",
+   "incubation": 0.0,
+   "gestation": 17857.143,
+   "maturation": 208333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ロールラット"
+  },
+  {
+   "name": "Rubble Bear",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Sabertooth",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "サーベルタイガー サーベル"
+  },
+  {
+   "name": "Sarco",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "サルコスクス サルコ ワニ"
+  },
+  {
+   "name": "Scorpion",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Shadowmane",
+   "incubation": 0.0,
+   "gestation": 8628.128,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "シャドウメイン シャドメ"
+  },
+  {
+   "name": "Shastasaurus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Shinehorn",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Sinomacrops",
+   "incubation": 9472.926,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "シノマクロプス シノマ"
+  },
+  {
+   "name": "Skeletal Bronto",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Skeletal Giganotosaurus",
+   "incubation": 179985.601,
+   "gestation": 0.0,
+   "maturation": 878348.704,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Skeletal Jerboa",
+   "incubation": 0.0,
+   "gestation": 9523.81,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Skeletal Quetzal",
+   "incubation": 59995.2,
+   "gestation": 0.0,
+   "maturation": 476190.476,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Skeletal Stego",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 185185.185,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Skeletal Trike",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Sköll",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Snow Owl",
+   "incubation": 10587.388,
+   "gestation": 0.0,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "スノーオウル フクロウ"
+  },
+  {
+   "name": "Solwyn",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Spino",
+   "incubation": 13845.046,
+   "gestation": 0.0,
+   "maturation": 256410.256,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "スピノサウルス スピノ"
+  },
+  {
+   "name": "Stegosaurus",
+   "incubation": 9999.2,
+   "gestation": 0.0,
+   "maturation": 185185.185,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ステゴサウルス ステゴ"
+  },
+  {
+   "name": "Subterranean Reaper King",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 4166.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Surface Reaper King",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 4166.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Tapejara",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "タペヤラ"
+  },
+  {
+   "name": "Tek Giganotosaurus",
+   "incubation": 179985.601,
+   "gestation": 0.0,
+   "maturation": 878348.704,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Tek Parasaur",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 95238.095,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Tek Quetzal",
+   "incubation": 59995.2,
+   "gestation": 0.0,
+   "maturation": 476190.476,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Tek Raptor",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Tek Rex",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Tek Stegosaurus",
+   "incubation": 9999.2,
+   "gestation": 0.0,
+   "maturation": 185185.185,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Tek Triceratops",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Terror Bird",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "テラーバード"
+  },
+  {
+   "name": "Therizinosaur",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 416666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "テリジノサウルス テリジノ"
+  },
+  {
+   "name": "Thorny Dragon",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ソーニードラゴン トゲトカゲ"
+  },
+  {
+   "name": "Thylacoleo",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ティラコレオ"
+  },
+  {
+   "name": "Triceratops",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "トリケラトプス トリケラ"
+  },
+  {
+   "name": "Troodon",
+   "incubation": 4090.582,
+   "gestation": 0.0,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "トロオドン"
+  },
+  {
+   "name": "Tropeognathus",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "トロペオグナトゥス トロペ"
+  },
+  {
+   "name": "Tropical Crystal Wyvern",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Tusoteuthis",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ツソテウティス イカ"
+  },
+  {
+   "name": "Unicorn",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Veilwyn",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Velonasaur",
+   "incubation": 4090.582,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ヴェロナサウルス ヴェロナ"
+  },
+  {
+   "name": "Voidwyrm",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Vulture",
+   "incubation": 4864.476,
+   "gestation": 0.0,
+   "maturation": 90090.09,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ハゲワシ ハゲタカ"
+  },
+  {
+   "name": "Woolly Rhino",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ウーリーライノ サイ"
+  },
+  {
+   "name": "X-Allosaurus",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Ankylosaurus",
+   "incubation": 9472.926,
+   "gestation": 0.0,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Argentavis",
+   "incubation": 10587.388,
+   "gestation": 0.0,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Basilosaurus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 416666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Dunkleosteus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 296296.296,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Ichthyosaurus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 208333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Megalodon",
+   "incubation": 0.0,
+   "gestation": 21978.022,
+   "maturation": 256410.256,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Mosasaurus",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Otter",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 75757.576,
+   "cd_min": 64800.0,
+   "cd_max": 142800.0
+  },
+  {
+   "name": "X-Paraceratherium",
+   "incubation": 0.0,
+   "gestation": 28571.429,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Parasaur",
+   "incubation": 5142.446,
+   "gestation": 0.0,
+   "maturation": 95238.095,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Raptor",
+   "incubation": 7199.424,
+   "gestation": 0.0,
+   "maturation": 133333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Rex",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Sabertooth",
+   "incubation": 0.0,
+   "gestation": 15037.594,
+   "maturation": 175438.596,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Spino",
+   "incubation": 13845.046,
+   "gestation": 0.0,
+   "maturation": 256410.256,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Tapejara",
+   "incubation": 5999.52,
+   "gestation": 0.0,
+   "maturation": 196078.431,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Triceratops",
+   "incubation": 8999.28,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Woolly Rhino",
+   "incubation": 0.0,
+   "gestation": 14285.714,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "X-Yutyrannus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Xiphactinus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "シファクティヌス"
+  },
+  {
+   "name": "Yeti",
+   "incubation": 0.0,
+   "gestation": 23809.524,
+   "maturation": 277777.778,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Yi Ling",
+   "incubation": 3599.712,
+   "gestation": 0.0,
+   "maturation": 166666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Yutyrannus",
+   "incubation": 17998.56,
+   "gestation": 0.0,
+   "maturation": 666666.667,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0,
+   "jp": "ユウティラヌス ユティ"
+  },
+  {
+   "name": "Zombie Fire Wyvern",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Zombie Lightning Wyvern",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  },
+  {
+   "name": "Zombie Poison Wyvern",
+   "incubation": 0.0,
+   "gestation": 0.0,
+   "maturation": 333333.333,
+   "cd_min": 64800.0,
+   "cd_max": 172800.0
+  }
+ ]
+}
