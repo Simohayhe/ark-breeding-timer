@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """ARK Breeding Timer — かわいいカウントダウンタイマー
 
 ・自由タイマー: ◯時間◯分◯秒後 / 指定時刻 / 繰り返し
@@ -26,11 +26,13 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
 from tkinter import font as tkfont
 
+import afk
 import sounds as snd
 import theme as th
+from afk_page import AfkPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.5.0"
+APP_VERSION = "1.6.0"
 
 
 def _res_dir():
@@ -84,6 +86,13 @@ DEFAULT_CONFIG = {
         {"label": "30分", "sec": 1800},
         {"label": "1時間", "sec": 3600},
     ],
+    # AFK防止（放置キック対策のキー送信）
+    "afk_key": afk.DEFAULT_KEY,
+    "afk_interval": 120,          # 何秒ごとに送るか
+    "afk_times": 2,               # 1回あたり何連打
+    "afk_gap_ms": 60,             # 連打の間隔
+    "afk_target": "ArkAscended.exe",   # このアプリが最前面のときだけ送る
+    "afk_only_foreground": True,
     # 画面
     "always_on_top": True,
     "geometry": "980x700",
@@ -1017,6 +1026,10 @@ class App(tk.Tk):
         self.popup = None
         self.mini = None
         self.alarm_on = False
+        # AFK防止（起動時は必ず止まった状態から。勝手にキーを送らない）
+        self.afk_running = False
+        self.afk_next = 0.0
+        self.afk_count = 0
         # チェックリストは本体とミニ表示で同じものを見せるので App が持つ
         self.checklist_items = load_checklist()
         self.checklist_pages = []
@@ -1077,7 +1090,8 @@ class App(tk.Tk):
         tabs.pack(fill="x", pady=(0, 10))
         self.tabs = {}
         for key, label in (("timers", "⏰ タイマー"),
-                           ("checklist", "🗒 チェックリスト")):
+                           ("checklist", "🗒 チェックリスト"),
+                           ("afk", "🎮 AFK防止")):
             p = Pill(tabs, label, lambda k=key: self.show_page(k), bg=th.BG,
                      font=F["cute"])
             p.pack(side="left", padx=(0, 6))
@@ -1117,6 +1131,9 @@ class App(tk.Tk):
 
         # ---------------- チェックリストのページ ----------------
         self.page_check = ChecklistPage(self, self)
+
+        # ---------------- AFK防止のページ ----------------
+        self.page_afk = AfkPage(self, self)
 
         self.show_page(self.cfg.get("page") or "timers")
 
@@ -1167,23 +1184,28 @@ class App(tk.Tk):
         self.lift()
 
     def show_page(self, name):
-        """⏰タイマー / 🗒チェックリスト の切り替え。"""
-        if name not in ("timers", "checklist"):
+        """⏰タイマー / 🗒チェックリスト / 🎮AFK防止 の切り替え。"""
+        if name not in ("timers", "checklist", "afk"):
             name = "timers"
         self.page = name
         for key, pill in self.tabs.items():
             pill.update_view(key == name)
         self.page_timer.pack_forget()
         self.page_check.pack_forget()
+        self.page_afk.pack_forget()
         if name == "checklist":
             self.page_check.pack(fill="both", expand=True, padx=18, pady=(0, 12))
+        elif name == "afk":
+            self.page_afk.pack(fill="both", expand=True, padx=12, pady=(0, 12))
         else:
             self.page_timer.pack(fill="both", expand=True)
         self.cfg["page"] = name
 
     def _on_wheel(self, e):
-        cv = (self.page_check.canvas
-              if getattr(self, "page", "timers") == "checklist" else self.canvas)
+        page = getattr(self, "page", "timers")
+        if page == "afk":
+            return   # スクロールする一覧が無いページ
+        cv = self.page_check.canvas if page == "checklist" else self.canvas
         try:
             cv.yview_scroll(int(-e.delta / 120), "units")
         except tk.TclError:
@@ -1319,7 +1341,24 @@ class App(tk.Tk):
         if self.mini is not None and self.mini.winfo_exists():
             self.mini.update_view(now)
         self._update_head(now)
+        self._afk_tick(now)
         self.after(250, self._tick)
+
+    def _afk_tick(self, now):
+        """AFK防止: 時間が来たらキーを送る。"""
+        if self.afk_running and now >= self.afk_next:
+            target = self.cfg.get("afk_target") or ""
+            if (not self.cfg.get("afk_only_foreground", True)
+                    or afk.matches(target)):
+                if afk.burst(self.cfg.get("afk_key") or afk.DEFAULT_KEY,
+                             self.cfg.get("afk_times", 1),
+                             self.cfg.get("afk_gap_ms", 60)):
+                    self.afk_count += 1
+                self.afk_next = now + max(5, int(self.cfg.get("afk_interval", 120)))
+            else:
+                self.afk_next = now + 2   # 対象が前に出るまで様子を見る
+        if getattr(self, "page", "") == "afk":
+            self.page_afk.update_view(now)
 
     def _on_complete(self, t: BreedTimer):
         if t.kind == "imprint":
