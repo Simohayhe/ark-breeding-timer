@@ -30,6 +30,7 @@ import sounds as snd
 import theme as th
 
 APP_NAME = "ARK Breeding Timer"
+APP_VERSION = "1.5.0"
 
 
 def _res_dir():
@@ -2277,8 +2278,9 @@ class SettingsDialog(tk.Toplevel):
                        font=self.F["cute_b"], padx=28).pack(side="right")
         th.RoundButton(btm, "やめる", self.destroy, kind="soft", bg=th.BG,
                        font=self.F["cute"]).pack(side="right", padx=8)
-        tk.Label(btm, text="恐竜データ %d種" % len(app.db.species), bg=th.BG,
-                 fg=th.INK_SUB, font=self.F["small"]).pack(side="left")
+        tk.Label(btm, text="v%s ・恐竜データ %d種" % (APP_VERSION,
+                                                    len(app.db.species)),
+                 bg=th.BG, fg=th.INK_SUB, font=self.F["small"]).pack(side="left")
         self.switch("snd")
 
     def switch(self, which):

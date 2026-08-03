@@ -3,3 +3,4 @@ __pycache__/
 build/
 dist/
 assets/_tmp_*.png
+build_version_info.txt

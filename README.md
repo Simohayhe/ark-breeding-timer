@@ -112,7 +112,46 @@ Python 標準ライブラリだけで動きます（追加パッケージなし�
 ## つかいかた
 
 ### exe（Python不要）
-[Releases](../../releases) から `ArkBreedingTimer.exe` をダウンロードして実行するだけです。
+[Releases](../../releases) から好きなほうをどうぞ。
+
+| | 中身 | むいている人 |
+|---|---|---|
+| `ArkBreedingTimer.exe` | 1ファイル | とりあえず動かしたい |
+| `ArkBreedingTimer-x.y.z-win64.zip` | フォルダ一式 | **ウイルス対策ソフトに消される場合はこちら**。起動も速い |
+
+zip は展開して中の `ArkBreedingTimer.exe` を実行してください。フォルダごと好きな場所に置けます。
+
+### ⚠ ウイルス対策ソフトに引っかかったときは
+
+Windows Defender が `Trojan:Win32/Wacatac.*!ml` などと言ってくることがあります。
+これは**誤検知**です。末尾の `!ml` は「機械学習がなんとなく怪しいと判断した」という意味で、
+特定のウイルスが見つかったわけではありません。
+
+原因は中身ではなく作り方のほうで、
+
+- PyInstaller の1ファイル形式は、起動時に自分を `%TEMP%` に展開して実行する
+  → マルウェアの自己展開と見分けがつかない
+- 有料の署名（コードサイニング証明書）を付けていない
+- ダウンロード数が少なく「実績」が無い
+
+の3つが重なると引っかかります。Python製のフリーソフトでは定番の症状です。
+
+こちら側の対策として、ビルドでは次をやっています（`tools/build.py`）。
+
+- **UPX圧縮を使わない**（圧縮exeは問答無用で疑われます）
+- **バージョン情報を埋め込む**（作者・製品名・著作権が空だと疑われます）
+- **フォルダ形式(zip)も配布する**（自己展開しないので、かなり通りやすくなります）
+
+それでも消される場合は:
+
+1. **zip版を使う** — いちばん手軽です
+2. **除外に追加する** — Windowsセキュリティ →「ウイルスと脅威の防止」→「設定の管理」
+   →「除外」→ 置いたフォルダを追加
+3. **誤検知として報告する** — [Microsoft Security Intelligence](https://www.microsoft.com/en-us/wdsi/filesubmission)
+   に exe を出して「Incorrectly detected as malware」を選ぶと、たいてい数日で直り、
+   ほかの人のところでも出なくなります
+
+自分でソースからビルドすることもできます（下の「ファイル構成」参照）。
 
 ### ソースから
 Python 3.10 以降（tkinter 同梱の通常のインストールでOK）。
@@ -170,9 +209,20 @@ ark_breeding_timer.py    アプリ本体（ロジックと画面）
 theme.py                 かわいい系UIキット（角丸カード・ボタン・スライダー）
 sounds.py                音の合成と再生
 data/species.json        恐竜の交配データ 315種
+tools/build.py           exeのビルド（誤検知対策こみ）
 tools/build_species_db.py  恐竜データの生成
 tools/make_ico.py        アイコン(.ico)の生成
 ```
+
+exe を自分でビルドするには（PyInstaller が要ります）:
+
+```bat
+pip install pyinstaller
+python tools\build.py
+```
+
+`dist\` に1ファイル版とフォルダ版(zip)の両方ができて、最後に Defender で
+スキャンした結果が出ます。`onefile` / `onedir` を引数に付けると片方だけ作れます。
 
 設定・実行中タイマー・チェックリストの保存先: `%APPDATA%\ArkBreedingTimer\`
 （`config.json` / `timers.json` / `checklist.json`）

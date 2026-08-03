@@ -25,16 +25,13 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
-    name='ArkBreedingTimer',
+    exclude_binaries=True,
+    name='ArkBreedingTimer-dir',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    upx_exclude=[],
-    runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -43,4 +40,13 @@ exe = EXE(
     entitlements_file=None,
     version='C:\\Users\\master\\Desktop\\作業場\\ark-breeding-timer\\build_version_info.txt',
     icon=['assets\\icon.ico'],
+)
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=False,
+    upx_exclude=[],
+    name='ArkBreedingTimer-dir',
 )
