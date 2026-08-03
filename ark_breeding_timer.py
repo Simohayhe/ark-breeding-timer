@@ -67,8 +67,22 @@ DEFAULT_CONFIG = {
     "popup": True,
     "toast": True,
     "repeat_alarm": True,
+    # ポップアップが自分で消えるまでの秒数（0 = 「とめる」を押すまで消えない）
+    "popup_close_prewarn": 8,
+    "popup_close_done": 0,
     "prewarn_sec": 60,
     "auto_chain": True,
+    # 操作
+    "confirm_delete": True,   # ✕ を押したとき確認するか
+    "quick_buttons": [        # 「さくっと」のワンクリックボタン（設定で変えられる）
+        {"label": "1分", "sec": 60},
+        {"label": "3分", "sec": 180},
+        {"label": "5分", "sec": 300},
+        {"label": "10分", "sec": 600},
+        {"label": "15分", "sec": 900},
+        {"label": "30分", "sec": 1800},
+        {"label": "1時間", "sec": 3600},
+    ],
     # 画面
     "always_on_top": True,
     "geometry": "980x700",
@@ -265,9 +279,13 @@ class BreedTimer:
         self.imp_per = kw.get("imp_per", 0.0)
         self.mature_end = kw.get("mature_end")
         self.chain = kw.get("chain")
-        self.repeat = kw.get("repeat", False)
         self.sound = kw.get("sound", "")   # "" なら既定音
         self.note = kw.get("note", "")
+        # ---- くり返し ----
+        self.repeat = bool(kw.get("repeat", False))
+        self.repeat_count = int(kw.get("repeat_count", 0) or 0)  # 0 = ずっと
+        self.repeat_done = int(kw.get("repeat_done", 0) or 0)    # 鳴った回数
+        self.repeat_every = float(kw.get("repeat_every", 0) or 0)  # 0 = 最初と同じ長さ
         # ---- タイマーごとの鳴らし方（ミニ表示から変えられる）----
         # volume は None なら全体設定に従う
         v = kw.get("volume")
@@ -277,6 +295,21 @@ class BreedTimer:
 
     def eff_volume(self, default):
         return default if self.volume is None else self.volume
+
+    def repeat_interval(self):
+        """次にセットし直す長さ。repeat_every が未指定なら今の長さのまま。"""
+        return self.repeat_every if self.repeat_every > 0 else self.total
+
+    def repeat_text(self):
+        """カードに出す「くり返し」の説明。"""
+        if not self.repeat:
+            return ""
+        every = fmt_dur(self.repeat_interval())
+        if self.repeat_count > 0:
+            return "🔁 %s ごと %d/%d回" % (every, min(self.repeat_done,
+                                                     self.repeat_count),
+                                          self.repeat_count)
+        return "🔁 %s ごと（ずっと）" % every
 
     def remaining(self, now=None):
         if self.paused:
@@ -305,8 +338,8 @@ class BreedTimer:
     FIELDS = ("id", "kind", "label", "species", "total", "end_ts", "paused",
               "pause_left", "done", "prewarned", "milestone_done", "milestone_frac",
               "milestone_text", "imp_index", "imp_count", "imp_per", "mature_end",
-              "chain", "repeat", "sound", "note",
-              "volume", "sound_on", "center")
+              "chain", "repeat", "repeat_count", "repeat_done", "repeat_every",
+              "sound", "note", "volume", "sound_on", "center")
 
     def to_dict(self):
         return {k: getattr(self, k) for k in self.FIELDS}
@@ -405,6 +438,11 @@ class FlowFrame(tk.Frame):
         widget.place(x=0, y=0)
         self.after_idle(self._relayout)
         return widget
+
+    def clear(self):
+        for w, _gap in self._kids:
+            w.destroy()
+        self._kids = []
 
     def _on_configure(self, e):
         if e.width != self._last_w:
@@ -739,10 +777,11 @@ class ChecklistPage(tk.Frame):
             self.render()
 
     def remove(self, item):
-        try:
-            self.items.remove(item)
-        except ValueError:
+        if item not in self.items:
             return
+        if not self.app.ask_delete(item.get("text") or "この項目", parent=self):
+            return
+        self.items.remove(item)
         self.save()
         self.render()
 
@@ -794,13 +833,9 @@ class MiniWindow(tk.Toplevel):
         # ---- タイマーのページ ----
         self.page_timer = tk.Frame(self, bg=th.BG)
 
-        add = tk.Frame(self.page_timer, bg=th.BG)
-        add.pack(fill="x", padx=5, pady=(0, 4))
-        th.RoundButton(add, "＋ 追加", self.new_timer, kind="primary", bg=th.BG,
-                       font=th.F["small"], padx=12).pack(side="left")
-        for text, sec in (("5分", 300), ("15分", 900), ("1時間", 3600)):
-            th.Chip(add, text, lambda s=sec, t=text: self.app.quick_add(t, s),
-                    bg=th.BG, font=th.F["small"]).pack(side="left", padx=(4, 0))
+        self.add_bar = FlowFrame(self.page_timer, bg=th.BG, gap_x=4, gap_y=4)
+        self.add_bar.pack(fill="x", padx=5, pady=(0, 4))
+        self.refresh_quick()
 
         wrap = tk.Frame(self.page_timer, bg=th.BG)
         wrap.pack(fill="both", expand=True, padx=5, pady=(0, 7))
@@ -844,6 +879,18 @@ class MiniWindow(tk.Toplevel):
 
     def new_timer(self):
         self.app.open_new_dialog(parent=self)
+
+    def refresh_quick(self):
+        """「＋追加」と、設定した「さくっと」ボタン（狭いので先頭4つまで）。"""
+        self.add_bar.clear()
+        self.add_bar.add(th.RoundButton(self.add_bar, "＋ 追加", self.new_timer,
+                                        kind="primary", bg=th.BG,
+                                        font=th.F["small"], padx=12), gap_x=6)
+        for it in self.app.quick_specs()[:4]:
+            self.add_bar.add(th.Chip(
+                self.add_bar, it["label"],
+                lambda s=it["sec"], t=it["label"]: self.app.quick_add(t, s),
+                bg=th.BG, font=th.F["small"]))
 
     def _wheel(self, e):
         cv = self.page_check.canvas if self.page == "checklist" else self.canvas
@@ -897,7 +944,10 @@ class MiniWindow(tk.Toplevel):
         b_sound.pack(side="left", padx=(0, 3))
         b_center = Pill(ctl, "🖥", lambda: self._toggle(t, "center"),
                         bg=th.CARD, padx=8, pady=4)
-        b_center.pack(side="left", padx=(0, 6))
+        b_center.pack(side="left", padx=(0, 3))
+        b_repeat = Pill(ctl, "🔁", lambda tt=t: self._repeat(tt),
+                        bg=th.CARD, padx=8, pady=4)
+        b_repeat.pack(side="left", padx=(0, 6))
 
         # %表示を先に確保してから、残りをスライダーに広げる
         # （expand=True を先に pack すると余白を全部持っていってしまう）
@@ -910,12 +960,14 @@ class MiniWindow(tk.Toplevel):
         vol.pack(side="left", fill="x", expand=True, padx=(0, 4))
 
         return {"timer": t, "rem": rem, "sound": b_sound, "center": b_center,
-                "vol": vol, "pct": pct, "label": lbl}
+                "repeat": b_repeat, "vol": vol, "pct": pct, "label": lbl}
 
     def _delete(self, t):
-        if messagebox.askyesno(APP_NAME, "「%s」を消しますか？" % t.label,
-                               parent=self):
+        if self.app.ask_delete(t.label or "むめい", parent=self):
             self.app.remove_timer(t.id)   # 中で rebuild まで走る
+
+    def _repeat(self, t):
+        RepeatDialog(self.app, t, parent=self)
 
     def _toggle(self, t, attr):
         setattr(t, attr, not getattr(t, attr))
@@ -941,11 +993,12 @@ class MiniWindow(tk.Toplevel):
                 fg=th.INK_SUB if (t.done or rem <= 0) else th.PINK_DK)
             r["sound"].update_view(t.sound_on)
             r["center"].update_view(t.center)
+            r["repeat"].update_view(t.repeat)
             v = t.eff_volume(self.app.cfg.get("volume", 0.7))
             r["pct"].configure(text="%d%%" % round(v * 100))
         # アイコンだけだと意味が分からないので、ここで凡例も兼ねる
         if self.page != "checklist":
-            self.lbl_head.configure(text="%d本　🔊音 🖥中央" % live)
+            self.lbl_head.configure(text="%d本　🔊音 🖥中央 🔁くり返し" % live)
 
     def back(self):
         self.app.close_mini()
@@ -1032,18 +1085,9 @@ class App(tk.Tk):
         # ---------------- タイマーのページ ----------------
         self.page_timer = tk.Frame(self, bg=th.BG)
 
-        quick = FlowFrame(self.page_timer, bg=th.BG, gap_x=6)
-        quick.pack(fill="x", padx=18, pady=(0, 10))
-        quick.add(th.RoundButton(quick, "＋ 新しいタイマー", self.open_new_dialog,
-                                 kind="primary", bg=th.BG, font=F["cute"]),
-                  gap_x=12)
-        quick.add(tk.Label(quick, text="さくっと:", bg=th.BG, fg=th.INK_SUB,
-                           font=F["small"]))
-        for text, sec in (("1分", 60), ("3分", 180), ("5分", 300), ("10分", 600),
-                          ("15分", 900), ("30分", 1800), ("1時間", 3600)):
-            quick.add(th.Chip(quick, text,
-                              lambda s=sec, t=text: self.quick_add(t, s),
-                              bg=th.BG, font=F["small"]))
+        self.quick = FlowFrame(self.page_timer, bg=th.BG, gap_x=6)
+        self.quick.pack(fill="x", padx=18, pady=(0, 10))
+        self.refresh_quick()
 
         # 一覧
         wrap = tk.Frame(self.page_timer, bg=th.BG)
@@ -1145,8 +1189,45 @@ class App(tk.Tk):
             pass
 
     # ---------------- タイマー ----------------
+    def quick_specs(self):
+        """設定された「さくっと」ボタンの一覧を掃除して返す。"""
+        out = []
+        for it in (self.cfg.get("quick_buttons") or []):
+            try:
+                sec = float(it.get("sec") or 0)
+            except (TypeError, ValueError):
+                continue
+            if sec <= 0:
+                continue
+            out.append({"label": str(it.get("label") or fmt_dur(sec)), "sec": sec})
+        return out or list(DEFAULT_CONFIG["quick_buttons"])
+
     def quick_add(self, label, sec):
         self.add_timer(BreedTimer("custom", label + "タイマー", sec))
+
+    def refresh_quick(self):
+        """設定を変えたあとに「さくっと」の並びを作り直す。"""
+        self.quick.clear()
+        F = self.F
+        self.quick.add(th.RoundButton(self.quick, "＋ 新しいタイマー",
+                                      self.open_new_dialog, kind="primary",
+                                      bg=th.BG, font=F["cute"]), gap_x=12)
+        self.quick.add(tk.Label(self.quick, text="さくっと:", bg=th.BG,
+                                fg=th.INK_SUB, font=F["small"]))
+        for it in self.quick_specs():
+            self.quick.add(th.Chip(
+                self.quick, it["label"],
+                lambda s=it["sec"], t=it["label"]: self.quick_add(t, s),
+                bg=th.BG, font=F["small"]))
+        if self.mini is not None and self.mini.winfo_exists():
+            self.mini.refresh_quick()
+
+    def ask_delete(self, name, parent=None):
+        """✕ を押したときの確認。設定でオフなら何も聞かずに True。"""
+        if not self.cfg.get("confirm_delete", True):
+            return True
+        return messagebox.askyesno(APP_NAME, "「%s」を消しますか？" % name,
+                                   parent=parent or self)
 
     def add_timer(self, t: BreedTimer):
         self.timers.append(t)
@@ -1254,10 +1335,17 @@ class App(tk.Tk):
                            sound_spec=t.sound or None, timer=t)
         if t.chain and self.cfg.get("auto_chain"):
             self._spawn_chain(t)
-        if t.repeat and t.total > 0:
-            t.end_ts = time.time() + t.total
-            t.done = False
-            t.prewarned = False
+        if t.repeat:
+            t.repeat_done += 1
+            interval = t.repeat_interval()
+            if t.repeat_count > 0 and t.repeat_done >= t.repeat_count:
+                t.repeat = False   # 指定回数ぶん鳴ったので終わり
+                t.note = t.note or "くり返し %d回 おわり 🎉" % t.repeat_done
+            elif interval > 0:
+                t.total = interval
+                t.end_ts = time.time() + interval
+                t.done = False
+                t.prewarned = False
 
     def _spawn_chain(self, t: BreedTimer):
         sp = self.db.by_name.get(t.species)
@@ -1363,11 +1451,38 @@ class App(tk.Tk):
                                                                       pady=(8, 10))
         th.RoundButton(b, "とめる", lambda: self._close_popup(p), kind="primary",
                        bg=th.CARD, font=self.F["cute"]).pack()
+
+        # 自分から消えるまでの残りを細いバーで見せる（0秒設定なら出さない）
+        auto = self.cfg.get("popup_close_done" if urgent else "popup_close_prewarn")
+        try:
+            auto = float(auto or 0)
+        except (TypeError, ValueError):
+            auto = 0.0
         p.protocol("WM_DELETE_WINDOW", lambda: self._close_popup(p))
         if urgent and self.cfg.get("repeat_alarm") and sound_on:
             self.alarm_on = True
             self._repeat_alarm(p, sound_spec, 0, volume)
-        p.after(180000, lambda: self._close_popup(p))
+        if auto > 0:
+            bar = th.RoundProgress(b, bg=th.CARD,
+                                   color=th.PINK if urgent else th.LAV, height=4)
+            bar.pack(fill="x", pady=(10, 0))
+            self._popup_countdown(p, bar, time.time() + auto, auto)
+        else:
+            p.after(180000, lambda: self._close_popup(p))   # 万一の保険
+
+    def _popup_countdown(self, p, bar, until, span):
+        """ポップアップが自分で閉じるまでのカウントダウン。"""
+        if not p.winfo_exists():
+            return
+        left = until - time.time()
+        if left <= 0:
+            self._close_popup(p)
+            return
+        try:
+            bar.set(max(0.0, min(1.0, left / span)))
+        except tk.TclError:
+            return
+        p.after(100, lambda: self._popup_countdown(p, bar, until, span))
 
     def _repeat_alarm(self, p, sound_spec, n, volume=None):
         if not p.winfo_exists() or not self.alarm_on or n > 40:
@@ -1454,9 +1569,13 @@ class TimerCard(th.Card):
 
         btns = tk.Frame(head, bg=th.CARD)
         btns.pack(side="right")
-        th.RoundButton(btns, "✕", lambda: app.remove_timer(t.id), kind="danger",
+        th.RoundButton(btns, "✕", self.on_delete, kind="danger",
                        bg=th.CARD, font=F["small"], padx=10, pady=5).pack(side="right",
                                                                          padx=2)
+        self.btn_repeat = th.RoundButton(
+            btns, "🔁", self.edit_repeat, kind="accent" if t.repeat else "ghost",
+            bg=th.CARD, font=F["small"], padx=11, pady=5)
+        self.btn_repeat.pack(side="right", padx=2)
         th.RoundButton(btns, "−5分", lambda: self.nudge(-300), kind="ghost",
                        bg=th.CARD, font=F["small"], padx=9, pady=5).pack(side="right",
                                                                         padx=2)
@@ -1494,6 +1613,13 @@ class TimerCard(th.Card):
     def on_pause(self):
         self.t.toggle_pause()
         self.app.save_timers()
+
+    def on_delete(self):
+        if self.app.ask_delete(self.t.label or "むめい"):
+            self.app.remove_timer(self.t.id)
+
+    def edit_repeat(self):
+        RepeatDialog(self.app, self.t, parent=self.winfo_toplevel())
 
     def nudge(self, sec):
         self.t.end_ts += sec
@@ -1540,7 +1666,9 @@ class TimerCard(th.Card):
         elif t.kind in ("hatch", "gestation") and t.chain:
             info = "終わったら成長・刷り込みも作ります"
         elif t.repeat:
-            info = "%s ごとに繰り返し" % fmt_dur(t.total)
+            info = t.repeat_text()
+        elif t.repeat_done:
+            info = "くり返し %d回 おわり" % t.repeat_done
         self.lbl_info.config(text=info)
 
         if t.note and not self._note_shown:
@@ -1550,6 +1678,142 @@ class TimerCard(th.Card):
             self.lbl_note.pack_forget()
             self._note_shown = False
         self.lbl_note.config(text=t.note)
+
+
+# ---------------------------------------------------------------- くり返し
+class RepeatPanel(tk.Frame):
+    """くり返しの設定（入／回数／間隔）。作成画面とカードの両方で使う。"""
+
+    def __init__(self, master, app, bg=th.CARD, repeat=False, count=0, every=0.0,
+                 on_change=None):
+        super().__init__(master, bg=bg)
+        self.app = app
+        self.bg = bg
+        self.on_change = on_change
+        F = app.F
+
+        self.v_on = tk.BooleanVar(value=bool(repeat))
+        self._check(self, "鳴ったあとくり返す 🔁", self.v_on,
+                    self._toggled).pack(anchor="w")
+
+        self.box = tk.Frame(self, bg=bg)
+
+        r1 = tk.Frame(self.box, bg=bg)
+        r1.pack(anchor="w", pady=(2, 0))
+        self.v_times = tk.StringVar(value="forever" if not count else "n")
+        self._radio(r1, "ずっと", self.v_times, "forever").pack(side="left")
+        self._radio(r1, "", self.v_times, "n").pack(side="left", padx=(14, 0))
+        self.v_n = tk.StringVar(value=str(count or 5))
+        th.soft_entry(r1, self.v_n, width=4).pack(side="left", ipady=2)
+        tk.Label(r1, text=" 回まで", bg=bg, fg=th.INK, font=F["cute"]).pack(side="left")
+
+        r2 = tk.Frame(self.box, bg=bg)
+        r2.pack(anchor="w", pady=(2, 0))
+        self.v_every = tk.StringVar(value="same" if not every else "custom")
+        self._radio(r2, "同じ長さ", self.v_every, "same").pack(side="left")
+        self._radio(r2, "", self.v_every, "custom").pack(side="left", padx=(14, 0))
+        self.v_int = tk.StringVar(value=fmt_dur(every) if every else "10:00")
+        th.soft_entry(r2, self.v_int, width=8).pack(side="left", ipady=2)
+        tk.Label(r2, text=" ごと", bg=bg, fg=th.INK, font=F["cute"]).pack(side="left")
+        tk.Label(self.box, text="   間隔は 1:30 / 25m / 90（=90分）のように書けます",
+                 bg=bg, fg=th.INK_SUB, font=F["small"]).pack(anchor="w")
+
+        self._toggled()
+
+    def _check(self, parent, text, var, cmd=None):
+        return tk.Checkbutton(parent, text=text, variable=var, command=cmd,
+                              bg=self.bg, fg=th.INK, activebackground=self.bg,
+                              activeforeground=th.INK, selectcolor=th.FIELD,
+                              font=self.app.F["cute"], bd=0, highlightthickness=0,
+                              anchor="w")
+
+    def _radio(self, parent, text, var, value):
+        return tk.Radiobutton(parent, text=text, variable=var, value=value,
+                              bg=self.bg, fg=th.INK, activebackground=self.bg,
+                              activeforeground=th.INK, selectcolor=th.FIELD,
+                              font=self.app.F["cute"], bd=0, highlightthickness=0,
+                              anchor="w")
+
+    def _toggled(self):
+        if self.v_on.get():
+            self.box.pack(anchor="w", padx=22, pady=(2, 0))
+        else:
+            self.box.pack_forget()
+        if self.on_change:
+            self.on_change()
+
+    def read(self):
+        """(repeat, count, every, エラー文) を返す。"""
+        if not self.v_on.get():
+            return False, 0, 0.0, None
+        count = 0
+        if self.v_times.get() == "n":
+            try:
+                count = int(float(self.v_n.get()))
+            except ValueError:
+                return None, 0, 0.0, "くり返す回数は数字で入れてください"
+            if count < 1:
+                return None, 0, 0.0, "くり返す回数は1以上にしてください"
+        every = 0.0
+        if self.v_every.get() == "custom":
+            sec = parse_duration(self.v_int.get())
+            if sec is None or sec <= 0:
+                return None, 0, 0.0, "くり返しの間隔が読めません（例 10:00）"
+            every = sec
+        return True, count, every, None
+
+
+class RepeatDialog(tk.Toplevel):
+    """作ったあとのタイマーのくり返しを変える小さい窓。"""
+
+    def __init__(self, app, timer, parent=None):
+        super().__init__(parent or app)
+        self.app = app
+        self.t = timer
+        self.title("くり返しの設定")
+        self.configure(bg=th.BG)
+        self.geometry("400x300")
+        self.transient(parent or app)
+        self.attributes("-topmost", True)
+
+        card = th.Card(self, bg=th.BG)
+        card.pack(fill="both", expand=True, padx=10, pady=10)
+        b = card.body
+        tk.Label(b, text="🔁 %s" % (timer.label or "むめい"), bg=th.CARD, fg=th.INK,
+                 font=app.F["cute_b"], anchor="w").pack(fill="x", pady=(0, 8))
+        self.panel = RepeatPanel(b, app, repeat=timer.repeat,
+                                 count=timer.repeat_count, every=timer.repeat_every)
+        self.panel.pack(fill="x")
+        if timer.repeat_done:
+            tk.Label(b, text="これまで %d回 鳴りました" % timer.repeat_done,
+                     bg=th.CARD, fg=th.INK_SUB, font=app.F["small"],
+                     anchor="w").pack(fill="x", pady=(8, 0))
+
+        btm = tk.Frame(b, bg=th.CARD)
+        btm.pack(side="bottom", fill="x", pady=(12, 0))
+        th.RoundButton(btm, "決定", self.save, kind="primary", bg=th.CARD,
+                       font=app.F["cute_b"], padx=24).pack(side="right")
+        th.RoundButton(btm, "やめる", self.destroy, kind="soft", bg=th.CARD,
+                       font=app.F["cute"]).pack(side="right", padx=8)
+        th.RoundButton(btm, "回数リセット", self.reset, kind="ghost", bg=th.CARD,
+                       font=app.F["small"]).pack(side="left")
+
+    def reset(self):
+        self.t.repeat_done = 0
+        self.app.save_timers()
+        self.app.rebuild_list()
+
+    def save(self):
+        rep, count, every, err = self.panel.read()
+        if err:
+            messagebox.showwarning(APP_NAME, err, parent=self)
+            return
+        self.t.repeat = rep
+        self.t.repeat_count = count
+        self.t.repeat_every = every
+        self.app.save_timers()
+        self.app.rebuild_list()
+        self.destroy()
 
 
 # ---------------------------------------------------------------- 音の選択部品
@@ -1643,7 +1907,9 @@ class NewTimerDialog(tk.Toplevel):
         self.calc = None
         self.title("新しいタイマー")
         self.configure(bg=th.BG)
-        self.geometry("800x620")
+        # くり返しの欄をひらいても「つくる」が隠れない高さ
+        self.geometry("800x700")
+        self.minsize(700, 560)
         # 本体をしまっているときは、出どころのウィンドウに紐づける
         self.transient(parent if parent is not None else app)
         self.attributes("-topmost", bool(app.cfg["always_on_top"]))
@@ -1745,9 +2011,8 @@ class NewTimerDialog(tk.Toplevel):
         self.f_sound = SoundPicker(row, self.app, value="", allow_default=True)
         self.f_sound.pack(side="left")
 
-        self.f_repeat = tk.BooleanVar(value=False)
-        self._check(f, "鳴ったあと同じ長さで繰り返す 🔁",
-                    self.f_repeat).pack(anchor="w")
+        self.f_repeat = RepeatPanel(f, self.app)
+        self.f_repeat.pack(fill="x")
 
         row3 = tk.Frame(f, bg=th.CARD)
         row3.pack(fill="x", pady=(8, 0))
@@ -1825,8 +2090,14 @@ class NewTimerDialog(tk.Toplevel):
         if err:
             messagebox.showwarning(APP_NAME, err, parent=self)
             return
+        rep, count, every, rerr = self.f_repeat.read()
+        if rerr:
+            messagebox.showwarning(APP_NAME, rerr, parent=self)
+            return
         t = BreedTimer("custom", self.f_label.get().strip() or "タイマー", sec)
-        t.repeat = bool(self.f_repeat.get())
+        t.repeat = rep
+        t.repeat_count = count
+        t.repeat_every = every
         t.sound = self.f_sound.get()
         t.note = self.f_note.get().strip()
         self.app.add_timer(t)
@@ -1980,25 +2251,25 @@ class SettingsDialog(tk.Toplevel):
         self.F = app.F
         self.title("設定")
         self.configure(bg=th.BG)
-        self.geometry("560x624")
+        self.geometry("600x660")
         self.transient(app)
         self.attributes("-topmost", bool(app.cfg["always_on_top"]))
 
-        sw = tk.Frame(self, bg=th.BG)
+        sw = FlowFrame(self, bg=th.BG, gap_x=8, gap_y=6)
         sw.pack(fill="x", padx=18, pady=(16, 8))
-        self.b1 = th.RoundButton(sw, "🔔 音と通知", lambda: self.switch("snd"),
-                                 kind="primary", bg=th.BG, font=self.F["cute"])
-        self.b1.pack(side="left", padx=(0, 8))
-        self.b2 = th.RoundButton(sw, "🦖 ARK倍率", lambda: self.switch("ark"),
-                                 kind="soft", bg=th.BG, font=self.F["cute"])
-        self.b2.pack(side="left")
-
         self.holder = tk.Frame(self, bg=th.BG)
         self.holder.pack(fill="both", expand=True, padx=12, pady=(0, 8))
-        self.p1 = th.Card(self.holder, bg=th.BG)
-        self.p2 = th.Card(self.holder, bg=th.BG)
-        self._build_sound(self.p1.body)
-        self._build_ark(self.p2.body)
+
+        self.btns, self.pages = {}, {}
+        for key, label in (("snd", "🔔 音と通知"), ("timer", "⏰ タイマー"),
+                           ("ark", "🦖 ARK倍率")):
+            self.btns[key] = sw.add(th.RoundButton(
+                sw, label, lambda k=key: self.switch(k), kind="soft", bg=th.BG,
+                font=self.F["cute"]))
+            self.pages[key] = th.Card(self.holder, bg=th.BG)
+        self._build_sound(self.pages["snd"].body)
+        self._build_timer(self.pages["timer"].body)
+        self._build_ark(self.pages["ark"].body)
 
         btm = tk.Frame(self, bg=th.BG)
         btm.pack(fill="x", padx=18, pady=(0, 14))
@@ -2011,16 +2282,14 @@ class SettingsDialog(tk.Toplevel):
         self.switch("snd")
 
     def switch(self, which):
-        self.p1.pack_forget()
-        self.p2.pack_forget()
-        on, off = (self.b1, self.b2) if which == "snd" else (self.b2, self.b1)
-        (self.p1 if which == "snd" else self.p2).pack(fill="both", expand=True)
-        on.fill = th.PINK
-        off.fill = th.BG_SOFT
-        on.itemconfigure(on.shape, fill=th.PINK)
-        on.itemconfigure(on.label, fill="#FFFFFF")
-        off.itemconfigure(off.shape, fill=th.BG_SOFT)
-        off.itemconfigure(off.label, fill=th.INK)
+        for card in self.pages.values():
+            card.pack_forget()
+        self.pages[which].pack(fill="both", expand=True)
+        for key, b in self.btns.items():
+            on = key == which
+            b.fill = th.PINK if on else th.BG_SOFT
+            b.itemconfigure(b.shape, fill=b.fill)
+            b.itemconfigure(b.label, fill="#FFFFFF" if on else th.INK)
 
     def _check(self, parent, text, var):
         return tk.Checkbutton(parent, text=text, variable=var, bg=th.CARD, fg=th.INK,
@@ -2080,6 +2349,17 @@ class SettingsDialog(tk.Toplevel):
         self.v_pre = tk.StringVar(value=str(int(cfg.get("prewarn_sec") or 0)))
         th.soft_entry(row2, self.v_pre, width=6).pack(side="left", padx=8, ipady=3)
 
+        tk.Label(f, text="\nポップアップが自分で消えるまで（秒／0でずっと出しっぱなし）",
+                 bg=th.CARD, fg=th.INK, font=F["cute"]).pack(anchor="w")
+        row3 = tk.Frame(f, bg=th.CARD)
+        row3.pack(anchor="w", pady=(4, 0))
+        self.v_pc_pre = tk.StringVar(value=str(int(cfg.get("popup_close_prewarn") or 0)))
+        self.v_pc_done = tk.StringVar(value=str(int(cfg.get("popup_close_done") or 0)))
+        for text, var in (("予告", self.v_pc_pre), ("鳴ったとき", self.v_pc_done)):
+            tk.Label(row3, text=text, bg=th.CARD, fg=th.INK_SUB,
+                     font=F["small"]).pack(side="left", padx=(0, 4))
+            th.soft_entry(row3, var, width=5).pack(side="left", padx=(0, 14), ipady=3)
+
     def _vol_changed(self, v):
         self.vol = v
         self.lbl_vol.config(text="%d%%" % round(v * 100))
@@ -2088,6 +2368,91 @@ class SettingsDialog(tk.Toplevel):
     def _preview_vol(self):
         snd.play_async(self.pick_done.get() or snd.DEFAULT_DONE,
                        self.vol, SOUND_CACHE)
+
+    # ------------------------------------------------ タイマーの設定
+    def _build_timer(self, f):
+        F = self.F
+        tk.Label(f, text="さくっとボタン", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w")
+        tk.Label(f, text="ワンクリックでタイマーを作るボタンです。"
+                         "名前と長さを自由に変えられます",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
+                                                                  pady=(0, 6))
+        hdr = tk.Frame(f, bg=th.CARD)
+        hdr.pack(fill="x")
+        tk.Label(hdr, text="なまえ", bg=th.CARD, fg=th.INK_SUB, font=F["small"],
+                 width=12, anchor="w").pack(side="left")
+        tk.Label(hdr, text="長さ", bg=th.CARD, fg=th.INK_SUB, font=F["small"],
+                 anchor="w").pack(side="left")
+
+        self.quick_rows_box = tk.Frame(f, bg=th.CARD)
+        self.quick_rows_box.pack(fill="x", pady=(2, 6))
+        self.quick_rows = []
+        for it in self.app.quick_specs():
+            self._add_quick_row(it["label"], it["sec"])
+
+        bar = tk.Frame(f, bg=th.CARD)
+        bar.pack(fill="x", pady=(0, 14))
+        th.RoundButton(bar, "＋ 追加", lambda: self._add_quick_row("", 300),
+                       kind="soft", bg=th.CARD, font=F["small"],
+                       padx=12, pady=5).pack(side="left")
+        th.RoundButton(bar, "はじめの並びに戻す", self._reset_quick, kind="ghost",
+                       bg=th.CARD, font=F["small"], padx=12,
+                       pady=5).pack(side="left", padx=6)
+        tk.Label(bar, text="長さは 5:00 / 25m / 90（=90分）", bg=th.CARD,
+                 fg=th.INK_SUB, font=F["small"]).pack(side="left", padx=6)
+
+        tk.Label(f, text="消すとき", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w")
+        self.v_confirm = tk.BooleanVar(
+            value=bool(self.app.cfg.get("confirm_delete", True)))
+        self._check(f, "✕ を押したとき「消しますか？」と確認する",
+                    self.v_confirm).pack(anchor="w")
+        tk.Label(f, text="オフにすると、押した瞬間に消えます（元に戻せません）",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w")
+
+    def _add_quick_row(self, label, sec):
+        if len(self.quick_rows) >= 12:
+            return
+        F = self.F
+        row = tk.Frame(self.quick_rows_box, bg=th.CARD)
+        row.pack(fill="x", pady=1)
+        v_label = tk.StringVar(value=label)
+        v_time = tk.StringVar(value=fmt_dur(sec))
+        th.soft_entry(row, v_label, width=12).pack(side="left", ipady=2)
+        th.soft_entry(row, v_time, width=9).pack(side="left", padx=6, ipady=2)
+        rec = {"row": row, "label": v_label, "time": v_time}
+        th.RoundButton(row, "✕", lambda r=rec: self._del_quick_row(r),
+                       kind="danger", bg=th.CARD, font=F["small"], padx=9,
+                       pady=4).pack(side="left")
+        self.quick_rows.append(rec)
+
+    def _del_quick_row(self, rec):
+        rec["row"].destroy()
+        if rec in self.quick_rows:
+            self.quick_rows.remove(rec)
+
+    def _reset_quick(self):
+        for rec in list(self.quick_rows):
+            self._del_quick_row(rec)
+        for it in DEFAULT_CONFIG["quick_buttons"]:
+            self._add_quick_row(it["label"], it["sec"])
+
+    def _read_quick(self):
+        """(一覧, エラー文)。名前が空なら長さから作る。"""
+        out = []
+        for rec in self.quick_rows:
+            text = rec["time"].get().strip()
+            if not text:
+                continue
+            sec = parse_duration(text)
+            if sec is None or sec <= 0:
+                return None, "「%s」は長さとして読めません（例 5:00）" % text
+            out.append({"label": rec["label"].get().strip() or fmt_dur(sec),
+                        "sec": sec})
+        if not out:
+            return None, "さくっとボタンを1つ以上のこしてください"
+        return out, None
 
     def _build_ark(self, f):
         F = self.F
@@ -2123,11 +2488,20 @@ class SettingsDialog(tk.Toplevel):
                     raise ValueError(key)
                 self.app.cfg[key] = val
             self.app.cfg["prewarn_sec"] = max(0, int(float(self.v_pre.get())))
+            self.app.cfg["popup_close_prewarn"] = max(0, int(float(self.v_pc_pre.get())))
+            self.app.cfg["popup_close_done"] = max(0, int(float(self.v_pc_done.get())))
         except ValueError:
             messagebox.showwarning(APP_NAME, "倍率は0より大きい数字で入れてください",
                                    parent=self)
             return
+        quick, qerr = self._read_quick()
+        if qerr:
+            self.switch("timer")
+            messagebox.showwarning(APP_NAME, qerr, parent=self)
+            return
         c = self.app.cfg
+        c["quick_buttons"] = quick
+        c["confirm_delete"] = bool(self.v_confirm.get())
         c["gestation_uses_hatch_mult"] = bool(self.v_gest.get())
         c["sound"] = bool(self.v_sound.get())
         c["popup"] = bool(self.v_popup.get())
@@ -2138,6 +2512,7 @@ class SettingsDialog(tk.Toplevel):
         c["sound_done"] = self.pick_done.get() or snd.DEFAULT_DONE
         c["sound_prewarn"] = self.pick_pre.get() or snd.DEFAULT_PREWARN
         self.app.save_cfg()
+        self.app.refresh_quick()
         self.destroy()
 
 
