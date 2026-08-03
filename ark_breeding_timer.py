@@ -74,6 +74,7 @@ DEFAULT_CONFIG = {
     "geometry": "980x700",
     "page": "timers",         # 最後に開いていたページ
     "mini_geometry": "300x320",
+    "mini_page": "timers",
 }
 
 
@@ -517,35 +518,46 @@ class MarkButton(tk.Canvas):
             self.itemconfigure(self.text, fill=th.INK_SUB)
 
 
-class ChecklistPage(tk.Frame):
-    """✓完了 / △保留 / ✗中止 の3状態と、状態ごとの絞り込みだけの簡単な一覧。"""
+def load_checklist():
+    """保存済みのチェックリストを読む（壊れていても落ちないように）。"""
+    out = []
+    for it in load_json(CHECKLIST_PATH, []):
+        try:
+            text = str(it.get("text", "")).strip()
+            if not text:
+                continue
+            st = it.get("state")
+            out.append({"text": text,
+                        "state": st if st in CHECK_STATES else None})
+        except AttributeError:
+            pass
+    return out
 
-    def __init__(self, master, app):
+
+class ChecklistPage(tk.Frame):
+    """✓完了 / △保留 / ✗中止 の3状態と、状態ごとの絞り込みだけの簡単な一覧。
+
+    本体とミニ表示の両方に置けるよう、項目そのものは App が持ち、
+    この画面はそれを映すだけにしてある（片方で変えたらもう片方も更新される）。
+    """
+
+    def __init__(self, master, app, compact=False):
         super().__init__(master, bg=th.BG)
         self.app = app
-        self.items = self._load()
         self.filter = "todo"
-        self._compact = False
+        self._compact = compact
+        app.checklist_pages.append(self)
         self._build()
+        if compact:
+            self.lbl_hint.pack_forget()
         self.render()
 
-    # ---- 保存 ----
-    def _load(self):
-        out = []
-        for it in load_json(CHECKLIST_PATH, []):
-            try:
-                text = str(it.get("text", "")).strip()
-                if not text:
-                    continue
-                st = it.get("state")
-                out.append({"text": text,
-                            "state": st if st in CHECK_STATES else None})
-            except AttributeError:
-                pass
-        return out
+    @property
+    def items(self):
+        return self.app.checklist_items
 
     def save(self):
-        save_json(CHECKLIST_PATH, self.items)
+        self.app.save_checklist()
 
     # ---- 画面 ----
     def _build(self):
@@ -739,9 +751,8 @@ class ChecklistPage(tk.Frame):
             return
         if messagebox.askyesno(APP_NAME, "全部の項目を消します。よろしいですか？",
                                parent=self):
-            self.items = []
+            self.items.clear()      # 共有リストなので中身だけ空にする
             self.save()
-            self.render()
 
 
 class MiniWindow(tk.Toplevel):
@@ -770,11 +781,28 @@ class MiniWindow(tk.Toplevel):
         bar.pack(fill="x", padx=8, pady=(8, 4))
         th.RoundButton(bar, "戻る", self.back, kind="soft", bg=th.BG,
                        font=th.F["small"], padx=10).pack(side="right")
+        self.tabs = {}
+        for key, label in (("timers", "⏰"), ("checklist", "🗒")):
+            p = Pill(bar, label, lambda k=key: self.show_page(k), bg=th.BG,
+                     padx=10, pady=4)
+            p.pack(side="left", padx=(0, 4))
+            self.tabs[key] = p
         self.lbl_head = tk.Label(bar, text="", bg=th.BG, fg=th.INK_SUB,
                                  font=th.F["small"], anchor="w")
-        self.lbl_head.pack(side="left")
+        self.lbl_head.pack(side="left", padx=(4, 0))
 
-        wrap = tk.Frame(self, bg=th.BG)
+        # ---- タイマーのページ ----
+        self.page_timer = tk.Frame(self, bg=th.BG)
+
+        add = tk.Frame(self.page_timer, bg=th.BG)
+        add.pack(fill="x", padx=5, pady=(0, 4))
+        th.RoundButton(add, "＋ 追加", self.new_timer, kind="primary", bg=th.BG,
+                       font=th.F["small"], padx=12).pack(side="left")
+        for text, sec in (("5分", 300), ("15分", 900), ("1時間", 3600)):
+            th.Chip(add, text, lambda s=sec, t=text: self.app.quick_add(t, s),
+                    bg=th.BG, font=th.F["small"]).pack(side="left", padx=(4, 0))
+
+        wrap = tk.Frame(self.page_timer, bg=th.BG)
         wrap.pack(fill="both", expand=True, padx=5, pady=(0, 7))
         self.canvas = tk.Canvas(wrap, bg=th.BG, highlightthickness=0, bd=0)
         vs = ttk.Scrollbar(wrap, orient="vertical", command=self.canvas.yview,
@@ -788,14 +816,39 @@ class MiniWindow(tk.Toplevel):
             scrollregion=self.canvas.bbox("all")))
         self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfigure(
             self._win, width=e.width))
-        self.bind("<MouseWheel>", self._wheel)
 
+        # ---- チェックリストのページ（本体と同じ中身を映す）----
+        self.page_check = ChecklistPage(self, app, compact=True)
+
+        self.bind("<MouseWheel>", self._wheel)
         self.protocol("WM_DELETE_WINDOW", self.back)
+        self.page = None
+        self.show_page(app.cfg.get("mini_page") or "timers")
         self.rebuild()
 
+    def show_page(self, name):
+        if name not in ("timers", "checklist"):
+            name = "timers"
+        self.page = name
+        for key, pill in self.tabs.items():
+            pill.update_view(key == name)
+        self.page_timer.pack_forget()
+        self.page_check.pack_forget()
+        if name == "checklist":
+            self.page_check.pack(fill="both", expand=True, padx=8, pady=(0, 7))
+            self.lbl_head.configure(text="")   # 🔊🖥 の凡例はタイマー側だけの話
+        else:
+            self.page_timer.pack(fill="both", expand=True)
+            self.update_view()
+        self.app.cfg["mini_page"] = name
+
+    def new_timer(self):
+        self.app.open_new_dialog(parent=self)
+
     def _wheel(self, e):
+        cv = self.page_check.canvas if self.page == "checklist" else self.canvas
         try:
-            self.canvas.yview_scroll(int(-e.delta / 120), "units")
+            cv.yview_scroll(int(-e.delta / 120), "units")
         except tk.TclError:
             pass
 
@@ -824,12 +877,18 @@ class MiniWindow(tk.Toplevel):
         top = tk.Frame(inner, bg=th.CARD)
         top.pack(fill="x")
         icon = th.KIND_STYLE.get(t.kind, ("⏰", th.PEACH, ""))[0]
+        dele = tk.Label(top, text="×", bg=th.CARD, fg=th.LINE,
+                        font=th.F["cute_b"], cursor="hand2", padx=4)
+        dele.pack(side="right")
+        dele.bind("<ButtonRelease-1>", lambda e, tt=t: self._delete(tt))
+        dele.bind("<Enter>", lambda e, w=dele: w.configure(fg=th.RED))
+        dele.bind("<Leave>", lambda e, w=dele: w.configure(fg=th.LINE))
+        rem = tk.Label(top, text="", bg=th.CARD, fg=th.PINK_DK,
+                       font=th.F["num_s"])
+        rem.pack(side="right", padx=(0, 4))
         lbl = tk.Label(top, text="%s %s" % (icon, t.label), bg=th.CARD, fg=th.INK,
                        font=th.F["ui_b"], anchor="w", justify="left")
         lbl.pack(side="left", fill="x", expand=True)
-        rem = tk.Label(top, text="", bg=th.CARD, fg=th.PINK_DK,
-                       font=th.F["num_s"])
-        rem.pack(side="right")
 
         ctl = tk.Frame(inner, bg=th.CARD)
         ctl.pack(fill="x", pady=(4, 0))
@@ -852,6 +911,11 @@ class MiniWindow(tk.Toplevel):
 
         return {"timer": t, "rem": rem, "sound": b_sound, "center": b_center,
                 "vol": vol, "pct": pct, "label": lbl}
+
+    def _delete(self, t):
+        if messagebox.askyesno(APP_NAME, "「%s」を消しますか？" % t.label,
+                               parent=self):
+            self.app.remove_timer(t.id)   # 中で rebuild まで走る
 
     def _toggle(self, t, attr):
         setattr(t, attr, not getattr(t, attr))
@@ -880,7 +944,8 @@ class MiniWindow(tk.Toplevel):
             v = t.eff_volume(self.app.cfg.get("volume", 0.7))
             r["pct"].configure(text="%d%%" % round(v * 100))
         # アイコンだけだと意味が分からないので、ここで凡例も兼ねる
-        self.lbl_head.configure(text="動作中 %d 本　🔊音  🖥中央" % live)
+        if self.page != "checklist":
+            self.lbl_head.configure(text="%d本　🔊音 🖥中央" % live)
 
     def back(self):
         self.app.close_mini()
@@ -898,6 +963,9 @@ class App(tk.Tk):
         self.popup = None
         self.mini = None
         self.alarm_on = False
+        # チェックリストは本体とミニ表示で同じものを見せるので App が持つ
+        self.checklist_items = load_checklist()
+        self.checklist_pages = []
 
         self.title(APP_NAME)
         self.geometry(self.cfg.get("geometry", "980x700"))
@@ -1102,16 +1170,25 @@ class App(tk.Tk):
         self.empty.pack_forget()
         if not self.timers:
             self.empty.pack(fill="x")
-            return
-        for t in sorted(self.timers, key=lambda x: (x.remaining() <= 0, x.remaining())):
-            card = TimerCard(self.list_frame, self, t)
-            card.pack(fill="x", pady=1)
-            self.cards[t.id] = card
+        else:
+            for t in sorted(self.timers,
+                            key=lambda x: (x.remaining() <= 0, x.remaining())):
+                card = TimerCard(self.list_frame, self, t)
+                card.pack(fill="x", pady=1)
+                self.cards[t.id] = card
+        # 空になったときも忘れずに（ここを早期 return の後ろに置くと更新されない）
         if self.mini is not None and self.mini.winfo_exists():
             self.mini.rebuild()
 
     def save_timers(self):
         save_json(TIMERS_PATH, [t.to_dict() for t in self.timers])
+
+    def save_checklist(self):
+        """保存して、開いているチェックリスト画面をぜんぶ描き直す。"""
+        save_json(CHECKLIST_PATH, self.checklist_items)
+        self.checklist_pages = [p for p in self.checklist_pages if p.winfo_exists()]
+        for p in self.checklist_pages:
+            p.render()
 
     def _load_timers(self):
         for d in load_json(TIMERS_PATH, []):
@@ -1323,8 +1400,9 @@ class App(tk.Tk):
             pass
 
     # ---------------- その他 ----------------
-    def open_new_dialog(self):
-        NewTimerDialog(self)
+    def open_new_dialog(self, parent=None):
+        """parent を渡すとそのウィンドウに紐づく（ミニ表示から開くとき用）。"""
+        NewTimerDialog(self, parent=parent)
 
     def open_settings(self):
         SettingsDialog(self)
@@ -1557,7 +1635,7 @@ class SoundPicker(tk.Frame):
 
 # ---------------------------------------------------------------- 新規ダイアログ
 class NewTimerDialog(tk.Toplevel):
-    def __init__(self, app: App):
+    def __init__(self, app: App, parent=None):
         super().__init__(app)
         self.app = app
         self.F = app.F
@@ -1566,7 +1644,8 @@ class NewTimerDialog(tk.Toplevel):
         self.title("新しいタイマー")
         self.configure(bg=th.BG)
         self.geometry("800x620")
-        self.transient(app)
+        # 本体をしまっているときは、出どころのウィンドウに紐づける
+        self.transient(parent if parent is not None else app)
         self.attributes("-topmost", bool(app.cfg["always_on_top"]))
 
         sw = tk.Frame(self, bg=th.BG)
