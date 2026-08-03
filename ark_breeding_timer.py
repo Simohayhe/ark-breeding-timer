@@ -23,7 +23,8 @@ import uuid
 from datetime import datetime
 
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, simpledialog
+from tkinter import font as tkfont
 
 import sounds as snd
 import theme as th
@@ -43,6 +44,7 @@ STATE_DIR = os.path.join(
     os.environ.get("APPDATA") or os.path.expanduser("~"), "ArkBreedingTimer")
 CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
 TIMERS_PATH = os.path.join(STATE_DIR, "timers.json")
+CHECKLIST_PATH = os.path.join(STATE_DIR, "checklist.json")
 SOUND_CACHE = os.path.join(STATE_DIR, "sounds")
 
 BASE_CUDDLE_INTERVAL = 28800.0  # ARK の刷り込み基準間隔 = 8時間
@@ -70,6 +72,7 @@ DEFAULT_CONFIG = {
     # 画面
     "always_on_top": True,
     "geometry": "980x700",
+    "page": "timers",         # 最後に開いていたページ
 }
 
 
@@ -350,6 +353,291 @@ def _ps(s):
 
 
 # ---------------------------------------------------------------- 本体
+# ---------------------------------------------------------------- チェックリスト
+CHECK_STATES = ("ok", "hold", "ng")
+CHECK_MARK = {"ok": "✓", "hold": "△", "ng": "✗"}
+CHECK_COLOR = {"ok": th.MINT, "hold": th.LEMON, "ng": th.RED}
+CHECK_TITLE = {"ok": "完了", "hold": "保留", "ng": "中止"}
+CHECK_FILTERS = (("all", "すべて"), ("ok", "✓ 完了"), ("hold", "△ 保留"),
+                 ("ng", "✗ 中止"), ("none", "未設定"))
+
+
+class Pill(tk.Canvas):
+    """角丸のトグル。ページ切替タブと絞り込みチップの両方に使う。"""
+
+    def __init__(self, master, text, command, bg=th.BG, font=None,
+                 counted=False, padx=14, pady=7):
+        self.font = font or th.F.get("small", (th.JP, 9))
+        fo = tkfont.Font(font=self.font)
+        self.base_text = text
+        w = fo.measure(text + ("  99" if counted else "")) + padx * 2
+        h = fo.metrics("linespace") + pady * 2
+        super().__init__(master, width=w, height=h, bg=bg,
+                         highlightthickness=0, bd=0)
+        self.command = command
+        self.active = False
+        self.shape = th.round_rect(self, 1, 1, w - 1, h - 1, h / 2,
+                                   fill=th.CARD, outline=th.LINE, width=1)
+        self.label = self.create_text(w / 2, h / 2 + 1, text=text,
+                                      fill=th.INK_SUB, font=self.font)
+        self.bind("<ButtonRelease-1>", lambda e: self.command())
+        self.bind("<Enter>", lambda e: self._hover(True))
+        self.bind("<Leave>", lambda e: self._hover(False))
+        self.configure(cursor="hand2")
+
+    def _hover(self, on):
+        if not self.active:
+            self.itemconfigure(self.shape, fill="#FFF0F6" if on else th.CARD)
+
+    def update_view(self, active, count=None):
+        self.active = active
+        txt = self.base_text if count is None else "%s  %d" % (self.base_text, count)
+        self.itemconfigure(self.label, text=txt)
+        if active:
+            self.itemconfigure(self.shape, fill=th.PINK, outline=th.PINK)
+            self.itemconfigure(self.label, fill="#FFFFFF")
+        else:
+            self.itemconfigure(self.shape, fill=th.CARD, outline=th.LINE)
+            self.itemconfigure(self.label, fill=th.INK_SUB)
+
+
+class MarkButton(tk.Canvas):
+    """✓ / △ / ✗ の小さな四角ボタン。押されている間だけ色が付く。"""
+
+    SIZE = 30
+
+    def __init__(self, master, state, command, bg=th.CARD):
+        super().__init__(master, width=self.SIZE, height=self.SIZE,
+                         bg=bg, highlightthickness=0, bd=0)
+        self.state_key = state
+        self.command = command
+        self.active = False
+        self.color = CHECK_COLOR[state]
+        self.shape = th.round_rect(self, 1, 1, self.SIZE - 1, self.SIZE - 1, 8,
+                                   fill=th.CARD, outline=th.LINE, width=1)
+        self.text = self.create_text(self.SIZE / 2, self.SIZE / 2 + 1,
+                                     text=CHECK_MARK[state], fill=th.INK_SUB,
+                                     font=th.F.get("cute", (th.JP, 11)))
+        self.bind("<Enter>", lambda e: self._hover(True))
+        self.bind("<Leave>", lambda e: self._hover(False))
+        self.bind("<ButtonRelease-1>", lambda e: self.command(self.state_key))
+        self.configure(cursor="hand2")
+
+    def _hover(self, on):
+        if not self.active:
+            self.itemconfigure(self.shape, outline=self.color if on else th.LINE)
+
+    def set_active(self, on):
+        self.active = on
+        if on:
+            self.itemconfigure(self.shape, fill=self.color, outline=self.color)
+            self.itemconfigure(self.text, fill="#FFFFFF")
+        else:
+            self.itemconfigure(self.shape, fill=th.CARD, outline=th.LINE)
+            self.itemconfigure(self.text, fill=th.INK_SUB)
+
+
+class ChecklistPage(tk.Frame):
+    """✓完了 / △保留 / ✗中止 の3状態と、状態ごとの絞り込みだけの簡単な一覧。"""
+
+    def __init__(self, master, app):
+        super().__init__(master, bg=th.BG)
+        self.app = app
+        self.items = self._load()
+        self.filter = "all"
+        self._build()
+        self.render()
+
+    # ---- 保存 ----
+    def _load(self):
+        out = []
+        for it in load_json(CHECKLIST_PATH, []):
+            try:
+                text = str(it.get("text", "")).strip()
+                if not text:
+                    continue
+                st = it.get("state")
+                out.append({"text": text,
+                            "state": st if st in CHECK_STATES else None})
+            except AttributeError:
+                pass
+        return out
+
+    def save(self):
+        save_json(CHECKLIST_PATH, self.items)
+
+    # ---- 画面 ----
+    def _build(self):
+        F = th.F
+        head = tk.Frame(self, bg=th.BG)
+        head.pack(fill="x", pady=(0, 8))
+        tk.Label(head, text="✓ 完了  /  △ 保留  /  ✗ 中止　"
+                            "同じ印をもう一度押すと未設定に戻ります",
+                 bg=th.BG, fg=th.INK_SUB, font=F["small"]).pack(side="left")
+        self.lbl_count = tk.Label(head, text="", bg=th.BG, fg=th.INK_SUB,
+                                  font=F["small"])
+        self.lbl_count.pack(side="right")
+
+        add = tk.Frame(self, bg=th.BG)
+        add.pack(fill="x", pady=(0, 10))
+        self.var_new = tk.StringVar()
+        self.entry = th.soft_entry(add, textvariable=self.var_new, bg=th.BG,
+                                   font=F["ui"])
+        self.entry.pack(side="left", fill="x", expand=True, ipady=6)
+        self.entry.bind("<Return>", lambda e: self.add())
+        th.RoundButton(add, "追加", self.add, kind="primary", bg=th.BG,
+                       font=F["cute"], padx=18).pack(side="left", padx=(8, 0))
+
+        fbar = tk.Frame(self, bg=th.BG)
+        fbar.pack(fill="x", pady=(0, 8))
+        self.chips = {}
+        for key, label in CHECK_FILTERS:
+            p = Pill(fbar, label, lambda k=key: self.set_filter(k), bg=th.BG,
+                     counted=True)
+            p.pack(side="left", padx=(0, 5))
+            self.chips[key] = p
+
+        wrap = tk.Frame(self, bg=th.BG)
+        wrap.pack(fill="both", expand=True)
+        self.canvas = tk.Canvas(wrap, bg=th.BG, highlightthickness=0, bd=0)
+        vs = ttk.Scrollbar(wrap, orient="vertical", command=self.canvas.yview,
+                           style="Cute.Vertical.TScrollbar")
+        self.canvas.configure(yscrollcommand=vs.set)
+        vs.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.inner = tk.Frame(self.canvas, bg=th.BG)
+        self._win = self.canvas.create_window((0, 0), window=self.inner, anchor="nw")
+        self.inner.bind("<Configure>", lambda e: self.canvas.configure(
+            scrollregion=self.canvas.bbox("all")))
+        self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfigure(
+            self._win, width=e.width))
+
+        foot = tk.Frame(self, bg=th.BG)
+        foot.pack(fill="x", pady=(8, 0))
+        tk.Label(foot, text="項目をダブルクリックで書きかえ", bg=th.BG,
+                 fg=th.INK_SUB, font=F["small"]).pack(side="left")
+        th.RoundButton(foot, "全部消す", self.clear_all, kind="danger", bg=th.BG,
+                       font=F["small"], padx=14).pack(side="right")
+
+    # ---- 表示 ----
+    def count_of(self, key):
+        if key == "all":
+            return len(self.items)
+        if key == "none":
+            return sum(1 for i in self.items if not i["state"])
+        return sum(1 for i in self.items if i["state"] == key)
+
+    def visible(self):
+        if self.filter == "all":
+            return list(self.items)
+        if self.filter == "none":
+            return [i for i in self.items if not i["state"]]
+        return [i for i in self.items if i["state"] == self.filter]
+
+    def render(self):
+        for key, _ in CHECK_FILTERS:
+            self.chips[key].update_view(self.filter == key, self.count_of(key))
+        for w in self.inner.winfo_children():
+            w.destroy()
+
+        shown = self.visible()
+        if not shown:
+            box = tk.Frame(self.inner, bg=th.BG)
+            box.pack(fill="x")
+            tk.Label(box, text="🗒", bg=th.BG, font=(th.JP, 34)).pack(pady=(36, 6))
+            tk.Label(box, text=("まだ項目はありません" if not self.items
+                                else "この絞り込みに当てはまる項目はありません"),
+                     bg=th.BG, fg=th.INK, font=th.F["cute_b"]).pack()
+            if not self.items:
+                tk.Label(box, text="上の欄に書いて Enter で追加できます",
+                         bg=th.BG, fg=th.INK_SUB,
+                         font=th.F["small"]).pack(pady=(4, 0))
+        else:
+            for item in shown:
+                self._row(item)
+
+        done = self.count_of("ok")
+        self.lbl_count.configure(
+            text="%d / %d 完了" % (done, len(self.items)) if self.items else "")
+        self.canvas.yview_moveto(0.0)
+
+    def _row(self, item):
+        row = tk.Frame(self.inner, bg=th.CARD, highlightthickness=1,
+                       highlightbackground=th.LINE, highlightcolor=th.LINE)
+        row.pack(fill="x", padx=2, pady=3)
+
+        marks = tk.Frame(row, bg=th.CARD)
+        marks.pack(side="left", padx=(8, 6), pady=7)
+        for st in CHECK_STATES:
+            b = MarkButton(marks, st, lambda k, it=item: self.toggle(it, k))
+            b.set_active(item["state"] == st)
+            b.pack(side="left", padx=2)
+
+        struck = item["state"] in ("ok", "ng")
+        f = tkfont.Font(font=th.F["ui"])
+        if struck:
+            f.configure(overstrike=1)
+        lbl = tk.Label(row, text=item["text"], bg=th.CARD,
+                       fg=th.INK_SUB if struck else th.INK, font=f,
+                       anchor="w", justify="left", wraplength=620)
+        lbl.pack(side="left", fill="x", expand=True, pady=7)
+        lbl.bind("<Double-Button-1>", lambda e, it=item: self.rename(it))
+
+        dele = tk.Label(row, text="×", bg=th.CARD, fg=th.LINE,
+                        font=th.F["cute_b"], cursor="hand2", padx=8)
+        dele.pack(side="right", pady=7)
+        dele.bind("<ButtonRelease-1>", lambda e, it=item: self.remove(it))
+        dele.bind("<Enter>", lambda e, w=dele: w.configure(fg=th.RED))
+        dele.bind("<Leave>", lambda e, w=dele: w.configure(fg=th.LINE))
+
+    # ---- 操作 ----
+    def set_filter(self, key):
+        self.filter = key
+        self.render()
+
+    def toggle(self, item, key):
+        item["state"] = None if item["state"] == key else key
+        self.save()
+        self.render()
+
+    def add(self):
+        text = self.var_new.get().strip()
+        if not text:
+            return
+        self.items.append({"text": text, "state": None})
+        self.var_new.set("")
+        if self.filter not in ("all", "none"):
+            self.filter = "all"
+        self.save()
+        self.render()
+        self.entry.focus_set()
+
+    def rename(self, item):
+        new = simpledialog.askstring(APP_NAME, "項目名",
+                                     initialvalue=item["text"], parent=self)
+        if new and new.strip():
+            item["text"] = new.strip()
+            self.save()
+            self.render()
+
+    def remove(self, item):
+        try:
+            self.items.remove(item)
+        except ValueError:
+            return
+        self.save()
+        self.render()
+
+    def clear_all(self):
+        if not self.items:
+            return
+        if messagebox.askyesno(APP_NAME, "全部の項目を消します。よろしいですか？",
+                               parent=self):
+            self.items = []
+            self.save()
+            self.render()
+
+
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -403,10 +691,23 @@ class App(tk.Tk):
 
         self.lbl_next = tk.Label(head, text="", bg=th.BG, fg=th.INK_SUB,
                                  font=F["cute"], anchor="w")
-        self.lbl_next.pack(fill="x", pady=(2, 10))
+        self.lbl_next.pack(fill="x", pady=(2, 8))
 
-        quick = tk.Frame(head, bg=th.BG)
-        quick.pack(fill="x", pady=(0, 10))
+        tabs = tk.Frame(head, bg=th.BG)
+        tabs.pack(fill="x", pady=(0, 10))
+        self.tabs = {}
+        for key, label in (("timers", "⏰ タイマー"),
+                           ("checklist", "🗒 チェックリスト")):
+            p = Pill(tabs, label, lambda k=key: self.show_page(k), bg=th.BG,
+                     font=F["cute"])
+            p.pack(side="left", padx=(0, 6))
+            self.tabs[key] = p
+
+        # ---------------- タイマーのページ ----------------
+        self.page_timer = tk.Frame(self, bg=th.BG)
+
+        quick = tk.Frame(self.page_timer, bg=th.BG)
+        quick.pack(fill="x", padx=18, pady=(0, 10))
         th.RoundButton(quick, "＋ 新しいタイマー", self.open_new_dialog,
                        kind="primary", bg=th.BG, font=F["cute"]).pack(side="left")
         tk.Label(quick, text="  さくっと: ", bg=th.BG, fg=th.INK_SUB,
@@ -417,7 +718,7 @@ class App(tk.Tk):
                     bg=th.BG, font=F["small"]).pack(side="left", padx=3)
 
         # 一覧
-        wrap = tk.Frame(self, bg=th.BG)
+        wrap = tk.Frame(self.page_timer, bg=th.BG)
         wrap.pack(fill="both", expand=True, padx=12, pady=(0, 12))
         self.canvas = tk.Canvas(wrap, bg=th.BG, highlightthickness=0, bd=0)
         vs = ttk.Scrollbar(wrap, orient="vertical", command=self.canvas.yview,
@@ -441,9 +742,31 @@ class App(tk.Tk):
                                  "「＋ 新しいタイマー」から作れます",
                  bg=th.BG, fg=th.INK_SUB, font=F["small"]).pack(pady=(4, 0))
 
+        # ---------------- チェックリストのページ ----------------
+        self.page_check = ChecklistPage(self, self)
+
+        self.show_page(self.cfg.get("page") or "timers")
+
+    def show_page(self, name):
+        """⏰タイマー / 🗒チェックリスト の切り替え。"""
+        if name not in ("timers", "checklist"):
+            name = "timers"
+        self.page = name
+        for key, pill in self.tabs.items():
+            pill.update_view(key == name)
+        self.page_timer.pack_forget()
+        self.page_check.pack_forget()
+        if name == "checklist":
+            self.page_check.pack(fill="both", expand=True, padx=18, pady=(0, 12))
+        else:
+            self.page_timer.pack(fill="both", expand=True)
+        self.cfg["page"] = name
+
     def _on_wheel(self, e):
+        cv = (self.page_check.canvas
+              if getattr(self, "page", "timers") == "checklist" else self.canvas)
         try:
-            self.canvas.yview_scroll(int(-e.delta / 120), "units")
+            cv.yview_scroll(int(-e.delta / 120), "units")
         except tk.TclError:
             pass
 
