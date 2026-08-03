@@ -73,6 +73,7 @@ DEFAULT_CONFIG = {
     "always_on_top": True,
     "geometry": "980x700",
     "page": "timers",         # 最後に開いていたページ
+    "mini_geometry": "300x320",
 }
 
 
@@ -266,6 +267,15 @@ class BreedTimer:
         self.repeat = kw.get("repeat", False)
         self.sound = kw.get("sound", "")   # "" なら既定音
         self.note = kw.get("note", "")
+        # ---- タイマーごとの鳴らし方（ミニ表示から変えられる）----
+        # volume は None なら全体設定に従う
+        v = kw.get("volume")
+        self.volume = None if v is None else max(0.0, min(1.0, float(v)))
+        self.sound_on = bool(kw.get("sound_on", True))    # 音を出すか
+        self.center = bool(kw.get("center", False))       # 画面中央に大きく出すか
+
+    def eff_volume(self, default):
+        return default if self.volume is None else self.volume
 
     def remaining(self, now=None):
         if self.paused:
@@ -294,7 +304,8 @@ class BreedTimer:
     FIELDS = ("id", "kind", "label", "species", "total", "end_ts", "paused",
               "pause_left", "done", "prewarned", "milestone_done", "milestone_frac",
               "milestone_text", "imp_index", "imp_count", "imp_per", "mature_end",
-              "chain", "repeat", "sound", "note")
+              "chain", "repeat", "sound", "note",
+              "volume", "sound_on", "center")
 
     def to_dict(self):
         return {k: getattr(self, k) for k in self.FIELDS}
@@ -312,15 +323,25 @@ class Notifier:
     def __init__(self, app):
         self.app = app
 
-    def fire(self, title, body, urgent=True, sound_spec=None):
+    def fire(self, title, body, urgent=True, sound_spec=None, timer=None):
+        """timer を渡すと、そのタイマー個別の音量・音の有無・中央表示に従う。"""
         cfg = self.app.cfg
-        if cfg.get("sound"):
+        vol = cfg.get("volume", 0.7)
+        sound_on = bool(cfg.get("sound"))
+        center = False
+        if timer is not None:
+            vol = timer.eff_volume(vol)
+            sound_on = sound_on and timer.sound_on
+            center = bool(timer.center)
+
+        if sound_on:
             spec = sound_spec or (cfg["sound_done"] if urgent else cfg["sound_prewarn"])
-            snd.play_async(spec, cfg.get("volume", 0.7), SOUND_CACHE)
+            snd.play_async(spec, vol, SOUND_CACHE)
         if cfg.get("toast"):
             threading.Thread(target=self._toast, args=(title, body), daemon=True).start()
         if cfg.get("popup"):
-            self.app.show_popup(title, body, urgent, sound_spec)
+            self.app.show_popup(title, body, urgent, sound_spec,
+                                center=center, volume=vol, sound_on=sound_on)
         self.app.flash_taskbar()
 
     def _toast(self, title, body):
@@ -358,8 +379,67 @@ CHECK_STATES = ("ok", "hold", "ng")
 CHECK_MARK = {"ok": "✓", "hold": "△", "ng": "✗"}
 CHECK_COLOR = {"ok": th.MINT, "hold": th.LEMON, "ng": th.RED}
 CHECK_TITLE = {"ok": "完了", "hold": "保留", "ng": "中止"}
-CHECK_FILTERS = (("all", "すべて"), ("ok", "✓ 完了"), ("hold", "△ 保留"),
-                 ("ng", "✗ 中止"), ("none", "未設定"))
+# 「やること」は印のついていないものだけ。印を押した時点でここから消え、
+# それぞれのタブへ移る。全部まとめて見たいときは「すべて」。
+CHECK_FILTERS = (("todo", "やること"), ("ok", "✓ 完了"), ("hold", "△ 保留"),
+                 ("ng", "✗ 中止"), ("all", "すべて"))
+
+
+class FlowFrame(tk.Frame):
+    """幅に合わせて子を折り返して並べる入れ物。
+
+    小さいウィンドウでもボタンやチップがはみ出さないようにするためのもの。
+    子は add() で渡す（place で配置するので pack/grid は使わない）。
+    """
+
+    def __init__(self, master, bg=th.BG, gap_x=5, gap_y=5, **kw):
+        super().__init__(master, bg=bg, **kw)
+        self._kids = []
+        self._gap_x, self._gap_y = gap_x, gap_y
+        self._last_w = 0
+        self.bind("<Configure>", self._on_configure)
+
+    def add(self, widget, gap_x=None):
+        self._kids.append((widget, self._gap_x if gap_x is None else gap_x))
+        widget.place(x=0, y=0)
+        self.after_idle(self._relayout)
+        return widget
+
+    def _on_configure(self, e):
+        if e.width != self._last_w:
+            self._last_w = e.width
+            self._relayout()
+
+    def _relayout(self):
+        width = self.winfo_width()
+        if width <= 1 or not self._kids:
+            return
+        # まず行に振り分けて、そのあと各行の高さの中央に置く
+        rows, cur, x = [], [], 0
+        for w, gap in self._kids:
+            try:
+                ww, wh = w.winfo_reqwidth(), w.winfo_reqheight()
+            except tk.TclError:
+                continue
+            if cur and x + ww > width:
+                rows.append(cur)
+                cur, x = [], 0
+            cur.append((w, ww, wh, gap))
+            x += ww + gap
+        if cur:
+            rows.append(cur)
+
+        y = 0
+        for row in rows:
+            row_h = max(wh for _, _, wh, _ in row)
+            x = 0
+            for w, ww, wh, gap in row:
+                w.place(x=x, y=y + (row_h - wh) // 2)
+                x += ww + gap
+            y += row_h + self._gap_y
+        need = max(0, y - self._gap_y)
+        if need > 0 and self.winfo_reqheight() != need:
+            self.configure(height=need)
 
 
 class Pill(tk.Canvas):
@@ -444,7 +524,8 @@ class ChecklistPage(tk.Frame):
         super().__init__(master, bg=th.BG)
         self.app = app
         self.items = self._load()
-        self.filter = "all"
+        self.filter = "todo"
+        self._compact = False
         self._build()
         self.render()
 
@@ -471,12 +552,16 @@ class ChecklistPage(tk.Frame):
         F = th.F
         head = tk.Frame(self, bg=th.BG)
         head.pack(fill="x", pady=(0, 8))
-        tk.Label(head, text="✓ 完了  /  △ 保留  /  ✗ 中止　"
-                            "同じ印をもう一度押すと未設定に戻ります",
-                 bg=th.BG, fg=th.INK_SUB, font=F["small"]).pack(side="left")
         self.lbl_count = tk.Label(head, text="", bg=th.BG, fg=th.INK_SUB,
                                   font=F["small"])
-        self.lbl_count.pack(side="right")
+        self.lbl_count.pack(side="right", anchor="n")
+        self.lbl_hint = tk.Label(
+            head, text="印を押すと「やること」から外れます　"
+                       "もう一度押すと戻ります",
+            bg=th.BG, fg=th.INK_SUB, font=F["small"], anchor="w", justify="left")
+        self.lbl_hint.pack(side="left", fill="x", expand=True)
+        head.bind("<Configure>", lambda e: self.lbl_hint.configure(
+            wraplength=max(120, e.width - 80)))
 
         add = tk.Frame(self, bg=th.BG)
         add.pack(fill="x", pady=(0, 10))
@@ -488,14 +573,13 @@ class ChecklistPage(tk.Frame):
         th.RoundButton(add, "追加", self.add, kind="primary", bg=th.BG,
                        font=F["cute"], padx=18).pack(side="left", padx=(8, 0))
 
-        fbar = tk.Frame(self, bg=th.BG)
+        fbar = FlowFrame(self, bg=th.BG)
         fbar.pack(fill="x", pady=(0, 8))
         self.chips = {}
         for key, label in CHECK_FILTERS:
-            p = Pill(fbar, label, lambda k=key: self.set_filter(k), bg=th.BG,
-                     counted=True)
-            p.pack(side="left", padx=(0, 5))
-            self.chips[key] = p
+            self.chips[key] = fbar.add(
+                Pill(fbar, label, lambda k=key: self.set_filter(k), bg=th.BG,
+                     counted=True))
 
         wrap = tk.Frame(self, bg=th.BG)
         wrap.pack(fill="both", expand=True)
@@ -519,18 +603,32 @@ class ChecklistPage(tk.Frame):
         th.RoundButton(foot, "全部消す", self.clear_all, kind="danger", bg=th.BG,
                        font=F["small"], padx=14).pack(side="right")
 
+    def set_compact(self, compact):
+        """窓が狭いときは説明文を隠して一覧の場所を稼ぐ。
+
+        ページが非表示のあいだ winfo_ismapped() は常に 0 を返すので、
+        状態はフラグで持つ（見た目で判定すると毎回 pack し直してしまう）。
+        """
+        if compact == self._compact:
+            return
+        self._compact = compact
+        if compact:
+            self.lbl_hint.pack_forget()
+        else:
+            self.lbl_hint.pack(side="left", fill="x", expand=True)
+
     # ---- 表示 ----
     def count_of(self, key):
         if key == "all":
             return len(self.items)
-        if key == "none":
+        if key == "todo":
             return sum(1 for i in self.items if not i["state"])
         return sum(1 for i in self.items if i["state"] == key)
 
     def visible(self):
         if self.filter == "all":
             return list(self.items)
-        if self.filter == "none":
+        if self.filter == "todo":
             return [i for i in self.items if not i["state"]]
         return [i for i in self.items if i["state"] == self.filter]
 
@@ -544,10 +642,15 @@ class ChecklistPage(tk.Frame):
         if not shown:
             box = tk.Frame(self.inner, bg=th.BG)
             box.pack(fill="x")
-            tk.Label(box, text="🗒", bg=th.BG, font=(th.JP, 34)).pack(pady=(36, 6))
-            tk.Label(box, text=("まだ項目はありません" if not self.items
-                                else "この絞り込みに当てはまる項目はありません"),
-                     bg=th.BG, fg=th.INK, font=th.F["cute_b"]).pack()
+            if not self.items:
+                icon, msg = "🗒", "まだ項目はありません"
+            elif self.filter == "todo":
+                icon, msg = "🎉", "やることはありません"
+            else:
+                icon, msg = "🗒", "この絞り込みに当てはまる項目はありません"
+            tk.Label(box, text=icon, bg=th.BG, font=(th.JP, 34)).pack(pady=(30, 6))
+            tk.Label(box, text=msg, bg=th.BG, fg=th.INK,
+                     font=th.F["cute_b"]).pack()
             if not self.items:
                 tk.Label(box, text="上の欄に書いて Enter で追加できます",
                          bg=th.BG, fg=th.INK_SUB,
@@ -579,9 +682,12 @@ class ChecklistPage(tk.Frame):
             f.configure(overstrike=1)
         lbl = tk.Label(row, text=item["text"], bg=th.CARD,
                        fg=th.INK_SUB if struck else th.INK, font=f,
-                       anchor="w", justify="left", wraplength=620)
+                       anchor="w", justify="left", wraplength=400)
         lbl.pack(side="left", fill="x", expand=True, pady=7)
         lbl.bind("<Double-Button-1>", lambda e, it=item: self.rename(it))
+        # 窓幅に合わせて折り返し位置を追従させる（印と × の分を引く）
+        row.bind("<Configure>", lambda e, w=lbl: w.configure(
+            wraplength=max(120, e.width - 150)))
 
         dele = tk.Label(row, text="×", bg=th.CARD, fg=th.LINE,
                         font=th.F["cute_b"], cursor="hand2", padx=8)
@@ -606,8 +712,8 @@ class ChecklistPage(tk.Frame):
             return
         self.items.append({"text": text, "state": None})
         self.var_new.set("")
-        if self.filter not in ("all", "none"):
-            self.filter = "all"
+        if self.filter not in ("todo", "all"):
+            self.filter = "todo"
         self.save()
         self.render()
         self.entry.focus_set()
@@ -638,6 +744,148 @@ class ChecklistPage(tk.Frame):
             self.render()
 
 
+class MiniWindow(tk.Toplevel):
+    """タイマーだけを出しておく小窓。
+
+    ゲームの横に置いておく用。1本ごとに
+      名前 / 残り時間 / 音量 / 音を出すか / 画面中央に大きく出すか
+    を直接いじれる。
+    """
+
+    def __init__(self, app):
+        super().__init__(app)
+        self.app = app
+        self.rows = {}
+        self.title("ふわふわタイマー（ミニ）")
+        self.configure(bg=th.BG)
+        self.attributes("-topmost", True)
+        self.minsize(240, 130)
+        self.geometry(app.cfg.get("mini_geometry") or "300x320")
+        try:
+            self.iconphoto(False, app._icon)
+        except (tk.TclError, AttributeError):
+            pass
+
+        bar = tk.Frame(self, bg=th.BG)
+        bar.pack(fill="x", padx=8, pady=(8, 4))
+        th.RoundButton(bar, "戻る", self.back, kind="soft", bg=th.BG,
+                       font=th.F["small"], padx=10).pack(side="right")
+        self.lbl_head = tk.Label(bar, text="", bg=th.BG, fg=th.INK_SUB,
+                                 font=th.F["small"], anchor="w")
+        self.lbl_head.pack(side="left")
+
+        wrap = tk.Frame(self, bg=th.BG)
+        wrap.pack(fill="both", expand=True, padx=5, pady=(0, 7))
+        self.canvas = tk.Canvas(wrap, bg=th.BG, highlightthickness=0, bd=0)
+        vs = ttk.Scrollbar(wrap, orient="vertical", command=self.canvas.yview,
+                           style="Cute.Vertical.TScrollbar")
+        self.canvas.configure(yscrollcommand=vs.set)
+        vs.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.inner = tk.Frame(self.canvas, bg=th.BG)
+        self._win = self.canvas.create_window((0, 0), window=self.inner, anchor="nw")
+        self.inner.bind("<Configure>", lambda e: self.canvas.configure(
+            scrollregion=self.canvas.bbox("all")))
+        self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfigure(
+            self._win, width=e.width))
+        self.bind("<MouseWheel>", self._wheel)
+
+        self.protocol("WM_DELETE_WINDOW", self.back)
+        self.rebuild()
+
+    def _wheel(self, e):
+        try:
+            self.canvas.yview_scroll(int(-e.delta / 120), "units")
+        except tk.TclError:
+            pass
+
+    # ---- 一覧 ----
+    def rebuild(self):
+        for w in self.inner.winfo_children():
+            w.destroy()
+        self.rows.clear()
+        timers = sorted(self.app.timers,
+                        key=lambda x: (x.remaining() <= 0, x.remaining()))
+        if not timers:
+            tk.Label(self.inner, text="タイマーはありません", bg=th.BG,
+                     fg=th.INK_SUB, font=th.F["ui"]).pack(pady=30)
+            return
+        for t in timers:
+            self.rows[t.id] = self._row(t)
+        self.update_view()
+
+    def _row(self, t):
+        card = tk.Frame(self.inner, bg=th.CARD, highlightthickness=1,
+                        highlightbackground=th.LINE, highlightcolor=th.LINE)
+        card.pack(fill="x", padx=3, pady=2)
+        inner = tk.Frame(card, bg=th.CARD)
+        inner.pack(fill="x", padx=7, pady=5)
+
+        top = tk.Frame(inner, bg=th.CARD)
+        top.pack(fill="x")
+        icon = th.KIND_STYLE.get(t.kind, ("⏰", th.PEACH, ""))[0]
+        lbl = tk.Label(top, text="%s %s" % (icon, t.label), bg=th.CARD, fg=th.INK,
+                       font=th.F["ui_b"], anchor="w", justify="left")
+        lbl.pack(side="left", fill="x", expand=True)
+        rem = tk.Label(top, text="", bg=th.CARD, fg=th.PINK_DK,
+                       font=th.F["num_s"])
+        rem.pack(side="right")
+
+        ctl = tk.Frame(inner, bg=th.CARD)
+        ctl.pack(fill="x", pady=(4, 0))
+        b_sound = Pill(ctl, "🔊", lambda: self._toggle(t, "sound_on"),
+                       bg=th.CARD, padx=8, pady=4)
+        b_sound.pack(side="left", padx=(0, 3))
+        b_center = Pill(ctl, "🖥", lambda: self._toggle(t, "center"),
+                        bg=th.CARD, padx=8, pady=4)
+        b_center.pack(side="left", padx=(0, 6))
+
+        # %表示を先に確保してから、残りをスライダーに広げる
+        # （expand=True を先に pack すると余白を全部持っていってしまう）
+        pct = tk.Label(ctl, text="", bg=th.CARD, fg=th.INK_SUB, font=th.F["small"],
+                       width=4, anchor="e")
+        pct.pack(side="right")
+        vol = th.RoundSlider(ctl, value=t.eff_volume(self.app.cfg.get("volume", 0.7)),
+                             command=lambda v, tt=t: self._set_volume(tt, v),
+                             bg=th.CARD, height=22, track_h=6, knob_r=7)
+        vol.pack(side="left", fill="x", expand=True, padx=(0, 4))
+
+        return {"timer": t, "rem": rem, "sound": b_sound, "center": b_center,
+                "vol": vol, "pct": pct, "label": lbl}
+
+    def _toggle(self, t, attr):
+        setattr(t, attr, not getattr(t, attr))
+        self.app.save_timers()
+        self.update_view()
+
+    def _set_volume(self, t, v):
+        t.volume = max(0.0, min(1.0, float(v)))
+        self.app.save_timers()
+        self.update_view()
+
+    def update_view(self, now=None):
+        now = now or time.time()
+        live = 0
+        for r in self.rows.values():
+            t = r["timer"]
+            rem = t.remaining(now)
+            if rem > 0 and not t.done:
+                live += 1
+            r["rem"].configure(
+                text=("完了" if (t.done or rem <= 0)
+                      else ("一時停止" if t.paused else fmt_dur(rem))),
+                fg=th.INK_SUB if (t.done or rem <= 0) else th.PINK_DK)
+            r["sound"].update_view(t.sound_on)
+            r["center"].update_view(t.center)
+            v = t.eff_volume(self.app.cfg.get("volume", 0.7))
+            r["pct"].configure(text="%d%%" % round(v * 100))
+        # アイコンだけだと意味が分からないので、ここで凡例も兼ねる
+        self.lbl_head.configure(text="動作中 %d 本　🔊音  🖥中央" % live)
+
+    def back(self):
+        self.app.close_mini()
+
+
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -648,11 +896,12 @@ class App(tk.Tk):
         self.timers: list[BreedTimer] = []
         self.cards: dict[str, TimerCard] = {}
         self.popup = None
+        self.mini = None
         self.alarm_on = False
 
         self.title(APP_NAME)
         self.geometry(self.cfg.get("geometry", "980x700"))
-        self.minsize(660, 420)
+        self.minsize(380, 300)
         self.configure(bg=th.BG)
         self.F = th.init(self)
         try:
@@ -671,19 +920,28 @@ class App(tk.Tk):
     # ---------------- 画面 ----------------
     def _build_ui(self):
         F = self.F
+        self._pad = 18
         head = tk.Frame(self, bg=th.BG)
-        head.pack(fill="x", padx=18, pady=(14, 0))
+        head.pack(fill="x", padx=self._pad, pady=(14, 0))
 
-        top = tk.Frame(head, bg=th.BG)
+        self.head = head
+        self.head_top = top = tk.Frame(head, bg=th.BG)
         top.pack(fill="x")
         tk.Label(top, text="⏰ ふわふわタイマー", bg=th.BG, fg=th.INK,
                  font=F["head"]).pack(side="left")
-        th.RoundButton(top, "⚙ 設定", self.open_settings, kind="soft",
+        # 窓が狭いときはこのまとまりごと下の行へ移す（_on_resize）。
+        # 移動先が head なので、マスターは top ではなく head にしておく
+        # （Tk は master かその子孫にしか pack できない）。
+        self.head_ctrl = tk.Frame(head, bg=th.BG)
+        self.head_ctrl.pack(in_=top, side="right")
+        th.RoundButton(self.head_ctrl, "⚙ 設定", self.open_settings, kind="soft",
                        bg=th.BG, font=F["small"]).pack(side="right", padx=(6, 0))
-        th.RoundButton(top, "🔔 音を試す", self.test_sound, kind="soft",
+        th.RoundButton(self.head_ctrl, "🔔 音を試す", self.test_sound, kind="soft",
+                       bg=th.BG, font=F["small"]).pack(side="right", padx=6)
+        th.RoundButton(self.head_ctrl, "🗕 ミニ表示", self.open_mini, kind="accent",
                        bg=th.BG, font=F["small"]).pack(side="right", padx=6)
         self.var_top = tk.BooleanVar(value=bool(self.cfg["always_on_top"]))
-        tk.Checkbutton(top, text="最前面", variable=self.var_top,
+        tk.Checkbutton(self.head_ctrl, text="最前面", variable=self.var_top,
                        command=self.apply_topmost, bg=th.BG, fg=th.INK_SUB,
                        activebackground=th.BG, activeforeground=th.INK,
                        selectcolor=th.CARD, font=F["small"], bd=0,
@@ -706,16 +964,18 @@ class App(tk.Tk):
         # ---------------- タイマーのページ ----------------
         self.page_timer = tk.Frame(self, bg=th.BG)
 
-        quick = tk.Frame(self.page_timer, bg=th.BG)
+        quick = FlowFrame(self.page_timer, bg=th.BG, gap_x=6)
         quick.pack(fill="x", padx=18, pady=(0, 10))
-        th.RoundButton(quick, "＋ 新しいタイマー", self.open_new_dialog,
-                       kind="primary", bg=th.BG, font=F["cute"]).pack(side="left")
-        tk.Label(quick, text="  さくっと: ", bg=th.BG, fg=th.INK_SUB,
-                 font=F["small"]).pack(side="left")
+        quick.add(th.RoundButton(quick, "＋ 新しいタイマー", self.open_new_dialog,
+                                 kind="primary", bg=th.BG, font=F["cute"]),
+                  gap_x=12)
+        quick.add(tk.Label(quick, text="さくっと:", bg=th.BG, fg=th.INK_SUB,
+                           font=F["small"]))
         for text, sec in (("1分", 60), ("3分", 180), ("5分", 300), ("10分", 600),
                           ("15分", 900), ("30分", 1800), ("1時間", 3600)):
-            th.Chip(quick, text, lambda s=sec, t=text: self.quick_add(t, s),
-                    bg=th.BG, font=F["small"]).pack(side="left", padx=3)
+            quick.add(th.Chip(quick, text,
+                              lambda s=sec, t=text: self.quick_add(t, s),
+                              bg=th.BG, font=F["small"]))
 
         # 一覧
         wrap = tk.Frame(self.page_timer, bg=th.BG)
@@ -746,6 +1006,52 @@ class App(tk.Tk):
         self.page_check = ChecklistPage(self, self)
 
         self.show_page(self.cfg.get("page") or "timers")
+
+        self._compact = None
+        self.bind("<Configure>", self._on_resize)
+
+    def _on_resize(self, e):
+        """窓が狭いときはヘッダーのボタン類をタイトルの下の行へ逃がす。"""
+        if e.widget is not self:
+            return
+        compact = e.width < 620
+        if compact == self._compact:
+            return
+        self._compact = compact
+
+        self.head_ctrl.pack_forget()
+        if compact:
+            self.head_ctrl.pack(in_=self.head, fill="x", pady=(6, 0),
+                                before=self.lbl_next)
+        else:
+            self.head_ctrl.pack(in_=self.head_top, side="right")
+
+        # 狭いときは余白と説明文を削って一覧の場所を稼ぐ
+        self._pad = 10 if compact else 18
+        self.head.pack_configure(padx=self._pad, pady=(8 if compact else 14, 0))
+        self.page_check.set_compact(compact)
+        if self.page == "checklist":
+            self.page_check.pack_configure(padx=self._pad)
+
+    # ---------------- ミニ表示 ----------------
+    def open_mini(self):
+        """タイマーだけの小窓を出して、本体はしまう。"""
+        if self.mini is not None and self.mini.winfo_exists():
+            self.mini.deiconify()
+            self.mini.lift()
+            return
+        self.cfg["geometry"] = self.geometry()
+        self.mini = MiniWindow(self)
+        self.withdraw()
+
+    def close_mini(self):
+        """小窓を閉じて本体に戻る。"""
+        if self.mini is not None and self.mini.winfo_exists():
+            self.cfg["mini_geometry"] = self.mini.geometry()
+            self.mini.destroy()
+        self.mini = None
+        self.deiconify()
+        self.lift()
 
     def show_page(self, name):
         """⏰タイマー / 🗒チェックリスト の切り替え。"""
@@ -801,6 +1107,8 @@ class App(tk.Tk):
             card = TimerCard(self.list_frame, self, t)
             card.pack(fill="x", pady=1)
             self.cards[t.id] = card
+        if self.mini is not None and self.mini.winfo_exists():
+            self.mini.rebuild()
 
     def save_timers(self):
         save_json(TIMERS_PATH, [t.to_dict() for t in self.timers])
@@ -832,13 +1140,14 @@ class App(tk.Tk):
                 t.prewarned = True
                 changed = True
                 self.notifier.fire("もうすぐ: %s" % t.label,
-                                   "あと %s" % fmt_dur(rem), urgent=False)
+                                   "あと %s" % fmt_dur(rem), urgent=False,
+                                   timer=t)
             ms = t.milestone_ts
             if ms is not None and not t.milestone_done and now >= ms:
                 t.milestone_done = True
                 changed = True
                 self.notifier.fire("%s — %s" % (t.label, t.milestone_text),
-                                   t.species, urgent=False)
+                                   t.species, urgent=False, timer=t)
             if rem <= 0 and not t.done:
                 t.done = True
                 changed = True
@@ -848,6 +1157,8 @@ class App(tk.Tk):
             self.rebuild_list()
         for c in self.cards.values():
             c.update_view(now)
+        if self.mini is not None and self.mini.winfo_exists():
+            self.mini.update_view(now)
         self._update_head(now)
         self.after(250, self._tick)
 
@@ -857,13 +1168,13 @@ class App(tk.Tk):
                 "💗 刷り込みの時間! — %s" % t.label,
                 "%s  %d/%d回目 (+%.1f%%)" % (t.species, t.imp_index + 1,
                                              t.imp_count, t.imp_per),
-                sound_spec=t.sound or None)
+                sound_spec=t.sound or None, timer=t)
             return
         msg = {"hatch": "🥚 卵が孵りました", "gestation": "🌸 出産の時間です",
                "mature": "🌱 成長が完了しました", "matingcd": "💞 再交配できます",
                "custom": "⏰ 時間になりました"}.get(t.kind, "時間になりました")
         self.notifier.fire("%s — %s" % (msg, t.label), t.species or t.note or "",
-                           sound_spec=t.sound or None)
+                           sound_spec=t.sound or None, timer=t)
         if t.chain and self.cfg.get("auto_chain"):
             self._spawn_chain(t)
         if t.repeat and t.total > 0:
@@ -944,7 +1255,8 @@ class App(tk.Tk):
     def test_sound(self):
         snd.play_async(self.cfg["sound_done"], self.cfg.get("volume", 0.7), SOUND_CACHE)
 
-    def show_popup(self, title, body, urgent=True, sound_spec=None):
+    def show_popup(self, title, body, urgent=True, sound_spec=None,
+                   center=False, volume=None, sound_on=True):
         if self.popup is not None and self.popup.winfo_exists():
             self.popup.destroy()
         p = tk.Toplevel(self)
@@ -953,8 +1265,14 @@ class App(tk.Tk):
         p.configure(bg=th.BG)
         p.attributes("-topmost", True)
         p.resizable(False, False)
-        w, h = 420, 210
-        p.geometry("%dx%d+%d+%d" % (w, h, p.winfo_screenwidth() - w - 36, 56))
+        # 中央表示は大きめに出す（メインモニターのまんなか）
+        w, h = (560, 260) if center else (420, 210)
+        if center:
+            x = (p.winfo_screenwidth() - w) // 2
+            y = (p.winfo_screenheight() - h) // 2
+        else:
+            x, y = p.winfo_screenwidth() - w - 36, 56
+        p.geometry("%dx%d+%d+%d" % (w, h, x, y))
         card = th.Card(p, bg=th.BG)
         card.pack(fill="both", expand=True, padx=8, pady=8)
         b = card.body
@@ -969,18 +1287,18 @@ class App(tk.Tk):
         th.RoundButton(b, "とめる", lambda: self._close_popup(p), kind="primary",
                        bg=th.CARD, font=self.F["cute"]).pack()
         p.protocol("WM_DELETE_WINDOW", lambda: self._close_popup(p))
-        if urgent and self.cfg.get("repeat_alarm") and self.cfg.get("sound"):
+        if urgent and self.cfg.get("repeat_alarm") and sound_on:
             self.alarm_on = True
-            self._repeat_alarm(p, sound_spec, 0)
+            self._repeat_alarm(p, sound_spec, 0, volume)
         p.after(180000, lambda: self._close_popup(p))
 
-    def _repeat_alarm(self, p, sound_spec, n):
+    def _repeat_alarm(self, p, sound_spec, n, volume=None):
         if not p.winfo_exists() or not self.alarm_on or n > 40:
             return
         if n > 0:
-            snd.play_async(sound_spec or self.cfg["sound_done"],
-                           self.cfg.get("volume", 0.7), SOUND_CACHE)
-        p.after(6000, lambda: self._repeat_alarm(p, sound_spec, n + 1))
+            vol = self.cfg.get("volume", 0.7) if volume is None else volume
+            snd.play_async(sound_spec or self.cfg["sound_done"], vol, SOUND_CACHE)
+        p.after(6000, lambda: self._repeat_alarm(p, sound_spec, n + 1, volume))
 
     def _close_popup(self, p):
         self.alarm_on = False
@@ -1024,6 +1342,8 @@ class App(tk.Tk):
         save_json(CONFIG_PATH, self.cfg)
 
     def on_close(self):
+        if self.mini is not None and self.mini.winfo_exists():
+            self.cfg["mini_geometry"] = self.mini.geometry()
         self.save_cfg()
         self.save_timers()
         snd.stop()
