@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 """AFK（放置）でキックされないように、たまにキーを送る。
 
-Windows の SendInput をスキャンコードで叩く。ゲーム（UE系）は生の入力を
-見ているので、仮想キーコードではなくスキャンコードで送らないと届かない。
+送り方が3通りある。どれが効くかはゲームの作りによるので、UIの「ためす」で
+確かめてから使うこと。
 
-安全のため、既定では「対象のアプリが最前面のときだけ」送る。これを切ると
-メモ帳やブラウザに勝手に文字が入るので注意。
+  foreground : 対象が最前面のときだけ SendInput する（安全・確実だが裏では送れない）
+  post       : ウィンドウに WM_KEYDOWN/UP を直接投げる（裏でも送れるが、
+               生入力(RawInput/DirectInput)しか見ないゲームには届かない）
+  swap       : 一瞬だけ対象を前に出して SendInput し、すぐ元の窓に戻す
+               （たいてい効くが画面が一瞬ちらつく）
+  always     : 前面が何であろうと SendInput する（他のアプリに文字が入る）
+
+SendInput は仮想キーコードではなくスキャンコードで送る。ゲーム（UE系）は
+生の入力を見ているので、そうしないと届かないことがある。
 """
 from __future__ import annotations
 
@@ -51,22 +58,38 @@ class INPUT(ctypes.Structure):
     _fields_ = (("type", wintypes.DWORD), ("u", _INPUTUNION))
 
 
-# 表示名 -> (スキャンコード, 拡張キーか)
+# 表示名 -> (表示名, スキャンコード, 拡張キーか, 仮想キーコード)
 #   スキャンコードは PS/2 セット1。拡張キー(矢印など)は E0 が付くので True。
+#   仮想キーコードは post モード（WM_KEYDOWN）で使う。
 KEYS = {
-    "space": ("スペース（ジャンプ）", 0x39, False),
-    "w": ("W（前に少し）", 0x11, False),
-    "a": ("A（左に少し）", 0x1E, False),
-    "s": ("S（後ろに少し）", 0x1F, False),
-    "d": ("D（右に少し）", 0x20, False),
-    "left": ("← 左を向く", 0x4B, True),
-    "right": ("→ 右を向く", 0x4D, True),
-    "shift": ("左Shift", 0x2A, False),
-    "ctrl": ("左Ctrl（しゃがみ）", 0x1D, False),
-    "tab": ("Tab", 0x0F, False),
-    "1": ("1（ホットバー1）", 0x02, False),
+    "space": ("スペース（ジャンプ）", 0x39, False, 0x20),
+    "w": ("W（前に少し）", 0x11, False, 0x57),
+    "a": ("A（左に少し）", 0x1E, False, 0x41),
+    "s": ("S（後ろに少し）", 0x1F, False, 0x53),
+    "d": ("D（右に少し）", 0x20, False, 0x44),
+    "left": ("← 左を向く", 0x4B, True, 0x25),
+    "right": ("→ 右を向く", 0x4D, True, 0x27),
+    "shift": ("左Shift", 0x2A, False, 0xA0),
+    "ctrl": ("左Ctrl（しゃがみ）", 0x1D, False, 0xA2),
+    "tab": ("Tab", 0x0F, False, 0x09),
+    "1": ("1（ホットバー1）", 0x02, False, 0x31),
 }
 DEFAULT_KEY = "space"
+
+MODES = (
+    ("foreground", "ARKが最前面のときだけ送る（安全・確実）"),
+    ("swap", "一瞬だけ前に出して、すぐ元に戻す（裏でもOK・ちらつく）"),
+    ("post", "ウィンドウに直接送る（裏でもOK・効かないゲームもある）"),
+    ("always", "前面が何でも送る（他のアプリに文字が入ります）"),
+)
+DEFAULT_MODE = "foreground"
+
+
+def mode_label(mode):
+    for k, lbl in MODES:
+        if k == mode:
+            return lbl
+    return mode
 
 
 def key_choices():
@@ -93,7 +116,7 @@ def tap(name, hold_ms=40):
     got = KEYS.get(name)
     if not got:
         return False
-    _label, scan, ext = got
+    _label, scan, ext, _vk = got
     down = _make(scan, ext, False)
     up = _make(scan, ext, True)
     n = user32.SendInput(1, ctypes.byref(down), ctypes.sizeof(INPUT))
@@ -154,3 +177,137 @@ def matches(target):
         return True
     cur = foreground_exe().lower()
     return cur == target.strip().lower()
+
+
+# ------------------------------------------------------------ ウィンドウ探し
+_EnumProc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+
+def _exe_of_hwnd(hwnd):
+    pid = wintypes.DWORD()
+    user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    if not pid.value:
+        return ""
+    h = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid.value)
+    if not h:
+        return ""
+    try:
+        buf = ctypes.create_unicode_buffer(1024)
+        size = wintypes.DWORD(1024)
+        if kernel32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(size)):
+            return os.path.basename(buf.value)
+    finally:
+        kernel32.CloseHandle(h)
+    return ""
+
+
+def find_window(target):
+    """exe名から、そのアプリの表に出ているウィンドウを1つ探す。"""
+    if not target:
+        return 0
+    want = target.strip().lower()
+    found = []
+
+    def cb(hwnd, _lp):
+        if not user32.IsWindowVisible(hwnd):
+            return True
+        if user32.GetWindowTextLengthW(hwnd) <= 0:
+            return True
+        if _exe_of_hwnd(hwnd).lower() == want:
+            found.append(hwnd)
+            return False
+        return True
+
+    user32.EnumWindows(_EnumProc(cb), 0)
+    return found[0] if found else 0
+
+
+# ------------------------------------------------------------ post モード
+WM_KEYDOWN = 0x0100
+WM_KEYUP = 0x0101
+
+
+def post_key(hwnd, name, hold_ms=40):
+    """ウィンドウに WM_KEYDOWN/UP を直接投げる（最前面でなくても届く）。
+
+    ただし RawInput / DirectInput しか見ないゲームには効かない。
+    """
+    got = KEYS.get(name)
+    if not got or not hwnd:
+        return False
+    _label, scan, ext, vk = got
+    ext_bit = 1 << 24 if ext else 0
+    down = 1 | (scan << 16) | ext_bit
+    up = down | (1 << 30) | (1 << 31)
+    if not user32.PostMessageW(hwnd, WM_KEYDOWN, vk, down):
+        return False
+    time.sleep(max(0.0, hold_ms / 1000.0))
+    user32.PostMessageW(hwnd, WM_KEYUP, vk, up)
+    return True
+
+
+# ------------------------------------------------------------ swap モード
+SW_RESTORE = 9
+
+
+def _force_foreground(hwnd):
+    """他プロセスの窓を前に出す。素の SetForegroundWindow は弾かれるので、
+    前面スレッドに入力キューをくっつけてから呼ぶ。"""
+    if not hwnd:
+        return False
+    if user32.GetForegroundWindow() == hwnd:
+        return True
+    fg = user32.GetForegroundWindow()
+    cur_tid = kernel32.GetCurrentThreadId()
+    fg_tid = user32.GetWindowThreadProcessId(fg, None) if fg else 0
+    attached = False
+    if fg_tid and fg_tid != cur_tid:
+        attached = bool(user32.AttachThreadInput(cur_tid, fg_tid, True))
+    if user32.IsIconic(hwnd):
+        user32.ShowWindow(hwnd, SW_RESTORE)
+    ok = bool(user32.SetForegroundWindow(hwnd))
+    user32.BringWindowToTop(hwnd)
+    if attached:
+        user32.AttachThreadInput(cur_tid, fg_tid, False)
+    return ok
+
+
+def send_via_swap(hwnd, name, times=1, gap_ms=60, hold_ms=40, settle_ms=140):
+    """一瞬だけ対象を前に出してキーを送り、元の窓に戻す。"""
+    if not hwnd:
+        return 0
+    prev = user32.GetForegroundWindow()
+    if not _force_foreground(hwnd):
+        return 0
+    time.sleep(settle_ms / 1000.0)   # 前面が切り替わるのを待つ
+    sent = burst(name, times, gap_ms, hold_ms)
+    time.sleep(0.05)
+    if prev and prev != hwnd:
+        _force_foreground(prev)
+    return sent
+
+
+# ------------------------------------------------------------ まとめ役
+def send(mode, target, name, times=1, gap_ms=60, hold_ms=40):
+    """モードに応じて送る。(送れた回数, 状況の説明) を返す。"""
+    if mode == "always":
+        return burst(name, times, gap_ms, hold_ms), ""
+    if mode == "foreground":
+        if not matches(target):
+            return 0, "%s が最前面ではありません" % (target or "対象")
+        return burst(name, times, gap_ms, hold_ms), ""
+    hwnd = find_window(target)
+    if not hwnd:
+        return 0, "%s のウィンドウが見つかりません" % (target or "対象")
+    if mode == "post":
+        sent = 0
+        for i in range(max(1, int(times))):
+            if not post_key(hwnd, name, hold_ms):
+                break
+            sent += 1
+            if i + 1 < times:
+                time.sleep(max(0.0, gap_ms / 1000.0))
+        return sent, ""
+    if mode == "swap":
+        return send_via_swap(hwnd, name, times, gap_ms, hold_ms), ""
+    return 0, "知らないモードです: %s" % mode

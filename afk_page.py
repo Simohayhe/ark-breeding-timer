@@ -90,30 +90,43 @@ class AfkPage(tk.Frame):
         tk.Label(c, text="どのアプリに送る？", bg=th.CARD, fg=th.INK,
                  font=F["cute_b"]).pack(anchor="w")
         t1 = tk.Frame(c, bg=th.CARD)
-        t1.pack(fill="x", pady=(4, 2))
+        t1.pack(fill="x", pady=(4, 6))
         self.v_target = tk.StringVar(value=cfg.get("afk_target") or "")
         th.soft_entry(t1, self.v_target, width=24).pack(side="left", ipady=3)
         th.RoundButton(t1, "いま最前面のを使う", self.pick_foreground, kind="soft",
                        bg=th.CARD, font=F["small"], padx=12,
                        pady=5).pack(side="left", padx=6)
-        self.v_only = tk.BooleanVar(value=bool(cfg.get("afk_only_foreground", True)))
-        tk.Checkbutton(c, text="このアプリが最前面のときだけ送る（おすすめ）",
-                       variable=self.v_only, command=self.save, bg=th.CARD,
-                       fg=th.INK, activebackground=th.CARD, activeforeground=th.INK,
-                       selectcolor=th.FIELD, font=F["cute"], bd=0,
-                       highlightthickness=0, anchor="w").pack(anchor="w")
-        tk.Label(c, text="⚠ これを外すと、メモ帳やブラウザを触っている間も"
-                         "キーが送られます",
-                 bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w")
+        self.lbl_found = tk.Label(t1, text="", bg=th.CARD, fg=th.INK_SUB,
+                                  font=F["small"])
+        self.lbl_found.pack(side="left")
 
-        tk.Label(c, text="\n自分のサーバーなら、GameUserSettings.ini の放置キック設定を"
-                         "切ってしまうほうが確実です",
-                 bg=th.CARD, fg=th.INK_SUB, font=F["small"],
-                 justify="left").pack(anchor="w")
+        tk.Label(c, text="送りかた", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w", pady=(6, 0))
+        self.v_mode = tk.StringVar(value=cfg.get("afk_mode") or afk.DEFAULT_MODE)
+        for key, label in afk.MODES:
+            tk.Radiobutton(c, text=label, variable=self.v_mode, value=key,
+                           command=self.save, bg=th.CARD, fg=th.INK,
+                           activebackground=th.CARD, activeforeground=th.INK,
+                           selectcolor=th.FIELD, font=F["cute"], bd=0,
+                           highlightthickness=0, anchor="w").pack(anchor="w")
+        self.lbl_mode = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
+                                 font=F["small"], anchor="w", justify="left",
+                                 wraplength=760)
+        self.lbl_mode.pack(fill="x", pady=(2, 0))
 
         for v in (self.v_interval, self.v_times, self.v_gap, self.v_target):
             v.trace_add("write", lambda *a: self.save())
         self.update_view()
+
+    MODE_HELP = {
+        "foreground": "いちばん確実ですが、ARKを見ていないあいだは送られません。",
+        "swap": "ARKを一瞬だけ前に出して送り、すぐ元の窓に戻します。裏で作業していても"
+                "効きますが、そのあいだ画面が一瞬ちらつきます。"
+                "文字を打っている最中に来ると、そのキーがARKに入ることがあります。",
+        "post": "ARKのウィンドウにキーの信号を直接投げます。ちらつかず裏のままですが、"
+                "ゲームによっては完全に無視されます。「▶ ためす」で効くか確かめてください。",
+        "always": "⚠ 前面が何であろうと送ります。メモ帳やブラウザに文字が入ります。",
+    }
 
     # ---------------- 設定の読み書き ----------------
     def _int(self, var, default, lo, hi):
@@ -136,7 +149,7 @@ class AfkPage(tk.Frame):
         c["afk_times"] = self._int(self.v_times, 1, 1, 20)
         c["afk_gap_ms"] = self._int(self.v_gap, 60, 10, 2000)
         c["afk_target"] = self.v_target.get().strip()
-        c["afk_only_foreground"] = bool(self.v_only.get())
+        c["afk_mode"] = self.v_mode.get()
         self.update_view()
 
     def pick_foreground(self):
@@ -152,11 +165,28 @@ class AfkPage(tk.Frame):
         self.update_view()
 
     def test_once(self):
-        """いま1回だけ送ってみる（対象チェックはしない）。"""
-        n = afk.burst(self.key_name(), self._int(self.v_times, 1, 1, 20),
-                      self._int(self.v_gap, 60, 10, 2000))
-        self.lbl_sub.config(text="ためしに %s を %d回 送りました（この窓に入ります）"
-                                 % (afk.key_label(self.key_name()), n))
+        """いまのモードで1回送ってみる。効くかどうかはARK側を見て確かめる。"""
+        self.save()
+        mode = self.v_mode.get()
+        times = self._int(self.v_times, 1, 1, 20)
+        gap = self._int(self.v_gap, 60, 10, 2000)
+        target = self.v_target.get().strip()
+        if mode == "foreground":
+            # 今このアプリを触っているので、そのままだと必ず失敗する。
+            # 少し待ってから、対象に切り替えてもらう。
+            self.lbl_sub.config(text="3秒以内に ARK をクリックして前に出してください…")
+            self.app.after(3000, lambda: self._test_now(mode, target, times, gap))
+            return
+        self._test_now(mode, target, times, gap)
+
+    def _test_now(self, mode, target, times, gap):
+        n, why = afk.send(mode, target, self.key_name(), times, gap)
+        if n:
+            self.lbl_sub.config(
+                text="✅ %s を %d回 送りました（ARK側で動いたか見てください）"
+                     % (afk.key_label(self.key_name()), n))
+        else:
+            self.lbl_sub.config(text="⚠ 送れませんでした: %s" % (why or "原因不明"))
 
     # ---------------- 開始・停止 ----------------
     def toggle(self):
@@ -169,27 +199,42 @@ class AfkPage(tk.Frame):
 
     def update_view(self, now=None):
         now = now or time.time()
+        cfg = self.app.cfg
         on = self.app.afk_running
+        mode = cfg.get("afk_mode") or afk.DEFAULT_MODE
+        target = cfg.get("afk_target") or ""
         self.btn.set_text("■ とめる" if on else "▶ はじめる")
-        target = self.app.cfg.get("afk_target") or ""
-        only = self.app.cfg.get("afk_only_foreground", True)
+        self.lbl_mode.config(text=self.MODE_HELP.get(mode, ""),
+                             fg=th.PINK_DK if mode == "always" else th.INK_SUB)
+
+        # 対象のウィンドウが見つかっているか（swap / post のときだけ意味がある）
+        if mode in ("swap", "post") and target:
+            self.lbl_found.config(
+                text="  ✅ 見つかっています" if afk.find_window(target)
+                else "  ⚠ 見つかりません",
+                fg=th.MINT if afk.find_window(target) else th.PINK_DK)
+        else:
+            self.lbl_found.config(text="")
+
         if not on:
             self.lbl_state.config(text="とまっています", fg=th.INK_SUB)
             self.lbl_sub.config(
                 text="%s を %d秒ごとに送ります" % (
-                    afk.key_label(self.app.cfg.get("afk_key")),
-                    self.app.cfg.get("afk_interval", 120)))
+                    afk.key_label(cfg.get("afk_key")), cfg.get("afk_interval", 120)))
             return
+
         left = max(0, self.app.afk_next - now)
-        if only and target and not afk.matches(target):
+        if mode == "foreground" and target and not afk.matches(target):
             self.lbl_state.config(text="待機中（%s が前に出るまで）" % target,
                                   fg=th.INK_SUB)
         else:
-            self.lbl_state.config(text="うごいています　つぎまで %s"
-                                       % fmt_mmss(left), fg=th.MINT)
-        self.lbl_sub.config(text="これまで %d回 送りました　／　送るキー: %s"
-                                 % (self.app.afk_count,
-                                    afk.key_label(self.app.cfg.get("afk_key"))))
+            self.lbl_state.config(text="うごいています　つぎまで %s" % fmt_mmss(left),
+                                  fg=th.MINT)
+        msg = "これまで %d回 送りました　／　%s" % (
+            self.app.afk_count, afk.key_label(cfg.get("afk_key")))
+        if self.app.afk_why:
+            msg += "　／　⚠ %s" % self.app.afk_why
+        self.lbl_sub.config(text=msg)
 
 
 def fmt_mmss(sec):

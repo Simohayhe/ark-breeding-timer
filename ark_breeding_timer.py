@@ -32,7 +32,7 @@ import theme as th
 from afk_page import AfkPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.6.0"
+APP_VERSION = "1.7.0"
 
 
 def _res_dir():
@@ -91,8 +91,8 @@ DEFAULT_CONFIG = {
     "afk_interval": 120,          # 何秒ごとに送るか
     "afk_times": 2,               # 1回あたり何連打
     "afk_gap_ms": 60,             # 連打の間隔
-    "afk_target": "ArkAscended.exe",   # このアプリが最前面のときだけ送る
-    "afk_only_foreground": True,
+    "afk_target": "ArkAscended.exe",   # 送る相手のexe名
+    "afk_mode": afk.DEFAULT_MODE,      # foreground / swap / post / always
     # 画面
     "always_on_top": True,
     "geometry": "980x700",
@@ -1030,6 +1030,7 @@ class App(tk.Tk):
         self.afk_running = False
         self.afk_next = 0.0
         self.afk_count = 0
+        self.afk_why = ""
         # チェックリストは本体とミニ表示で同じものを見せるので App が持つ
         self.checklist_items = load_checklist()
         self.checklist_pages = []
@@ -1347,16 +1348,17 @@ class App(tk.Tk):
     def _afk_tick(self, now):
         """AFK防止: 時間が来たらキーを送る。"""
         if self.afk_running and now >= self.afk_next:
-            target = self.cfg.get("afk_target") or ""
-            if (not self.cfg.get("afk_only_foreground", True)
-                    or afk.matches(target)):
-                if afk.burst(self.cfg.get("afk_key") or afk.DEFAULT_KEY,
-                             self.cfg.get("afk_times", 1),
-                             self.cfg.get("afk_gap_ms", 60)):
-                    self.afk_count += 1
+            sent, why = afk.send(self.cfg.get("afk_mode") or afk.DEFAULT_MODE,
+                                 self.cfg.get("afk_target") or "",
+                                 self.cfg.get("afk_key") or afk.DEFAULT_KEY,
+                                 self.cfg.get("afk_times", 1),
+                                 self.cfg.get("afk_gap_ms", 60))
+            self.afk_why = why
+            if sent:
+                self.afk_count += 1
                 self.afk_next = now + max(5, int(self.cfg.get("afk_interval", 120)))
             else:
-                self.afk_next = now + 2   # 対象が前に出るまで様子を見る
+                self.afk_next = now + 2   # 送れる状態になるまで様子を見る
         if getattr(self, "page", "") == "afk":
             self.page_afk.update_view(now)
 
