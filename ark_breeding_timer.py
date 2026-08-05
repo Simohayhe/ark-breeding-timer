@@ -32,7 +32,7 @@ import theme as th
 from afk_page import AfkPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.7.0"
+APP_VERSION = "1.8.0"
 
 
 def _res_dir():
@@ -77,6 +77,8 @@ DEFAULT_CONFIG = {
     "auto_chain": True,
     # 操作
     "confirm_delete": True,   # ✕ を押したとき確認するか
+    "auto_clear_done": True,  # 終わったタイマーを自動で消すか
+    "auto_clear_sec": 600,    # 終わってから何秒で消すか
     "quick_buttons": [        # 「さくっと」のワンクリックボタン（設定で変えられる）
         {"label": "1分", "sec": 60},
         {"label": "3分", "sec": 180},
@@ -959,6 +961,15 @@ class MiniWindow(tk.Toplevel):
                         bg=th.CARD, padx=8, pady=4)
         b_repeat.pack(side="left", padx=(0, 6))
 
+        # 刷り込み待ちなら「次の回へ」、終わったタイマーなら「片づける」
+        if t.kind == "imprint" and t.imp_index < t.imp_count:
+            if t.done and t.remaining() <= 0:
+                Pill(ctl, "✔", lambda tt=t: self.app.imprint_next(tt), bg=th.CARD,
+                     padx=8, pady=4).pack(side="left", padx=(0, 6))
+        elif t.done and not t.paused and t.remaining() <= 0:
+            Pill(ctl, "✔", lambda tt=t: self.app.remove_timer(tt.id), bg=th.CARD,
+                 padx=8, pady=4).pack(side="left", padx=(0, 6))
+
         # %表示を先に確保してから、残りをスライダーに広げる
         # （expand=True を先に pack すると余白を全部持っていってしまう）
         pct = tk.Label(ctl, text="", bg=th.CARD, fg=th.INK_SUB, font=th.F["small"],
@@ -1031,6 +1042,8 @@ class App(tk.Tk):
         self.afk_next = 0.0
         self.afk_count = 0
         self.afk_why = ""
+        # 起動前に終わっていたタイマーを開いた瞬間に消さないための基準時刻
+        self.start_ts = time.time()
         # チェックリストは本体とミニ表示で同じものを見せるので App が持つ
         self.checklist_items = load_checklist()
         self.checklist_pages = []
@@ -1268,6 +1281,29 @@ class App(tk.Tk):
         self.rebuild_list()
         self.save_timers()
 
+    # ---- 終わったタイマーの自動そうじ ----
+    def clear_at(self, t: BreedTimer):
+        """このタイマーが自動で消える時刻。消えないものは None。"""
+        if not self.cfg.get("auto_clear_done", True):
+            return None
+        if not t.done or t.paused or t.repeat:
+            return None
+        if t.kind == "imprint" and t.imp_index < t.imp_count:
+            return None   # 「✔ できた」待ちなので残す
+        span = max(10, int(self.cfg.get("auto_clear_sec", 600) or 600))
+        # 起動前に終わっていた分は、起動から数えて猶予をあげる
+        return max(t.end_ts, self.start_ts) + span
+
+    def _auto_clear(self, now):
+        due = [t for t in self.timers
+               if (at := self.clear_at(t)) is not None and now >= at]
+        if not due:
+            return
+        gone = {t.id for t in due}
+        self.timers = [t for t in self.timers if t.id not in gone]
+        self.rebuild_list()
+        self.save_timers()
+
     def rebuild_list(self):
         for c in self.cards.values():
             c.destroy()
@@ -1337,6 +1373,7 @@ class App(tk.Tk):
         if changed:
             self.save_timers()
             self.rebuild_list()
+        self._auto_clear(now)
         for c in self.cards.values():
             c.update_view(now)
         if self.mini is not None and self.mini.winfo_exists():
@@ -1631,6 +1668,10 @@ class TimerCard(th.Card):
             th.RoundButton(btns, "✔ できた", lambda: app.imprint_next(t), kind="mint",
                            bg=th.CARD, font=F["small"], padx=12,
                            pady=5).pack(side="right", padx=2)
+        elif t.done and not t.paused and t.remaining() <= 0:
+            # 終わったタイマーは「できた」で片づける（自動で消えるのを待たなくていい）
+            th.RoundButton(btns, "✔ できた", self.on_ack, kind="mint", bg=th.CARD,
+                           font=F["small"], padx=12, pady=5).pack(side="right", padx=2)
 
         mid = tk.Frame(b, bg=th.CARD)
         mid.pack(fill="x", pady=(4, 0))
@@ -1660,6 +1701,10 @@ class TimerCard(th.Card):
         if self.app.ask_delete(self.t.label or "むめい"):
             self.app.remove_timer(self.t.id)
 
+    def on_ack(self):
+        """「できた」= 確認したので片づける。終わったものなので確認は挟まない。"""
+        self.app.remove_timer(self.t.id)
+
     def edit_repeat(self):
         RepeatDialog(self.app, self.t, parent=self.winfo_toplevel())
 
@@ -1683,7 +1728,11 @@ class TimerCard(th.Card):
             over = -rem
             self.lbl_time.config(text="0:00" if over < 1 else fmt_dur(over), fg=th.RED)
             self.btn_pause.set_text("⏸")
-            self.lbl_eta.config(text="おわりました" if over < 1 else "経過")
+            text = "おわりました" if over < 1 else "経過"
+            at = self.app.clear_at(t)
+            if at is not None:
+                text += " ・あと %s で消えます" % fmt_dur(max(0.0, at - now))
+            self.lbl_eta.config(text=text)
         else:
             self.lbl_time.config(text=fmt_dur(rem),
                                  fg=th.PINK_DK if rem <= 60 else th.INK)
@@ -2445,6 +2494,34 @@ class SettingsDialog(tk.Toplevel):
         tk.Label(bar, text="長さは 5:00 / 25m / 90（=90分）", bg=th.CARD,
                  fg=th.INK_SUB, font=F["small"]).pack(side="left", padx=6)
 
+        tk.Label(f, text="終わったタイマーの片づけかた", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w")
+        self.v_autoclear = tk.BooleanVar(
+            value=bool(self.app.cfg.get("auto_clear_done", True)))
+        arow = tk.Frame(f, bg=th.CARD)
+        arow.pack(anchor="w", pady=(2, 0))
+        tk.Radiobutton(arow, text="終わってから", variable=self.v_autoclear,
+                       value=True, bg=th.CARD, fg=th.INK, activebackground=th.CARD,
+                       activeforeground=th.INK, selectcolor=th.FIELD,
+                       font=F["cute"], bd=0, highlightthickness=0).pack(side="left")
+        self.v_clear_min = tk.StringVar(
+            value="%g" % (int(self.app.cfg.get("auto_clear_sec", 600) or 600) / 60.0))
+        th.soft_entry(arow, self.v_clear_min, width=5).pack(side="left", padx=6,
+                                                            ipady=3)
+        tk.Label(arow, text="分たったら自動で消す", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+        tk.Radiobutton(f, text="「✔ できた」を押したときだけ消す（自動では消さない）",
+                       variable=self.v_autoclear, value=False, bg=th.CARD,
+                       fg=th.INK, activebackground=th.CARD, activeforeground=th.INK,
+                       selectcolor=th.FIELD, font=F["cute"], bd=0,
+                       highlightthickness=0, anchor="w").pack(anchor="w")
+        tk.Label(f, text="どちらでも、終わったタイマーには「✔ できた」ボタンが出ます。"
+                         "刷り込みの「✔ できた」待ち・くり返し中・一時停止中は自動では"
+                         "消えません。起動前に終わっていた分は、起動してからこの時間だけ"
+                         "残ります（最短10秒）",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"],
+                 wraplength=520, justify="left").pack(anchor="w", pady=(2, 12))
+
         tk.Label(f, text="消すとき", bg=th.CARD, fg=th.INK,
                  font=F["cute_b"]).pack(anchor="w")
         self.v_confirm = tk.BooleanVar(
@@ -2533,6 +2610,8 @@ class SettingsDialog(tk.Toplevel):
             self.app.cfg["prewarn_sec"] = max(0, int(float(self.v_pre.get())))
             self.app.cfg["popup_close_prewarn"] = max(0, int(float(self.v_pc_pre.get())))
             self.app.cfg["popup_close_done"] = max(0, int(float(self.v_pc_done.get())))
+            self.app.cfg["auto_clear_sec"] = max(
+                10, int(float(self.v_clear_min.get()) * 60))
         except ValueError:
             messagebox.showwarning(APP_NAME, "倍率は0より大きい数字で入れてください",
                                    parent=self)
@@ -2545,6 +2624,7 @@ class SettingsDialog(tk.Toplevel):
         c = self.app.cfg
         c["quick_buttons"] = quick
         c["confirm_delete"] = bool(self.v_confirm.get())
+        c["auto_clear_done"] = bool(self.v_autoclear.get())
         c["gestation_uses_hatch_mult"] = bool(self.v_gest.get())
         c["sound"] = bool(self.v_sound.get())
         c["popup"] = bool(self.v_popup.get())
