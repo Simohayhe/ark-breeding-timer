@@ -5,6 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
+import afk
 import macro
 import theme as th
 
@@ -102,6 +103,9 @@ class MacroPage(tk.Frame):
         th.RoundButton(t1, "いま最前面のを使う", self.pick_foreground, kind="soft",
                        bg=th.CARD, font=F["small"], padx=12,
                        pady=5).pack(side="left", padx=6)
+        self.lbl_found = tk.Label(t1, text="", bg=th.CARD, fg=th.INK_SUB,
+                                  font=F["small"])
+        self.lbl_found.pack(side="left")
         self.v_only = tk.BooleanVar(value=bool(cfg.get("macro_only_target", True)))
         tk.Checkbutton(c, text="このアプリが最前面のときだけ動かす（おすすめ）",
                        variable=self.v_only, command=self.save, bg=th.CARD,
@@ -266,6 +270,18 @@ class MacroPage(tk.Frame):
         act = cfg.get("macro_action") or macro.DEFAULT_ACTION
         what = macro.vk_name(vk) if act == "key" else macro.action_label(act)
         target = cfg.get("macro_target") or ""
+
+        # 対象アプリの今の様子（名前が合っているか一目で分かるように）
+        if not target:
+            self.lbl_found.config(text="  （空 = どこでも動きます）", fg=th.PINK_DK)
+        elif afk.matches(target):
+            self.lbl_found.config(text="  ✅ いま最前面です", fg=th.MINT)
+        elif afk.find_window_cached(target):
+            self.lbl_found.config(text="  ⏸ 起動中（前に出れば動きます）",
+                                  fg=th.INK_SUB)
+        else:
+            self.lbl_found.config(text="  ⚠ 見つかりません", fg=th.PINK_DK)
+
         if not running:
             self.lbl_state.config(text="とまっています", fg=th.INK_SUB)
             self.lbl_sub.config(text="%s を %dミリ秒ごとに送ります" % (

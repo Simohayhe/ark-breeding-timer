@@ -222,6 +222,20 @@ def find_window(target):
     return found[0] if found else 0
 
 
+_win_cache = {}
+
+
+def find_window_cached(target, ttl=1.0):
+    """画面の表示用。毎回の全ウィンドウ走査は重いので少しキャッシュする。"""
+    now = time.time()
+    hit = _win_cache.get(target)
+    if hit and now - hit[0] < ttl:
+        return hit[1]
+    hwnd = find_window(target)
+    _win_cache[target] = (now, hwnd)
+    return hwnd
+
+
 # ------------------------------------------------------------ post モード
 WM_KEYDOWN = 0x0100
 WM_KEYUP = 0x0101

@@ -209,10 +209,10 @@ class AfkPage(tk.Frame):
 
         # 対象のウィンドウが見つかっているか（swap / post のときだけ意味がある）
         if mode in ("swap", "post") and target:
+            found = afk.find_window_cached(target)
             self.lbl_found.config(
-                text="  ✅ 見つかっています" if afk.find_window(target)
-                else "  ⚠ 見つかりません",
-                fg=th.MINT if afk.find_window(target) else th.PINK_DK)
+                text="  ✅ 見つかっています" if found else "  ⚠ 見つかりません",
+                fg=th.MINT if found else th.PINK_DK)
         else:
             self.lbl_found.config(text="")
 
