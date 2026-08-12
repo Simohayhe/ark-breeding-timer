@@ -23,7 +23,7 @@ import uuid
 from datetime import datetime
 
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog, simpledialog
+from tkinter import ttk, messagebox, filedialog
 from tkinter import font as tkfont
 
 import afk
@@ -32,7 +32,7 @@ import theme as th
 from afk_page import AfkPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.8.0"
+APP_VERSION = "1.9.0"
 
 
 def _res_dir():
@@ -746,7 +746,8 @@ class ChecklistPage(tk.Frame):
                        fg=th.INK_SUB if struck else th.INK, font=f,
                        anchor="w", justify="left", wraplength=400)
         lbl.pack(side="left", fill="x", expand=True, pady=7)
-        lbl.bind("<Double-Button-1>", lambda e, it=item: self.rename(it))
+        lbl.bind("<Double-Button-1>",
+                 lambda e, it=item, w=lbl, r=row: self.rename(it, w, r))
         # 窓幅に合わせて折り返し位置を追従させる（印と × の分を引く）
         row.bind("<Configure>", lambda e, w=lbl: w.configure(
             wraplength=max(120, e.width - 150)))
@@ -780,13 +781,33 @@ class ChecklistPage(tk.Frame):
         self.render()
         self.entry.focus_set()
 
-    def rename(self, item):
-        new = simpledialog.askstring(APP_NAME, "項目名",
-                                     initialvalue=item["text"], parent=self)
-        if new and new.strip():
-            item["text"] = new.strip()
-            self.save()
+    def rename(self, item, lbl, row):
+        """別窓を出さずに、その行を入力欄に差し替えて書きかえる。"""
+        if getattr(self, "_editing", False):
+            return
+        self._editing = True
+        lbl.pack_forget()
+        var = tk.StringVar(value=item["text"])
+        ent = th.soft_entry(row, var)
+        ent.pack(side="left", fill="x", expand=True, pady=5)
+        ent.focus_set()
+        ent.icursor("end")
+        ent.select_range(0, "end")
+
+        def finish(save_it):
+            if not self._editing:
+                return
+            self._editing = False
+            if save_it:
+                new = var.get().strip()
+                if new and new != item["text"]:
+                    item["text"] = new
+                    self.save()
             self.render()
+
+        ent.bind("<Return>", lambda e: finish(True))
+        ent.bind("<FocusOut>", lambda e: finish(True))
+        ent.bind("<Escape>", lambda e: finish(False))
 
     def remove(self, item):
         if item not in self.items:
@@ -800,10 +821,13 @@ class ChecklistPage(tk.Frame):
     def clear_all(self):
         if not self.items:
             return
-        if messagebox.askyesno(APP_NAME, "全部の項目を消します。よろしいですか？",
-                               parent=self):
-            self.items.clear()      # 共有リストなので中身だけ空にする
-            self.save()
+        # 確認するかどうかは設定にしたがう（オフなら黙って消す）
+        if self.app.cfg.get("confirm_delete", True):
+            if not messagebox.askyesno(APP_NAME, "全部の項目を消します。よろしいですか？",
+                                       parent=self):
+                return
+        self.items.clear()      # 共有リストなので中身だけ空にする
+        self.save()
 
 
 class MiniWindow(tk.Toplevel):
@@ -1436,34 +1460,54 @@ class App(tk.Tk):
         self.rebuild_list()
         self.save_timers()
 
-    def make_timers(self, sp, label, c, kinds, offset=0.0):
-        """種族と計算結果からタイマー群を作る。offset秒だけ経過済みとして扱う。"""
+    def make_timers(self, sp, label, c, kinds, offset=0.0, offset_kinds=None):
+        """種族と計算結果からタイマー群を作る。
+
+        offset秒だけ経過済みとして扱う。offset_kinds を渡すと、そこに入っている
+        種類にだけ offset を適用する（成熟度から作るときは成長と刷り込みだけ）。
+        """
         out, now = [], time.time()
+
+        def off(kind):
+            if offset <= 0:
+                return 0.0
+            if offset_kinds is None or kind in offset_kinds:
+                return offset
+            return 0.0
+
         for kind, total in (("hatch", c["hatch"]), ("gestation", c["gestation"])):
             if kind in kinds and total > 0:
                 t = BreedTimer(kind, label, total, sp["name"])
-                t.end_ts = now + max(0.0, total - offset)
+                t.end_ts = now + max(0.0, total - off(kind))
                 t.chain = True
                 out.append(t)
         if "mature" in kinds and c["mature"] > 0:
+            o = off("mature")
             t = BreedTimer("mature", label, c["mature"], sp["name"])
-            t.end_ts = now + max(0.0, c["mature"] - offset)
+            t.end_ts = now + max(0.0, c["mature"] - o)
             t.milestone_text = "成長10% おいていけます"
-            if offset < c["mature"] * 0.10:
+            if o < c["mature"] * 0.10:
                 t.milestone_frac = 0.10
             else:
                 t.milestone_done = True
             out.append(t)
         if "imprint" in kinds and c["imprint_count"] > 0:
-            t = BreedTimer("imprint", label, c["imprint_interval"], sp["name"])
-            t.end_ts = now + max(0.0, c["imprint_interval"] - offset)
-            t.imp_count = c["imprint_count"]
-            t.imp_per = c["imprint_per"]
-            t.mature_end = now + max(0.0, c["mature"] - offset)
-            out.append(t)
+            interval = c["imprint_interval"]
+            o = off("imprint")
+            # 途中から作るときは、もう済んでいる回数を数えて次の1回までを出す
+            done = min(int(o // interval) if interval > 0 else 0, c["imprint_count"])
+            if done < c["imprint_count"]:
+                to_next = interval - (o % interval) if interval > 0 else 0.0
+                t = BreedTimer("imprint", label, interval, sp["name"])
+                t.end_ts = now + max(0.0, to_next)
+                t.imp_index = done
+                t.imp_count = c["imprint_count"]
+                t.imp_per = c["imprint_per"]
+                t.mature_end = now + max(0.0, c["mature"] - off("mature"))
+                out.append(t)
         if "matingcd" in kinds and c["cd_hi"] > 0:
             t = BreedTimer("matingcd", label, c["cd_lo"], sp["name"])
-            t.end_ts = now + max(0.0, c["cd_lo"] - offset)
+            t.end_ts = now + max(0.0, c["cd_lo"] - off("matingcd"))
             t.note = "最短 %s / 最長 %s のあいだでランダム" % (
                 fmt_dur(c["cd_lo"]), fmt_dur(c["cd_hi"]))
             out.append(t)
@@ -1880,6 +1924,10 @@ class RepeatDialog(tk.Toplevel):
                      bg=th.CARD, fg=th.INK_SUB, font=app.F["small"],
                      anchor="w").pack(fill="x", pady=(8, 0))
 
+        self.lbl_err = tk.Label(b, text="", bg=th.CARD, fg=th.PINK_DK,
+                                font=app.F["small"], anchor="w", justify="left",
+                                wraplength=340)
+        self.lbl_err.pack(side="bottom", fill="x")
         btm = tk.Frame(b, bg=th.CARD)
         btm.pack(side="bottom", fill="x", pady=(12, 0))
         th.RoundButton(btm, "決定", self.save, kind="primary", bg=th.CARD,
@@ -1897,7 +1945,7 @@ class RepeatDialog(tk.Toplevel):
     def save(self):
         rep, count, every, err = self.panel.read()
         if err:
-            messagebox.showwarning(APP_NAME, err, parent=self)
+            self.lbl_err.config(text="⚠ " + err)
             return
         self.t.repeat = rep
         self.t.repeat_count = count
@@ -2176,14 +2224,18 @@ class NewTimerDialog(tk.Toplevel):
             self.f_prev.config(text="→ %s後、%s に鳴ります 🔔" % (
                 fmt_dur(sec), fmt_eta(time.time() + sec)), fg=th.PINK_DK)
 
+    def _warn(self, label, text):
+        """ダイアログを出さずに、その場に赤字で出す。"""
+        label.config(text="⚠ " + text, fg=th.PINK_DK)
+
     def create_free(self):
         sec, err = self._free_seconds()
         if err:
-            messagebox.showwarning(APP_NAME, err, parent=self)
+            self._warn(self.f_prev, err)
             return
         rep, count, every, rerr = self.f_repeat.read()
         if rerr:
-            messagebox.showwarning(APP_NAME, rerr, parent=self)
+            self._warn(self.f_prev, rerr)
             return
         t = BreedTimer("custom", self.f_label.get().strip() or "タイマー", sec)
         t.repeat = rep
@@ -2212,9 +2264,10 @@ class NewTimerDialog(tk.Toplevel):
         self.lst.bind("<<ListboxSelect>>", lambda e: self.on_select())
         self.lst.bind("<Double-Button-1>", lambda e: self.create_ark())
 
-        right = tk.Frame(f, bg=th.CARD, width=330)
+        # 幅は中の部品（計算結果ラベルの width=40 など）にまかせる。
+        # pack_propagate(False) で高さを潰すとカード全体が縮んでしまう。
+        right = tk.Frame(f, bg=th.CARD)
         right.pack(side="right", fill="y", padx=(14, 0))
-        right.pack_propagate(False)
         tk.Label(right, text="いまの倍率だとこうなります", bg=th.CARD, fg=th.INK,
                  font=F["cute_b"]).pack(anchor="w")
         self.lbl_calc = tk.Label(right, text="恐竜をえらんでね", bg=th.FIELD,
@@ -2242,20 +2295,86 @@ class NewTimerDialog(tk.Toplevel):
         self.var_start = tk.StringVar(value="now")
         self._radio(right, "今から（産みたて・生まれたて）", self.var_start,
                     "now").pack(anchor="w")
+        rowp = tk.Frame(right, bg=th.CARD)
+        rowp.pack(anchor="w", fill="x")
+        self._radio(rowp, "成熟度", self.var_start, "mature").pack(side="left")
+        self.var_pct = tk.StringVar(value="0")
+        th.soft_entry(rowp, self.var_pct, width=6).pack(side="left", padx=4, ipady=3)
+        tk.Label(rowp, text="% から", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+
         rowl = tk.Frame(right, bg=th.CARD)
         rowl.pack(anchor="w", fill="x")
-        self._radio(rowl, "残り時間から", self.var_start, "left").pack(side="left")
+        self._radio(rowl, "残り時間", self.var_start, "left").pack(side="left")
         self.var_left = tk.StringVar()
         th.soft_entry(rowl, self.var_left, width=9).pack(side="left", padx=4, ipady=3)
-        tk.Label(right, text="   例: 1:23:45 / 25m / 90（=90分）", bg=th.CARD,
-                 fg=th.INK_SUB, font=F["small"]).pack(anchor="w")
+        tk.Label(rowl, text=" から", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+
+        self.lbl_start = tk.Label(right, text="", bg=th.CARD, fg=th.PINK_DK,
+                                  font=F["small"], anchor="w", justify="left",
+                                  wraplength=320)
+        self.lbl_start.pack(fill="x", pady=(2, 0))
+        for v in (self.var_start, self.var_pct):
+            v.trace_add("write", lambda *a: self._start_preview())
 
         btm = tk.Frame(right, bg=th.CARD)
         btm.pack(side="bottom", fill="x", pady=(12, 0))
+        self.ark_err = tk.Label(right, text="", bg=th.CARD, fg=th.PINK_DK,
+                                font=F["small"], anchor="w", justify="left",
+                                wraplength=320)
+        self.ark_err.pack(side="bottom", fill="x")
         th.RoundButton(btm, "つくる", self.create_ark, kind="primary", bg=th.CARD,
                        font=F["cute_b"], padx=26).pack(side="right")
         th.RoundButton(btm, "やめる", self.destroy, kind="soft", bg=th.CARD,
                        font=F["cute"]).pack(side="right", padx=8)
+
+    def _pct(self):
+        """成熟度の入力を 0.0〜1.0 で返す。読めなければ None。"""
+        try:
+            v = float((self.var_pct.get() or "0").strip().rstrip("%"))
+        except ValueError:
+            return None
+        if not 0 <= v <= 100:
+            return None
+        return v / 100.0
+
+    def _start_preview(self):
+        """「成熟度◯%から」だと何がどうなるかを出す。"""
+        if not hasattr(self, "lbl_start"):
+            return
+        mode = self.var_start.get()
+        if mode != "mature" or not self.calc:
+            self.lbl_start.config(
+                text="   例: 1:23:45 / 25m / 90（=90分）" if mode == "left" else "",
+                fg=th.INK_SUB)
+            return
+        p = self._pct()
+        if p is None:
+            self.lbl_start.config(text="⚠ 成熟度は 0〜100 の数字で", fg=th.PINK_DK)
+            return
+        c = self.calc
+        elapsed = c["mature"] * p
+        left = max(0.0, c["mature"] - elapsed)
+        lines = ["→ 成体まで あと %s" % fmt_dur(left)]
+        if c["imprint_count"]:
+            interval = c["imprint_interval"]
+            done = min(int(elapsed // interval), c["imprint_count"])
+            if done >= c["imprint_count"]:
+                lines.append("   刷り込みはもう終わっています")
+            else:
+                lines.append("   刷り込みは %d/%d回目まで済み・次まで %s" % (
+                    done, c["imprint_count"],
+                    fmt_dur(interval - (elapsed % interval))))
+        if p > 0:
+            # もう生まれているので孵化・妊娠は外し、成長と刷り込みを選んでおく
+            self.kv["hatch"].set(False)
+            self.kv["gestation"].set(False)
+            if not any(self.kv[k].get() for k in ("mature", "imprint", "matingcd")):
+                self.kv["mature"].set(True)
+                self.kv["imprint"].set(True)
+            lines.append("   （孵化・妊娠は作りません）")
+        self.lbl_start.config(text="\n".join(lines), fg=th.PINK_DK)
 
     def refresh_list(self):
         self.results = self.app.db.search(self.var_q.get())
@@ -2292,32 +2411,51 @@ class NewTimerDialog(tk.Toplevel):
         self.lbl_calc.config(text="\n".join(lines))
         self.kv["hatch"].set(c["hatch"] > 0)
         self.kv["gestation"].set(c["gestation"] > 0)
+        self._start_preview()
 
     def create_ark(self):
+        self.ark_err.config(text="")
         if not self.sp:
-            messagebox.showwarning(APP_NAME, "恐竜をえらんでください", parent=self)
+            self._warn(self.ark_err, "恐竜をえらんでください")
             return
         kinds = tuple(k for k, v in self.kv.items() if v.get())
         if not kinds:
-            messagebox.showwarning(APP_NAME, "つくるタイマーを1つ以上えらんでください",
-                                   parent=self)
+            self._warn(self.ark_err, "つくるタイマーを1つ以上えらんでください")
             return
         label = self.var_label.get().strip() or self.sp["name"]
         offset = 0.0
-        if self.var_start.get() == "left":
+        offset_kinds = None
+        mode = self.var_start.get()
+        if mode == "left":
             left = parse_duration(self.var_left.get())
             if left is None:
-                messagebox.showwarning(APP_NAME, "残り時間の書き方がわかりません（例 1:23:45）",
-                                       parent=self)
+                self._warn(self.ark_err, "残り時間の書き方がわかりません（例 1:23:45）")
                 return
             base = {"hatch": self.calc["hatch"], "gestation": self.calc["gestation"],
                     "mature": self.calc["mature"],
                     "imprint": self.calc["imprint_interval"],
                     "matingcd": self.calc["cd_lo"]}.get(kinds[0], left)
             offset = max(0.0, base - left)
-        made = self.app.make_timers(self.sp, label, self.calc, kinds, offset=offset)
+        elif mode == "mature":
+            p = self._pct()
+            if p is None:
+                self._warn(self.ark_err, "成熟度は 0〜100 の数字で入れてください")
+                return
+            offset = self.calc["mature"] * p
+            # 成熟度が進んでいる = もう生まれているので、孵化・妊娠は作らない
+            if p > 0:
+                kinds = tuple(k for k in kinds if k not in ("hatch", "gestation"))
+                if not kinds:
+                    self._warn(self.ark_err,
+                               "成熟度から作るときは、成長・刷り込み・再交配CD から"
+                               "選んでください")
+                    return
+            # 再交配CDは成熟度とは関係ないので、ずらすのは成長と刷り込みだけ
+            offset_kinds = {"mature", "imprint"}
+        made = self.app.make_timers(self.sp, label, self.calc, kinds, offset=offset,
+                                    offset_kinds=offset_kinds)
         if not made:
-            messagebox.showinfo(APP_NAME, "この恐竜にはそのタイマーがありません", parent=self)
+            self._warn(self.ark_err, "この恐竜にはそのタイマーがありません")
             return
         for t in made:
             self.app.timers.append(t)
@@ -2362,6 +2500,10 @@ class SettingsDialog(tk.Toplevel):
         self._build_timer(self.pages["timer"].body)
         self._build_ark(self.pages["ark"].body)
 
+        self.err = tk.Label(self, text="", bg=th.BG, fg=th.PINK_DK,
+                            font=self.F["small"], anchor="w", justify="left",
+                            wraplength=540)
+        self.err.pack(fill="x", padx=18)
         btm = tk.Frame(self, bg=th.BG)
         btm.pack(fill="x", padx=18, pady=(0, 14))
         th.RoundButton(btm, "保存する", self.save, kind="primary", bg=th.BG,
@@ -2601,6 +2743,7 @@ class SettingsDialog(tk.Toplevel):
                  justify="left").pack(anchor="w")
 
     def save(self):
+        self.err.config(text="")
         try:
             for key, _ in self.MULTS:
                 val = float(self.vars[key].get())
@@ -2613,13 +2756,13 @@ class SettingsDialog(tk.Toplevel):
             self.app.cfg["auto_clear_sec"] = max(
                 10, int(float(self.v_clear_min.get()) * 60))
         except ValueError:
-            messagebox.showwarning(APP_NAME, "倍率は0より大きい数字で入れてください",
-                                   parent=self)
+            self.switch("ark")
+            self.err.config(text="⚠ 倍率は0より大きい数字で入れてください")
             return
         quick, qerr = self._read_quick()
         if qerr:
             self.switch("timer")
-            messagebox.showwarning(APP_NAME, qerr, parent=self)
+            self.err.config(text="⚠ " + qerr)
             return
         c = self.app.cfg
         c["quick_buttons"] = quick
