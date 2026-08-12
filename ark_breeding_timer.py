@@ -27,12 +27,14 @@ from tkinter import ttk, messagebox, filedialog
 from tkinter import font as tkfont
 
 import afk
+import macro
 import sounds as snd
 import theme as th
 from afk_page import AfkPage
+from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.9.0"
+APP_VERSION = "1.10.0"
 
 
 def _res_dir():
@@ -95,6 +97,18 @@ DEFAULT_CONFIG = {
     "afk_gap_ms": 60,             # 連打の間隔
     "afk_target": "ArkAscended.exe",   # 送る相手のexe名
     "afk_mode": afk.DEFAULT_MODE,      # foreground / swap / post / always
+    # マクロ（連射）
+    "macro_action": macro.DEFAULT_ACTION,   # left / right / middle / key
+    "macro_key_vk": 0,
+    "macro_key_scan": 0,
+    "macro_interval_ms": 100,
+    "macro_hold_ms": 20,
+    "macro_limit": 0,                  # 0 = ずっと
+    "macro_target": "ArkAscended.exe",
+    "macro_only_target": True,
+    "macro_hotkey_on": True,
+    "macro_hotkey_mods": macro.MOD_CONTROL,
+    "macro_hotkey_vk": 0x52,           # R
     # 画面
     "always_on_top": True,
     "geometry": "980x700",
@@ -1066,6 +1080,10 @@ class App(tk.Tk):
         self.afk_next = 0.0
         self.afk_count = 0
         self.afk_why = ""
+        # マクロ（連射）。起動時は必ず止まった状態から
+        self.macro = None
+        self.hotkey = None
+        self._hotkey_err = ""
         # 起動前に終わっていたタイマーを開いた瞬間に消さないための基準時刻
         self.start_ts = time.time()
         # チェックリストは本体とミニ表示で同じものを見せるので App が持つ
@@ -1124,16 +1142,17 @@ class App(tk.Tk):
                                  font=F["cute"], anchor="w")
         self.lbl_next.pack(fill="x", pady=(2, 8))
 
-        tabs = tk.Frame(head, bg=th.BG)
+        # タブが増えたので、窓が狭いときは折り返す
+        tabs = FlowFrame(head, bg=th.BG, gap_x=6, gap_y=6)
         tabs.pack(fill="x", pady=(0, 10))
         self.tabs = {}
         for key, label in (("timers", "⏰ タイマー"),
                            ("checklist", "🗒 チェックリスト"),
-                           ("afk", "🎮 AFK防止")):
-            p = Pill(tabs, label, lambda k=key: self.show_page(k), bg=th.BG,
-                     font=F["cute"])
-            p.pack(side="left", padx=(0, 6))
-            self.tabs[key] = p
+                           ("afk", "🎮 AFK防止"),
+                           ("macro", "🖱 マクロ")):
+            self.tabs[key] = tabs.add(
+                Pill(tabs, label, lambda k=key: self.show_page(k), bg=th.BG,
+                     font=F["cute"]))
 
         # ---------------- タイマーのページ ----------------
         self.page_timer = tk.Frame(self, bg=th.BG)
@@ -1172,6 +1191,10 @@ class App(tk.Tk):
 
         # ---------------- AFK防止のページ ----------------
         self.page_afk = AfkPage(self, self)
+
+        # ---------------- マクロのページ ----------------
+        self.page_macro = MacroPage(self, self)
+        self.apply_hotkey()
 
         self.show_page(self.cfg.get("page") or "timers")
 
@@ -1222,8 +1245,8 @@ class App(tk.Tk):
         self.lift()
 
     def show_page(self, name):
-        """⏰タイマー / 🗒チェックリスト / 🎮AFK防止 の切り替え。"""
-        if name not in ("timers", "checklist", "afk"):
+        """⏰タイマー / 🗒チェックリスト / 🎮AFK防止 / 🖱マクロ の切り替え。"""
+        if name not in ("timers", "checklist", "afk", "macro"):
             name = "timers"
         self.page = name
         for key, pill in self.tabs.items():
@@ -1231,17 +1254,20 @@ class App(tk.Tk):
         self.page_timer.pack_forget()
         self.page_check.pack_forget()
         self.page_afk.pack_forget()
+        self.page_macro.pack_forget()
         if name == "checklist":
             self.page_check.pack(fill="both", expand=True, padx=18, pady=(0, 12))
         elif name == "afk":
             self.page_afk.pack(fill="both", expand=True, padx=12, pady=(0, 12))
+        elif name == "macro":
+            self.page_macro.pack(fill="both", expand=True, padx=12, pady=(0, 12))
         else:
             self.page_timer.pack(fill="both", expand=True)
         self.cfg["page"] = name
 
     def _on_wheel(self, e):
         page = getattr(self, "page", "timers")
-        if page == "afk":
+        if page in ("afk", "macro"):
             return   # スクロールする一覧が無いページ
         cv = self.page_check.canvas if page == "checklist" else self.canvas
         try:
@@ -1404,7 +1430,79 @@ class App(tk.Tk):
             self.mini.update_view(now)
         self._update_head(now)
         self._afk_tick(now)
+        self._macro_tick()
         self.after(250, self._tick)
+
+    # ---------------- マクロ（連射） ----------------
+    def macro_running(self):
+        return self.macro is not None and self.macro.is_alive()
+
+    def _macro_cfg(self):
+        """連射スレッドが毎回読む設定のスナップショット。"""
+        c = self.cfg
+        return {
+            "action": c.get("macro_action") or macro.DEFAULT_ACTION,
+            "key_vk": c.get("macro_key_vk") or 0,
+            "key_scan": c.get("macro_key_scan") or 0,
+            "interval_ms": c.get("macro_interval_ms", 100),
+            "hold_ms": c.get("macro_hold_ms", 20),
+            "limit": c.get("macro_limit", 0),
+            "target": c.get("macro_target") or "",
+            "only_target": c.get("macro_only_target", True),
+        }
+
+    def toggle_macro(self):
+        """入切。ホットキーのスレッドから呼ばれてもいいように Tk は触らない。"""
+        if self.macro_running():
+            self.macro.stop()
+            self.macro = None
+        else:
+            if (self.cfg.get("macro_action") == "key"
+                    and not self.cfg.get("macro_key_vk")):
+                return   # 送るキーが決まっていないので始めない
+            self.macro = macro.Runner(self._macro_cfg)
+            self.macro.start()
+
+    def stop_macro(self):
+        if self.macro is not None:
+            self.macro.stop()
+            self.macro = None
+
+    def apply_hotkey(self):
+        """設定に合わせてグローバルホットキーを登録し直す。"""
+        if self.hotkey is not None:
+            self.hotkey.stop()
+            self.hotkey = None
+        self._hotkey_err = ""
+        if not self.cfg.get("macro_hotkey_on", True):
+            return
+        hk = macro.Hotkey(self.cfg.get("macro_hotkey_mods", macro.MOD_CONTROL),
+                          self.cfg.get("macro_hotkey_vk", 0x52),
+                          self.toggle_macro)
+        hk.start()
+        hk.ready.wait(1.0)
+        if not hk.ok:
+            self._hotkey_err = hk.error or "登録できませんでした"
+            self.hotkey = None
+        else:
+            self.hotkey = hk
+
+    def hotkey_status(self):
+        name = macro.hotkey_name(self.cfg.get("macro_hotkey_mods", macro.MOD_CONTROL),
+                                 self.cfg.get("macro_hotkey_vk", 0x52))
+        if not self.cfg.get("macro_hotkey_on", True):
+            return "ショートカットは使いません（この画面のボタンで入切します）"
+        if self._hotkey_err:
+            return "⚠ %s が使えません（%s）。別の組み合わせにしてください" % (
+                name, self._hotkey_err)
+        return ("%s でどこからでも入切できます。"
+                "登録中はほかのアプリでもこの組み合わせは効かなくなります" % name)
+
+    def _macro_tick(self):
+        # 撃ち終わったスレッドは残しておく（回数の表示に使うため）。
+        # macro_running() が is_alive() を見ているので、止まった扱いになる。
+        if getattr(self, "page", "") == "macro":
+            self.page_macro.update_view()
 
     def _afk_tick(self, now):
         """AFK防止: 時間が来たらキーを送る。"""
@@ -1663,6 +1761,9 @@ class App(tk.Tk):
         self.save_cfg()
         self.save_timers()
         snd.stop()
+        self.stop_macro()          # 連射を止め忘れて暴走させない
+        if self.hotkey is not None:
+            self.hotkey.stop()
         self.destroy()
 
 
