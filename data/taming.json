@@ -191,7 +191,8 @@
      "a": 35
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Ravager": {
    "affinity0": 1850,
@@ -259,7 +260,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Nameless": {
    "affinity0": 10000,
@@ -276,7 +278,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Karkinos": {
    "affinity0": 7200,
@@ -326,7 +329,8 @@
      "a": 15
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Lamprey": {
    "affinity0": 450,
@@ -343,7 +347,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Featherlight": {
    "affinity0": 2200,
@@ -377,7 +382,8 @@
      "a": 75
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Shinehorn": {
    "affinity0": 2200,
@@ -416,7 +422,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Glowtail": {
    "affinity0": 2200,
@@ -450,7 +457,8 @@
      "a": 75
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Bulbdog": {
    "affinity0": 2200,
@@ -524,7 +532,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Glowbug": {
    "affinity0": 450,
@@ -541,7 +550,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Roll Rat": {
    "affinity0": 2000,
@@ -597,7 +607,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Reaper Queen": {
    "affinity0": 6800,
@@ -614,7 +625,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Subterranean Reaper King": {
    "affinity0": 6800,
@@ -631,7 +643,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Surface Reaper King": {
    "affinity0": 6800,
@@ -648,7 +661,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Elemental Reaper King": {
    "affinity0": 6800,
@@ -665,7 +679,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Reaper King": {
    "affinity0": 6800,
@@ -733,7 +748,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Seeker": {
    "affinity0": 3000,
@@ -750,7 +766,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Rock Drake": {
    "affinity0": 8500,
@@ -767,7 +784,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Attack Drone": {
    "affinity0": 2200,
@@ -784,7 +802,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Overseer": {
    "affinity0": 8500,
@@ -801,7 +820,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Dragon": {
    "affinity0": 8500,
@@ -818,7 +838,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Megapithecus": {
    "affinity0": 8500,
@@ -835,7 +856,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Broodmother Lysrix": {
    "affinity0": 1500,
@@ -852,7 +874,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Defense Unit": {
    "affinity0": 10000,
@@ -869,7 +892,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Desert Titan": {
    "affinity0": 10000,
@@ -886,7 +910,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Desert Titan Flock": {
    "affinity0": 900,
@@ -954,7 +979,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Enforcer": {
    "affinity0": 10000,
@@ -971,7 +997,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Forest Titan": {
    "affinity0": 10000,
@@ -988,7 +1015,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Forest Wyvern": {
    "affinity0": 8500,
@@ -1005,7 +1033,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Gacha": {
    "affinity0": 10000,
@@ -1059,7 +1088,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "GachaClaus": {
    "affinity0": 10000,
@@ -1076,7 +1106,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Gasbags": {
    "affinity0": 10000,
@@ -1154,7 +1185,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Managarmr": {
    "affinity0": 2000,
@@ -1217,7 +1249,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Ice Titan": {
    "affinity0": 5,
@@ -1234,7 +1267,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Corrupt Tumor": {
    "affinity0": 10000,
@@ -1251,7 +1285,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Gamma King Titan": {
    "affinity0": 10000,
@@ -1268,7 +1303,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Beta King Titan": {
    "affinity0": 10000,
@@ -1285,7 +1321,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Corruptling": {
    "affinity0": 10000,
@@ -1302,7 +1339,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Mega Mek": {
    "affinity0": 10000,
@@ -1319,7 +1357,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Snow Owl": {
    "affinity0": 2200,
@@ -1379,7 +1418,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Scout": {
    "affinity0": 2200,
@@ -1396,7 +1436,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Velonasaur": {
    "affinity0": 2000,
@@ -1453,7 +1494,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Andrewsarchus": {
    "affinity0": 5000,
@@ -1470,7 +1512,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Beyla Spawn": {
    "affinity0": 450,
@@ -1487,7 +1530,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Beyla": {
    "affinity0": 10000,
@@ -1504,7 +1548,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Desmodus": {
    "affinity0": 2200,
@@ -1521,7 +1566,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Fenrir": {
    "affinity0": 1200,
@@ -1538,7 +1584,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Fjordhawk": {
    "affinity0": 1750,
@@ -1555,7 +1602,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Hati": {
    "affinity0": 1200,
@@ -1572,7 +1620,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Sköll": {
    "affinity0": 1200,
@@ -1589,7 +1638,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Rubble Bear": {
    "affinity0": 4000,
@@ -1606,7 +1656,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Steinbjörn": {
    "affinity0": 4000,
@@ -1623,7 +1674,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "X-Parasaur": {
    "affinity0": 1500,
@@ -1638,9 +1690,34 @@
    "torporPS0": 0.3,
    "torporBase": 150,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Basic Augmented Kibble",
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Simple Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Basic Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake"
+   ],
+   "food": {
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    }
+   },
+   "confirmed": true,
+   "food_from": "Parasaur"
   },
   "X-Paraceratherium": {
    "affinity0": 6500,
@@ -1655,9 +1732,43 @@
    "torporPS0": 0.9025,
    "torporBase": 1300,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Paraceratherium"
   },
   "X-Raptor": {
    "affinity0": 1200,
@@ -1672,9 +1783,47 @@
    "torporPS0": 0.3,
    "torporBase": 180,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Simple Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Raptor"
   },
   "X-Spino": {
    "affinity0": 3200,
@@ -1689,9 +1838,97 @@
    "torporPS0": 2.1333332,
    "torporBase": 850,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Raw Prime Fish Meat",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Fish Meat",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Fish Meat",
+    "Raw Meat",
+    "Cooked Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Raw Prime Fish Meat": {
+     "f": 25,
+     "a": 150
+    },
+    "Raw Mutton": {
+     "f": 50,
+     "a": 150
+    },
+    "Raw Prime Meat": {
+     "f": 50,
+     "a": 120
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 81
+    },
+    "Cooked Prime Fish Meat": {
+     "f": 25.686001,
+     "a": 75.200005
+    },
+    "Cooked Prime Meat": {
+     "f": 49.945,
+     "a": 60
+    },
+    "Prime Meat Jerky": {
+     "f": 49.945,
+     "a": 60
+    },
+    "Raw Fish Meat": {
+     "f": 25,
+     "a": 50
+    },
+    "Raw Meat": {
+     "f": 50,
+     "a": 40
+    },
+    "Cooked Fish Meat": {
+     "f": 12.5,
+     "a": 25.200001
+    },
+    "Cooked Meat": {
+     "f": 25,
+     "a": 20
+    },
+    "Cooked Meat Jerky": {
+     "f": 25,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Spino"
   },
   "X-Tapejara": {
    "affinity0": 2200,
@@ -1706,9 +1943,53 @@
    "torporPS0": 0.3,
    "torporBase": 450,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Tapejara"
   },
   "X-Rock Elemental": {
    "affinity0": 6500,
@@ -1723,9 +2004,27 @@
    "torporPS0": 0.325,
    "torporBase": 5000,
    "torporInc": 0.02,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Extraordinary Kibble",
+    "Sulfur",
+    "Clay"
+   ],
+   "food": {
+    "Extraordinary Kibble": {
+     "f": 21.3328,
+     "a": 400
+    },
+    "Sulfur": {
+     "f": 25,
+     "a": 25
+    },
+    "Clay": {
+     "f": 25,
+     "a": 15
+    }
+   },
+   "confirmed": true,
+   "food_from": "Rock Elemental"
   },
   "X-Sabertooth Salmon": {
    "affinity0": 10000,
@@ -1742,7 +2041,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "X-Basilosaurus": {
    "affinity0": 6600,
@@ -1757,9 +2057,96 @@
    "torporPS0": 0,
    "torporBase": 2000,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Basic Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Simple Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat"
+   ],
+   "food": {
+    "Exceptional Augmented Kibble": {
+     "f": 319.679993,
+     "a": 500
+    },
+    "Extraordinary Augmented Kibble": {
+     "f": 319.679993,
+     "a": 500
+    },
+    "Kibble": {
+     "f": 479.52002,
+     "a": 500
+    },
+    "Exceptional Kibble": {
+     "f": 511.488007,
+     "a": 500
+    },
+    "Extraordinary Kibble": {
+     "f": 511.488007,
+     "a": 500
+    },
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Augmented Kibble": {
+     "f": 360,
+     "a": 60
+    },
+    "Regular Augmented Kibble": {
+     "f": 360,
+     "a": 60
+    },
+    "Simple Augmented Kibble": {
+     "f": 360,
+     "a": 60
+    },
+    "Superior Augmented Kibble": {
+     "f": 360,
+     "a": 60
+    },
+    "Basic Kibble": {
+     "f": 576,
+     "a": 60
+    },
+    "Regular Kibble": {
+     "f": 576,
+     "a": 60
+    },
+    "Simple Kibble": {
+     "f": 576,
+     "a": 60
+    },
+    "Superior Kibble": {
+     "f": 576,
+     "a": 60
+    }
+   },
+   "confirmed": true,
+   "food_from": "Basilosaurus"
   },
   "X-Ichthyosaurus": {
    "affinity0": 1500,
@@ -1774,9 +2161,47 @@
    "torporPS0": 0,
    "torporBase": 300,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Simple Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Ichthyosaurus"
   },
   "X-Dunkleosteus": {
    "affinity0": 1300,
@@ -1791,9 +2216,81 @@
    "torporPS0": 1,
    "torporBase": 1150,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Exceptional Augmented Kibble": {
+     "f": 79.800003,
+     "a": 400
+    },
+    "Extraordinary Augmented Kibble": {
+     "f": 79.800003,
+     "a": 400
+    },
+    "Superior Augmented Kibble": {
+     "f": 79.800003,
+     "a": 400
+    },
+    "Kibble": {
+     "f": 119.700005,
+     "a": 400
+    },
+    "Exceptional Kibble": {
+     "f": 127.680008,
+     "a": 400
+    },
+    "Extraordinary Kibble": {
+     "f": 127.680008,
+     "a": 400
+    },
+    "Superior Kibble": {
+     "f": 127.680008,
+     "a": 400
+    },
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Dunkleosteus"
   },
   "X-Megalodon": {
    "affinity0": 2000,
@@ -1808,9 +2305,53 @@
    "torporPS0": 0.3,
    "torporBase": 800,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Megalodon"
   },
   "X-Mosasaurus": {
    "affinity0": 11000,
@@ -1825,9 +2366,76 @@
    "torporPS0": 12.8,
    "torporBase": 3000,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Exceptional Augmented Kibble": {
+     "f": 53.279999,
+     "a": 550
+    },
+    "Extraordinary Augmented Kibble": {
+     "f": 53.279999,
+     "a": 550
+    },
+    "Kibble": {
+     "f": 79.919998,
+     "a": 550
+    },
+    "Exceptional Kibble": {
+     "f": 85.248001,
+     "a": 550
+    },
+    "Extraordinary Kibble": {
+     "f": 85.248001,
+     "a": 550
+    },
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Mosasaurus"
   },
   "X-Argentavis": {
    "affinity0": 2000,
@@ -1842,9 +2450,53 @@
    "torporPS0": 0.3,
    "torporBase": 600,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Argentavis"
   },
   "X-Otter": {
    "affinity0": 1200,
@@ -1859,9 +2511,45 @@
    "torporPS0": 0,
    "torporBase": 350,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Raw Prime Fish Meat",
+    "Cooked Prime Fish Meat",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Exceptional Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Extraordinary Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Otter"
   },
   "X-Sabertooth": {
    "affinity0": 1200,
@@ -1876,9 +2564,50 @@
    "torporPS0": 0.3,
    "torporBase": 500,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Sabertooth"
   },
   "X-Woolly Rhino": {
    "affinity0": 3450,
@@ -1893,9 +2622,43 @@
    "torporPS0": 0.9,
    "torporBase": 600,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Woolly Rhino"
   },
   "X-Yutyrannus": {
    "affinity0": 4250,
@@ -1910,9 +2673,57 @@
    "torporPS0": 0.725,
    "torporBase": 1550,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Extraordinary Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Exceptional Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Exceptional Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Yutyrannus"
   },
   "X-Allosaurus": {
    "affinity0": 2400,
@@ -1927,9 +2738,53 @@
    "torporPS0": 0.8,
    "torporBase": 1000,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Allosaurus"
   },
   "X-Ankylosaurus": {
    "affinity0": 3000,
@@ -1944,9 +2799,40 @@
    "torporPS0": 0.3,
    "torporBase": 420,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Superior Kibble",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake",
+    "Basic Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Ankylosaurus"
   },
   "X-Dragon": {
    "affinity0": 8500,
@@ -1963,7 +2849,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "X-Rex": {
    "affinity0": 3450,
@@ -1978,9 +2865,56 @@
    "torporPS0": 0.725,
    "torporBase": 1550,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Rex"
   },
   "X-Triceratops": {
    "affinity0": 3000,
@@ -1995,9 +2929,37 @@
    "torporPS0": 0.3,
    "torporBase": 250,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Simple Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake",
+    "Basic Kibble"
+   ],
+   "food": {
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Triceratops"
   },
   "Bloodstalker": {
    "affinity0": 7500,
@@ -2014,7 +2976,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Magmasaur": {
    "affinity0": 8500,
@@ -2031,7 +2994,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Moeder, Master of the Ocean": {
    "affinity0": 10000,
@@ -2048,7 +3012,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Eel Minion": {
    "affinity0": 10000,
@@ -2065,7 +3030,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Megachelon": {
    "affinity0": 10000,
@@ -2082,7 +3048,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Daeodon": {
    "affinity0": 4500,
@@ -2158,7 +3125,8 @@
      "a": 10
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Polar Bear": {
    "affinity0": 4000,
@@ -2175,7 +3143,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Direwolf": {
    "affinity0": 1200,
@@ -2235,7 +3204,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Procoptodon": {
    "affinity0": 3000,
@@ -2264,7 +3234,8 @@
      "a": 45
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Baryonyx": {
    "affinity0": 2500,
@@ -2305,7 +3276,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Titanoboa": {
    "affinity0": 1950,
@@ -2719,7 +3691,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Terror Bird": {
    "affinity0": 1600,
@@ -2776,7 +3749,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Beelzebufo": {
    "affinity0": 1800,
@@ -2833,7 +3807,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Anglerfish": {
    "affinity0": 1800,
@@ -2890,7 +3865,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Electrophorus": {
    "affinity0": 2250,
@@ -2963,7 +3939,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Liopleurodon": {
    "affinity0": 2000,
@@ -3047,7 +4024,8 @@
      "a": 60
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Manta": {
    "affinity0": 1500,
@@ -3071,7 +4049,8 @@
      "a": 50
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Parakeet Fish School": {
    "affinity0": 900,
@@ -3088,7 +4067,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Plesiosaur": {
    "affinity0": 5000,
@@ -3148,7 +4128,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Pteranodon": {
    "affinity0": 1200,
@@ -3205,7 +4186,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Sabertooth Salmon": {
    "affinity0": 10000,
@@ -3222,7 +4204,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Carbonemys": {
    "affinity0": 3000,
@@ -3269,7 +4252,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Carnotaurus": {
    "affinity0": 2000,
@@ -3326,7 +4310,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Parasaur": {
    "affinity0": 1500,
@@ -3367,7 +4352,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Raptor": {
    "affinity0": 1200,
@@ -3421,7 +4407,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Pulmonoscorpius": {
    "affinity0": 1500,
@@ -3465,7 +4452,8 @@
      "a": 15
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Mammoth": {
    "affinity0": 5000,
@@ -3515,7 +4503,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Dimetrodon": {
    "affinity0": 1500,
@@ -3572,7 +4561,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Sarco": {
    "affinity0": 2000,
@@ -3670,7 +4660,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Doedicurus": {
    "affinity0": 4000,
@@ -3717,7 +4708,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Gallimimus": {
    "affinity0": 2200,
@@ -3761,7 +4753,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Kaprosuchus": {
    "affinity0": 2000,
@@ -3818,7 +4811,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Ichthyosaurus": {
    "affinity0": 1500,
@@ -3872,7 +4866,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Rock Elemental": {
    "affinity0": 6500,
@@ -3906,7 +4901,8 @@
      "a": 15
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Microraptor": {
    "affinity0": 450,
@@ -3990,7 +4986,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Purlovia": {
    "affinity0": 2250,
@@ -4047,7 +5044,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Dilophosaur": {
    "affinity0": 450,
@@ -4098,7 +5096,8 @@
      "a": 101.25
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Araneo": {
    "affinity0": 4000,
@@ -4123,7 +5122,8 @@
      "a": 15
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Cnidaria": {
    "affinity0": 450,
@@ -4140,7 +5140,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Leedsichthys": {
    "affinity0": 11000,
@@ -4157,7 +5158,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Golden Striped Megalodon": {
    "affinity0": 2000,
@@ -4174,7 +5176,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Tusoteuthis": {
    "affinity0": 12500,
@@ -4245,7 +5248,8 @@
      "q": 30
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Argentavis": {
    "affinity0": 2000,
@@ -4305,7 +5309,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Arthropluera": {
    "affinity0": 3000,
@@ -4365,7 +5370,8 @@
      "a": 15
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Onyc": {
    "affinity0": 3000,
@@ -4403,7 +5409,8 @@
      "a": 101.25
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Dimorphodon": {
    "affinity0": 900,
@@ -4471,7 +5478,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Kentrosaurus": {
    "affinity0": 5500,
@@ -4516,7 +5524,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Thorny Dragon": {
    "affinity0": 3000,
@@ -4609,7 +5618,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Dodo": {
    "affinity0": 450,
@@ -4650,7 +5660,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Ferox": {
    "affinity0": 1200,
@@ -4667,7 +5678,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Astrocetus": {
    "affinity0": 10000,
@@ -4684,7 +5696,8 @@
    "torporInc": 0.02,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Insect Swarm": {
    "affinity0": 900,
@@ -4701,7 +5714,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "R-Allosaurus": {
    "affinity0": 2400,
@@ -4716,9 +5730,53 @@
    "torporPS0": 0.8,
    "torporBase": 1000,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Allosaurus"
   },
   "R-Carnotaurus": {
    "affinity0": 2000,
@@ -4733,9 +5791,50 @@
    "torporPS0": 0.3,
    "torporBase": 350,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Carnotaurus"
   },
   "R-Daeodon": {
    "affinity0": 4500,
@@ -4750,9 +5849,69 @@
    "torporPS0": 1.8,
    "torporBase": 800,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 37.5
+    },
+    "Raw Prime Meat": {
+     "f": 50,
+     "a": 30
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 20.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Cooked Prime Meat": {
+     "f": 49.945,
+     "a": 15
+    },
+    "Prime Meat Jerky": {
+     "f": 49.945,
+     "a": 15
+    },
+    "Raw Prime Fish Meat": {
+     "f": 25,
+     "a": 12
+    },
+    "Raw Meat": {
+     "f": 10,
+     "a": 10
+    }
+   },
+   "confirmed": true,
+   "food_from": "Daeodon"
   },
   "R-Dilophosaur": {
    "affinity0": 450,
@@ -4767,9 +5926,44 @@
    "torporPS0": 0.3,
    "torporBase": 75,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Basic Augmented Kibble",
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Simple Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Basic Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    }
+   },
+   "confirmed": true,
+   "food_from": "Dilophosaur"
   },
   "R-Dire Bear": {
    "affinity0": 4000,
@@ -4784,9 +5978,65 @@
    "torporPS0": 0.9,
    "torporBase": 1000,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Giant Bee Honey",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Mejoberry",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Berries",
+    "Vegetables",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Giant Bee Honey": {
+     "f": 80,
+     "a": 400
+    },
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Vegetables": {
+     "f": 20,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Dire Bear"
   },
   "R-Direwolf": {
    "affinity0": 1200,
@@ -4801,9 +6051,53 @@
    "torporPS0": 0.5,
    "torporBase": 450,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Direwolf"
   },
   "R-Equus": {
    "affinity0": 3600,
@@ -4818,9 +6112,77 @@
    "torporPS0": 0,
    "torporBase": 420,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Simple Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble",
+    "Rockarrot",
+    "Sweet Vegetable Cake"
+   ],
+   "food": {
+    "Exceptional Augmented Kibble": {
+     "f": 13.33,
+     "a": 400
+    },
+    "Extraordinary Augmented Kibble": {
+     "f": 13.33,
+     "a": 400
+    },
+    "Regular Augmented Kibble": {
+     "f": 13.33,
+     "a": 400
+    },
+    "Simple Augmented Kibble": {
+     "f": 13.33,
+     "a": 400
+    },
+    "Superior Augmented Kibble": {
+     "f": 13.33,
+     "a": 400
+    },
+    "Kibble": {
+     "f": 19.994999,
+     "a": 400
+    },
+    "Exceptional Kibble": {
+     "f": 21.327999,
+     "a": 400
+    },
+    "Extraordinary Kibble": {
+     "f": 21.327999,
+     "a": 400
+    },
+    "Regular Kibble": {
+     "f": 21.327999,
+     "a": 400
+    },
+    "Simple Kibble": {
+     "f": 21.327999,
+     "a": 400
+    },
+    "Superior Kibble": {
+     "f": 21.327999,
+     "a": 400
+    },
+    "Rockarrot": {
+     "f": 20,
+     "a": 210
+    },
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    }
+   },
+   "confirmed": true,
+   "food_from": "Equus"
   },
   "R-Gasbags": {
    "affinity0": 10000,
@@ -4835,9 +6197,71 @@
    "torporPS0": 0.3,
    "torporBase": 450,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Exceptional Augmented Kibble": {
+     "f": 60,
+     "a": 400
+    },
+    "Extraordinary Augmented Kibble": {
+     "f": 60,
+     "a": 400
+    },
+    "Superior Augmented Kibble": {
+     "f": 60,
+     "a": 400
+    },
+    "Kibble": {
+     "f": 90,
+     "a": 400
+    },
+    "Exceptional Kibble": {
+     "f": 96,
+     "a": 400
+    },
+    "Extraordinary Kibble": {
+     "f": 96,
+     "a": 400
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 400
+    },
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Gasbags"
   },
   "R-Giganotosaurus": {
    "affinity0": 5000,
@@ -4852,9 +6276,56 @@
    "torporPS0": 120,
    "torporBase": 10000,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Giganotosaurus"
   },
   "R-Megatherium": {
    "affinity0": 5000,
@@ -4869,9 +6340,65 @@
    "torporPS0": 0.9,
    "torporBase": 1000,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Giant Bee Honey",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Mejoberry",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Berries",
+    "Vegetables",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Giant Bee Honey": {
+     "f": 80,
+     "a": 300
+    },
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Vegetables": {
+     "f": 20,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Megatherium"
   },
   "R-Snow Owl": {
    "affinity0": 2200,
@@ -4886,9 +6413,53 @@
    "torporPS0": 0.3,
    "torporBase": 600,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Snow Owl"
   },
   "R-Parasaur": {
    "affinity0": 1500,
@@ -4903,9 +6474,34 @@
    "torporPS0": 0.3,
    "torporBase": 150,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Basic Augmented Kibble",
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Simple Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Basic Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake"
+   ],
+   "food": {
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    }
+   },
+   "confirmed": true,
+   "food_from": "Parasaur"
   },
   "R-Procoptodon": {
    "affinity0": 3000,
@@ -4920,9 +6516,22 @@
    "torporPS0": 0.6666,
    "torporBase": 350,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Rare Mushroom",
+    "Plant Species X Seed"
+   ],
+   "food": {
+    "Rare Mushroom": {
+     "f": 75,
+     "a": 90
+    },
+    "Plant Species X Seed": {
+     "f": 50,
+     "a": 45
+    }
+   },
+   "confirmed": true,
+   "food_from": "Procoptodon"
   },
   "R-Quetzal": {
    "affinity0": 6850,
@@ -4937,9 +6546,56 @@
    "torporPS0": 3.4,
    "torporBase": 1850,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Quetzal"
   },
   "R-Brontosaurus": {
    "affinity0": 10000,
@@ -4954,9 +6610,46 @@
    "torporPS0": 0.3,
    "torporBase": 2000,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Brontosaurus"
   },
   "R-Velonasaur": {
    "affinity0": 2000,
@@ -4971,9 +6664,50 @@
    "torporPS0": 0.3,
    "torporBase": 400,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Velonasaur"
   },
   "R-Thylacoleo": {
    "affinity0": 2250,
@@ -4988,9 +6722,73 @@
    "torporPS0": 1.85,
    "torporBase": 700,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Extraordinary Kibble",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Mutton",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Prime Meat",
+    "Basic Kibble",
+    "Exceptional Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 47.25
+    },
+    "Cooked Prime Meat": {
+     "f": 49.945,
+     "a": 35
+    },
+    "Prime Meat Jerky": {
+     "f": 49.945,
+     "a": 35
+    },
+    "Raw Mutton": {
+     "f": 50,
+     "a": 25
+    },
+    "Cooked Meat": {
+     "f": 25,
+     "a": 20
+    },
+    "Cooked Meat Jerky": {
+     "f": 25,
+     "a": 20
+    },
+    "Raw Prime Meat": {
+     "f": 50,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Exceptional Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Thylacoleo"
   },
   "R-Carbonemys": {
    "affinity0": 3000,
@@ -5005,9 +6803,40 @@
    "torporPS0": 0.3,
    "torporBase": 275,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Superior Kibble",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake",
+    "Basic Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Carbonemys"
   },
   "R-Reaper Queen": {
    "affinity0": 6800,
@@ -5024,7 +6853,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "R-Reaper King": {
    "affinity0": 6800,
@@ -5039,9 +6869,61 @@
    "torporPS0": 0,
    "torporBase": 925,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Exceptional Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Extraordinary Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Reaper King"
   },
   "Noglin": {
    "affinity0": 460,
@@ -5058,7 +6940,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Shadowmane": {
    "affinity0": 6000,
@@ -5075,7 +6958,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Macrophage": {
    "affinity0": 900,
@@ -5092,7 +6976,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Maewing": {
    "affinity0": 3000,
@@ -5109,7 +6994,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Astrodelphis": {
    "affinity0": 1000,
@@ -5126,7 +7012,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Arthropluera": {
    "affinity0": 3000,
@@ -5186,7 +7073,8 @@
      "a": 15
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Dire Bear": {
    "affinity0": 4000,
@@ -5258,7 +7146,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Mantis": {
    "affinity0": 1800,
@@ -5282,7 +7171,8 @@
      "a": 450
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Paraceratherium": {
    "affinity0": 6500,
@@ -5332,7 +7222,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Rex": {
    "affinity0": 3450,
@@ -5395,7 +7286,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Sabertooth": {
    "affinity0": 1200,
@@ -5452,7 +7344,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Spino": {
    "affinity0": 3200,
@@ -5556,7 +7449,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Stegosaurus": {
    "affinity0": 6000,
@@ -5603,7 +7497,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Therizinosaur": {
    "affinity0": 6800,
@@ -5656,7 +7551,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Triceratops": {
    "affinity0": 3000,
@@ -5700,7 +7596,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Yutyrannus": {
    "affinity0": 4250,
@@ -5764,7 +7661,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Summoner": {
    "affinity0": 10000,
@@ -5781,7 +7679,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Tek Stryder": {
    "affinity0": 10000,
@@ -5798,7 +7697,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Voidwyrm": {
    "affinity0": 5000,
@@ -5815,7 +7715,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Amargasaurus": {
    "affinity0": 7500,
@@ -5832,7 +7733,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Dinopithecus": {
    "affinity0": 1600,
@@ -5849,7 +7751,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Sinomacrops": {
    "affinity0": 500,
@@ -5866,7 +7769,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Ice Wyvern": {
    "affinity0": 8500,
@@ -5883,7 +7787,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Griffin": {
    "affinity0": 2200,
@@ -5978,7 +7883,8 @@
      "a": 12
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Megaloceros": {
    "affinity0": 1200,
@@ -6022,7 +7928,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Manticore": {
    "affinity0": 8500,
@@ -6039,7 +7946,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Dire Polar Bear": {
    "affinity0": 4000,
@@ -6111,7 +8019,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Fire Wyvern": {
    "affinity0": 8500,
@@ -6128,7 +8037,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Iceworm Male": {
    "affinity0": 8500,
@@ -6145,7 +8055,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Iceworm Queen": {
    "affinity0": 8500,
@@ -6162,7 +8073,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lava Elemental": {
    "affinity0": 6500,
@@ -6179,7 +8091,8 @@
    "torporInc": 0.02,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Chalk Golem": {
    "affinity0": 6500,
@@ -6196,7 +8109,8 @@
    "torporInc": 0.02,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Ice Golem": {
    "affinity0": 6500,
@@ -6213,7 +8127,8 @@
    "torporInc": 0.02,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Achatina": {
    "affinity0": 4000,
@@ -6237,7 +8152,8 @@
      "a": 400
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Achatina": {
    "affinity0": 4000,
@@ -6261,7 +8177,8 @@
      "a": 400
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Allosaurus": {
    "affinity0": 2400,
@@ -6321,7 +8238,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Ammonite": {
    "affinity0": 450,
@@ -6338,7 +8256,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Anglerfish": {
    "affinity0": 1800,
@@ -6395,7 +8314,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Ankylosaurus": {
    "affinity0": 3000,
@@ -6442,7 +8362,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Ankylosaurus": {
    "affinity0": 3000,
@@ -6489,7 +8410,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Titanomyrma Drone": {
    "affinity0": 450,
@@ -6506,7 +8428,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Titanomyrma Soldier": {
    "affinity0": 900,
@@ -6523,7 +8446,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Archaeopteryx": {
    "affinity0": 500,
@@ -6602,7 +8526,8 @@
      "a": 50
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Baryonyx": {
    "affinity0": 2500,
@@ -6643,7 +8568,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Basilosaurus": {
    "affinity0": 6600,
@@ -6746,7 +8672,8 @@
      "a": 60
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Castoroides": {
    "affinity0": 2000,
@@ -6796,7 +8723,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Giant Bee": {
    "affinity0": 450,
@@ -6813,7 +8741,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Giant Queen Bee": {
    "affinity0": 2000,
@@ -6916,7 +8845,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Gigantopithecus": {
    "affinity0": 4600,
@@ -6997,7 +8927,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Gigantopithecus": {
    "affinity0": 4600,
@@ -7078,7 +9009,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Yeti": {
    "affinity0": 4600,
@@ -7095,7 +9027,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Titanoboa": {
    "affinity0": 1950,
@@ -7849,7 +9782,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Carcharodontosaurus": {
    "affinity0": 9000,
@@ -7866,7 +9800,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Carnotaurus": {
    "affinity0": 2000,
@@ -7923,7 +9858,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Chalicotherium": {
    "affinity0": 5000,
@@ -7947,7 +9883,8 @@
      "a": 400
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Cnidaria": {
    "affinity0": 450,
@@ -7964,7 +9901,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Coelacanth": {
    "affinity0": 10000,
@@ -7981,7 +9919,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Coelacanth": {
    "affinity0": 10000,
@@ -7998,7 +9937,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Compy": {
    "affinity0": 500,
@@ -8032,7 +9972,8 @@
      "a": 240
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Blood Crystal Wyvern": {
    "affinity0": 3750,
@@ -8049,7 +9990,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Ember Crystal Wyvern": {
    "affinity0": 3750,
@@ -8066,7 +10008,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Tropical Crystal Wyvern": {
    "affinity0": 3750,
@@ -8083,7 +10026,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Dimetrodon": {
    "affinity0": 1500,
@@ -8140,7 +10084,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Dimorphodon": {
    "affinity0": 900,
@@ -8208,7 +10153,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Diplocaulus": {
    "affinity0": 2000,
@@ -8262,7 +10208,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Diplocaulus": {
    "affinity0": 2000,
@@ -8316,7 +10263,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Diplodocus": {
    "affinity0": 7500,
@@ -8397,7 +10345,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Diplodocus": {
    "affinity0": 7500,
@@ -8478,7 +10427,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Dire Bear": {
    "affinity0": 4000,
@@ -8550,7 +10500,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Dodo": {
    "affinity0": 450,
@@ -8591,7 +10542,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Party Dodo": {
    "affinity0": 450,
@@ -8606,9 +10558,34 @@
    "torporPS0": 0,
    "torporBase": 30,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Basic Augmented Kibble",
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Simple Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Basic Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake"
+   ],
+   "food": {
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    }
+   },
+   "confirmed": true,
+   "food_from": "Dodo"
   },
   "Bunny Dodo": {
    "affinity0": 450,
@@ -8625,7 +10602,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "DodoRex": {
    "affinity0": 3450,
@@ -8642,7 +10620,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Doedicurus": {
    "affinity0": 4000,
@@ -8689,7 +10668,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Meganeura": {
    "affinity0": 450,
@@ -8706,7 +10686,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Meganeura": {
    "affinity0": 450,
@@ -8723,7 +10704,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Dung Beetle": {
    "affinity0": 900,
@@ -8798,7 +10780,8 @@
      "a": 15
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Dung Beetle": {
    "affinity0": 900,
@@ -8873,7 +10856,8 @@
      "a": 15
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Dunkleosteus": {
    "affinity0": 1300,
@@ -8961,7 +10945,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Electrophorus": {
    "affinity0": 2250,
@@ -9034,7 +11019,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Equus": {
    "affinity0": 3600,
@@ -9118,7 +11104,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Equus": {
    "affinity0": 3600,
@@ -9202,7 +11189,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Unicorn": {
    "affinity0": 3600,
@@ -9281,7 +11269,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Eurypterid": {
    "affinity0": 450,
@@ -9298,7 +11287,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Tek Giganotosaurus": {
    "affinity0": 5000,
@@ -9313,9 +11303,56 @@
    "torporPS0": 120,
    "torporBase": 10000,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Giganotosaurus"
   },
   "Skeletal Giganotosaurus": {
    "affinity0": 5000,
@@ -9330,9 +11367,56 @@
    "torporPS0": 0,
    "torporBase": 10000,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Giganotosaurus"
   },
   "Giganotosaurus": {
    "affinity0": 5000,
@@ -9395,7 +11479,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Hesperornis": {
    "affinity0": 1200,
@@ -9452,7 +11537,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Hyaenodon": {
    "affinity0": 6000,
@@ -9525,7 +11611,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Ichthyornis": {
    "affinity0": 1750,
@@ -9566,7 +11653,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Iguanodon": {
    "affinity0": 2800,
@@ -9610,7 +11698,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Iguanodon": {
    "affinity0": 2800,
@@ -9654,7 +11743,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Kairuku": {
    "affinity0": 1200,
@@ -9705,7 +11795,8 @@
      "a": 101.25
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Leech": {
    "affinity0": 450,
@@ -9722,7 +11813,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Diseased Leech": {
    "affinity0": 450,
@@ -9739,7 +11831,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lystrosaurus": {
    "affinity0": 2000,
@@ -9795,7 +11888,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Lystrosaurus": {
    "affinity0": 2000,
@@ -9851,7 +11945,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Manta": {
    "affinity0": 1500,
@@ -9875,7 +11970,8 @@
      "a": 50
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Megalania": {
    "affinity0": 4000,
@@ -9939,7 +12035,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Megalania": {
    "affinity0": 4000,
@@ -10003,7 +12100,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Megalodon": {
    "affinity0": 2000,
@@ -10063,7 +12161,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Megalosaurus": {
    "affinity0": 3450,
@@ -10151,7 +12250,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Megalosaurus": {
    "affinity0": 3450,
@@ -10239,7 +12339,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Megatherium": {
    "affinity0": 5000,
@@ -10311,7 +12412,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Mesopithecus": {
    "affinity0": 2200,
@@ -10350,7 +12452,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Mosasaurus": {
    "affinity0": 11000,
@@ -10433,7 +12536,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Moschops": {
    "affinity0": 6000,
@@ -10479,7 +12583,8 @@
      "a": 80
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Moschops": {
    "affinity0": 6000,
@@ -10525,7 +12630,8 @@
      "a": 80
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Otter": {
    "affinity0": 1200,
@@ -10577,7 +12683,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Otter": {
    "affinity0": 1200,
@@ -10629,7 +12736,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Bunny Oviraptor": {
    "affinity0": 960,
@@ -10646,7 +12754,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Oviraptor": {
    "affinity0": 960,
@@ -10755,7 +12864,8 @@
      "a": 30
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Pachy": {
    "affinity0": 1200,
@@ -10799,7 +12909,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Pachyrhinosaurus": {
    "affinity0": 4500,
@@ -10862,7 +12973,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Tek Parasaur": {
    "affinity0": 1500,
@@ -10903,7 +13015,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Parasaur": {
    "affinity0": 1500,
@@ -10944,7 +13057,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Paraceratherium": {
    "affinity0": 6500,
@@ -10994,7 +13108,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Pegomastax": {
    "affinity0": 1900,
@@ -11050,7 +13165,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Pelagornis": {
    "affinity0": 1200,
@@ -11091,7 +13207,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Phiomia": {
    "affinity0": 3000,
@@ -11132,7 +13249,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Piranha": {
    "affinity0": 450,
@@ -11149,7 +13267,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Piranha": {
    "affinity0": 450,
@@ -11166,7 +13285,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Purlovia": {
    "affinity0": 2250,
@@ -11223,7 +13343,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Polar Purlovia": {
    "affinity0": 2250,
@@ -11240,7 +13361,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Tek Quetzal": {
    "affinity0": 6850,
@@ -11303,7 +13425,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Skeletal Quetzal": {
    "affinity0": 6850,
@@ -11318,9 +13441,56 @@
    "torporPS0": 0,
    "torporBase": 1850,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Quetzal"
   },
   "Quetzal": {
    "affinity0": 6850,
@@ -11383,7 +13553,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Tek Raptor": {
    "affinity0": 1200,
@@ -11437,7 +13608,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Raptor": {
    "affinity0": 1200,
@@ -11491,7 +13663,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Deinonychus": {
    "affinity0": 1200,
@@ -11508,7 +13681,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Tek Rex": {
    "affinity0": 3450,
@@ -11571,7 +13745,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Rhyniognatha": {
    "affinity0": 6850,
@@ -11588,7 +13763,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Salmon": {
    "affinity0": 10000,
@@ -11605,7 +13781,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Sarco": {
    "affinity0": 2000,
@@ -11703,7 +13880,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Skeletal Bronto": {
    "affinity0": 10000,
@@ -11720,7 +13898,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Brontosaurus": {
    "affinity0": 10000,
@@ -11773,7 +13952,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Pulmonoscorpius": {
    "affinity0": 1500,
@@ -11817,7 +13997,8 @@
      "a": 15
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Ovis": {
    "affinity0": 1200,
@@ -11841,7 +14022,8 @@
      "a": 200000
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Ovis": {
    "affinity0": 1200,
@@ -11865,7 +14047,8 @@
      "a": 200000
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Araneo": {
    "affinity0": 4000,
@@ -11890,7 +14073,8 @@
      "a": 15
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Spino": {
    "affinity0": 3200,
@@ -11994,7 +14178,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Tek Stegosaurus": {
    "affinity0": 6000,
@@ -12041,7 +14226,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Skeletal Stego": {
    "affinity0": 6000,
@@ -12058,7 +14244,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Stegosaurus": {
    "affinity0": 6000,
@@ -12105,7 +14292,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Tapejara": {
    "affinity0": 2200,
@@ -12165,7 +14353,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Thylacoleo": {
    "affinity0": 2250,
@@ -12245,7 +14434,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Titanosaur": {
    "affinity0": 10000,
@@ -12307,7 +14497,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Aberrant Beelzebufo": {
    "affinity0": 1800,
@@ -12364,7 +14555,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Tek Triceratops": {
    "affinity0": 3000,
@@ -12379,9 +14571,37 @@
    "torporPS0": 0.3,
    "torporBase": 250,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Simple Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake",
+    "Basic Kibble"
+   ],
+   "food": {
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Triceratops"
   },
   "Skeletal Trike": {
    "affinity0": 3000,
@@ -12398,7 +14618,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Triceratops": {
    "affinity0": 3000,
@@ -12442,7 +14663,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Trilobite": {
    "affinity0": 450,
@@ -12459,7 +14681,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Trilobite": {
    "affinity0": 450,
@@ -12476,7 +14699,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Troodon": {
    "affinity0": 480,
@@ -12544,7 +14768,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Tropeognathus": {
    "affinity0": 2200,
@@ -12561,7 +14786,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Carbonemys": {
    "affinity0": 3000,
@@ -12608,7 +14834,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Woolly Rhino": {
    "affinity0": 3450,
@@ -12658,7 +14885,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Morellatops": {
    "affinity0": 3000,
@@ -12702,7 +14930,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Deathworm": {
    "affinity0": 8500,
@@ -12719,7 +14948,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Dodo Wyvern": {
    "affinity0": 8500,
@@ -12736,7 +14966,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Skeletal Jerboa": {
    "affinity0": 1350,
@@ -12751,9 +14982,26 @@
    "torporPS0": 0,
    "torporBase": 1000,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Plant Species Y Seed",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake"
+   ],
+   "food": {
+    "Plant Species Y Seed": {
+     "f": 65,
+     "a": 160
+    },
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    }
+   },
+   "confirmed": true,
+   "food_from": "Jerboa"
   },
   "Jerboa": {
    "affinity0": 1350,
@@ -12786,7 +15034,8 @@
      "a": 20
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Oil Jug Bug": {
    "affinity0": 450,
@@ -12803,7 +15052,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Water Jug Bug": {
    "affinity0": 450,
@@ -12820,7 +15070,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lymantria": {
    "affinity0": 1800,
@@ -12867,7 +15118,8 @@
      "a": 16
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Phoenix": {
    "affinity0": 6600,
@@ -12891,7 +15143,8 @@
      "a": 25
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Rubble Golem": {
    "affinity0": 6500,
@@ -12908,7 +15161,8 @@
    "torporInc": 0.02,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Vulture": {
    "affinity0": 655,
@@ -12963,7 +15217,8 @@
      "a": 15
     }
    },
-   "confirmed": true
+   "confirmed": true,
+   "food_from": ""
   },
   "Lightning Wyvern": {
    "affinity0": 8500,
@@ -12980,7 +15235,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Poison Wyvern": {
    "affinity0": 8500,
@@ -12997,7 +15253,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Zombie Fire Wyvern": {
    "affinity0": 8500,
@@ -13014,7 +15271,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Zombie Lightning Wyvern": {
    "affinity0": 8500,
@@ -13031,7 +15289,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Zombie Poison Wyvern": {
    "affinity0": 8500,
@@ -13048,7 +15307,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Acrocanthosaurus": {
    "affinity0": 3750,
@@ -13065,7 +15325,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Archelon": {
    "affinity0": 5000,
@@ -13082,7 +15343,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Bison": {
    "affinity0": 4000,
@@ -13099,7 +15361,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Cat": {
    "affinity0": 1600,
@@ -13116,7 +15379,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Ceratosaurus": {
    "affinity0": 4250,
@@ -13133,7 +15397,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Chalk Elemental": {
    "affinity0": 6500,
@@ -13150,7 +15415,8 @@
    "torporInc": 0.02,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Cryolophosaurus": {
    "affinity0": 4250,
@@ -13167,7 +15433,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Dreadmare": {
    "affinity0": 2500,
@@ -13184,7 +15451,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Deinosuchus": {
    "affinity0": 5000,
@@ -13201,7 +15469,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Deinotherium": {
    "affinity0": 1000,
@@ -13218,7 +15487,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Dreadnoughtus": {
    "affinity0": 10000,
@@ -13235,7 +15505,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Fasolasuchus": {
    "affinity0": 3000,
@@ -13252,7 +15523,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Fasolasuchus": {
    "affinity0": 3000,
@@ -13269,7 +15541,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Pyromane": {
    "affinity0": 5000,
@@ -13286,7 +15559,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Gigantoraptor": {
    "affinity0": 2400,
@@ -13303,7 +15577,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Gigantoraptor": {
    "affinity0": 2400,
@@ -13320,7 +15595,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Grand Tortugar": {
    "affinity0": 6250,
@@ -13337,7 +15613,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Helicoprion": {
    "affinity0": 3000,
@@ -13354,7 +15631,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Ice Elemental": {
    "affinity0": 6500,
@@ -13371,7 +15649,8 @@
    "torporInc": 0.02,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Burrowbuck": {
    "affinity0": 2500,
@@ -13388,7 +15667,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Maeguana": {
    "affinity0": 3000,
@@ -13405,7 +15685,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Megaraptor": {
    "affinity0": 2500,
@@ -13422,7 +15703,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Shastasaurus": {
    "affinity0": 11000,
@@ -13439,7 +15721,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Drakeling (Autumn)": {
    "affinity0": 1600,
@@ -13456,7 +15739,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Drakeling (Spring)": {
    "affinity0": 1600,
@@ -13473,7 +15757,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Drakeling (Summer)": {
    "affinity0": 1600,
@@ -13490,7 +15775,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Drakeling (Winter)": {
    "affinity0": 1600,
@@ -13507,7 +15793,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Elderclaw": {
    "affinity0": 4000,
@@ -13524,7 +15811,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Xiphactinus": {
    "affinity0": 2000,
@@ -13541,7 +15829,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Yi Ling": {
    "affinity0": 3000,
@@ -13558,7 +15847,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Scrap Elemental": {
    "affinity0": 6500,
@@ -13575,7 +15865,8 @@
    "torporInc": 0.02,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "King Titan": {
    "affinity0": 10000,
@@ -13592,7 +15883,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Solwyn": {
    "affinity0": 1200,
@@ -13609,7 +15901,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Gigadesmodus": {
    "affinity0": 10000,
@@ -13626,7 +15919,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Malwyn": {
    "affinity0": 1200,
@@ -13643,7 +15937,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Neophyte": {
    "affinity0": 2200,
@@ -13660,7 +15955,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Gloon": {
    "affinity0": 2200,
@@ -13677,7 +15973,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aureliax": {
    "affinity0": 2050,
@@ -13694,7 +15991,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Ossidon": {
    "affinity0": 3450,
@@ -13711,7 +16009,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Carnotaurus": {
    "affinity0": 2000,
@@ -13728,7 +16027,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Ceratosaurus": {
    "affinity0": 4250,
@@ -13745,7 +16045,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Cryolophosaurus": {
    "affinity0": 4250,
@@ -13762,7 +16063,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Desmodus": {
    "affinity0": 2200,
@@ -13779,7 +16081,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Malwyn": {
    "affinity0": 1200,
@@ -13796,7 +16099,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Dire Bear": {
    "affinity0": 4000,
@@ -13813,7 +16117,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Megatherium": {
    "affinity0": 5000,
@@ -13830,7 +16135,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Raptor": {
    "affinity0": 1200,
@@ -13847,7 +16153,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Rex": {
    "affinity0": 3450,
@@ -13864,7 +16171,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Woolly Rhino": {
    "affinity0": 3450,
@@ -13881,7 +16189,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Sabertooth": {
    "affinity0": 1200,
@@ -13898,7 +16207,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Pulmonoscorpius": {
    "affinity0": 1500,
@@ -13915,7 +16225,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Ossidon": {
    "affinity0": 3450,
@@ -13932,7 +16243,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Spino": {
    "affinity0": 3200,
@@ -13949,7 +16261,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Therizinosaur": {
    "affinity0": 6800,
@@ -13966,7 +16279,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Thylacoleo": {
    "affinity0": 2250,
@@ -13983,7 +16297,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lost Yutyrannus": {
    "affinity0": 4250,
@@ -14000,7 +16315,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Veilwyn": {
    "affinity0": 10000,
@@ -14017,7 +16333,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Carnotaurus": {
    "affinity0": 2000,
@@ -14034,7 +16351,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Malwyn": {
    "affinity0": 1200,
@@ -14051,7 +16369,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Dilophosaur": {
    "affinity0": 450,
@@ -14068,7 +16387,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Dimorphodon": {
    "affinity0": 900,
@@ -14085,7 +16405,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Direwolf": {
    "affinity0": 1200,
@@ -14102,7 +16423,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Veilwyn": {
    "affinity0": 10000,
@@ -14119,7 +16441,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Iguanodon": {
    "affinity0": 2800,
@@ -14136,7 +16459,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Mammoth": {
    "affinity0": 5000,
@@ -14153,7 +16477,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Parasaur": {
    "affinity0": 1500,
@@ -14170,7 +16495,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Pteranodon": {
    "affinity0": 1200,
@@ -14187,7 +16513,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Raptor": {
    "affinity0": 1200,
@@ -14204,7 +16531,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Rex": {
    "affinity0": 3450,
@@ -14221,7 +16549,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Sabertooth": {
    "affinity0": 1200,
@@ -14238,7 +16567,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Brontosaurus": {
    "affinity0": 10000,
@@ -14255,7 +16585,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Ossidon": {
    "affinity0": 3450,
@@ -14272,7 +16603,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Spino": {
    "affinity0": 3200,
@@ -14289,7 +16621,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Stegosaurus": {
    "affinity0": 6000,
@@ -14306,7 +16639,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Therizinosaur": {
    "affinity0": 6800,
@@ -14323,7 +16657,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Troodon": {
    "affinity0": 480,
@@ -14340,7 +16675,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Revenant Yutyrannus": {
    "affinity0": 4250,
@@ -14357,7 +16693,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Astral Argentavis": {
    "affinity0": 2000,
@@ -14372,9 +16709,53 @@
    "torporPS0": 0,
    "torporBase": 180,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Argentavis"
   },
   "Astral Carnotaurus": {
    "affinity0": 2000,
@@ -14389,9 +16770,50 @@
    "torporPS0": 0,
    "torporBase": 350,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Carnotaurus"
   },
   "Astral Deinosuchus": {
    "affinity0": 5000,
@@ -14408,7 +16830,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Astral Direwolf": {
    "affinity0": 1200,
@@ -14423,9 +16846,53 @@
    "torporPS0": 0,
    "torporBase": 350,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Direwolf"
   },
   "Astral Mammoth": {
    "affinity0": 5000,
@@ -14440,9 +16907,43 @@
    "torporPS0": 0,
    "torporBase": 1550,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Archelon Algae (ASA)",
+    "Vegetables",
+    "Mejoberry",
+    "Berries",
+    "Sweet Vegetable Cake",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Sweet Vegetable Cake": {
+     "f": 20,
+     "a": 20
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Mammoth"
   },
   "Astral Megalodon": {
    "affinity0": 2000,
@@ -14457,9 +16958,53 @@
    "torporPS0": 0,
    "torporBase": 800,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Megalodon"
   },
   "Astral Mosasaur": {
    "affinity0": 11000,
@@ -14476,7 +17021,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Astral Raptor": {
    "affinity0": 1200,
@@ -14491,9 +17037,47 @@
    "torporPS0": 0,
    "torporBase": 180,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Regular Augmented Kibble",
+    "Simple Augmented Kibble",
+    "Superior Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Raptor"
   },
   "Astral T-Rex": {
    "affinity0": 3450,
@@ -14508,9 +17092,56 @@
    "torporPS0": 0,
    "torporBase": 1550,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Exceptional Augmented Kibble",
+    "Extraordinary Augmented Kibble",
+    "Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Raw Mutton",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop",
+    "Cooked Prime Meat",
+    "Prime Meat Jerky",
+    "Raw Prime Fish Meat",
+    "Raw Meat",
+    "Cooked Prime Fish Meat",
+    "Cooked Meat",
+    "Cooked Meat Jerky",
+    "Raw Fish Meat",
+    "Basic Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble"
+   ],
+   "food": {
+    "Raw Mutton": {
+     "f": 50,
+     "a": 187.5
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 101.25
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    }
+   },
+   "confirmed": true,
+   "food_from": "Rex"
   },
   "Astral Rock Drake": {
    "affinity0": 8500,
@@ -14527,7 +17158,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Scorpion": {
    "affinity0": 1500,
@@ -14544,7 +17176,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Astral Tusoteuthis": {
    "affinity0": 12500,
@@ -14559,9 +17192,64 @@
    "torporPS0": 0,
    "torporBase": 1800,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Black Pearl",
+    "Raw Mutton",
+    "Basic Kibble",
+    "Exceptional Kibble",
+    "Extraordinary Kibble",
+    "Regular Kibble",
+    "Simple Kibble",
+    "Superior Kibble",
+    "Raw Prime Meat",
+    "Cooked Lamb Chop"
+   ],
+   "food": {
+    "Black Pearl": {
+     "f": 30,
+     "a": 50,
+     "q": 50
+    },
+    "Raw Mutton": {
+     "f": 50,
+     "a": 18.75
+    },
+    "Basic Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Exceptional Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Extraordinary Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Regular Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Simple Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Superior Kibble": {
+     "f": 96,
+     "a": 16
+    },
+    "Raw Prime Meat": {
+     "f": 50,
+     "a": 15
+    },
+    "Cooked Lamb Chop": {
+     "f": 49.945,
+     "a": 10.125,
+     "q": 30
+    }
+   },
+   "confirmed": true,
+   "food_from": "Tusoteuthis"
   },
   "Thodes the Widowmaker": {
    "affinity0": 10000,
@@ -14578,7 +17266,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Erymanthian": {
    "affinity0": 4500,
@@ -14595,7 +17284,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Kalydonios": {
    "affinity0": 4500,
@@ -14612,7 +17302,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Natrix's Onyc": {
    "affinity0": 3000,
@@ -14629,7 +17320,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Natrix's Titanoboa": {
    "affinity0": 1950,
@@ -14646,7 +17338,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Natrix The Devious": {
    "affinity0": 1950,
@@ -14663,7 +17356,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Kirayli": {
    "affinity0": 1200,
@@ -14680,7 +17374,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Kraken (Tentacle)": {
    "affinity0": 10000,
@@ -14697,7 +17392,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Kraken": {
    "affinity0": 10000,
@@ -14714,7 +17410,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Kraken (Shark)": {
    "affinity0": 2000,
@@ -14731,7 +17428,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Kraken (Squid)": {
    "affinity0": 12500,
@@ -14748,7 +17446,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Arthropluera": {
    "affinity0": 3000,
@@ -14765,7 +17464,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Carnotaurus": {
    "affinity0": 2000,
@@ -14782,7 +17482,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Chalicotherium": {
    "affinity0": 5000,
@@ -14799,7 +17500,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Dilophosaur": {
    "affinity0": 450,
@@ -14816,7 +17518,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Dimorphodon": {
    "affinity0": 900,
@@ -14833,7 +17536,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Giganotosaurus": {
    "affinity0": 5000,
@@ -14850,7 +17554,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Reaper King": {
    "affinity0": 6800,
@@ -14867,7 +17572,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Pteranodon": {
    "affinity0": 1200,
@@ -14884,7 +17590,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Paraceratherium": {
    "affinity0": 6500,
@@ -14901,7 +17608,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Raptor": {
    "affinity0": 1200,
@@ -14918,7 +17626,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Enraged Lightning Rex": {
    "affinity0": 3450,
@@ -14935,7 +17644,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Infused Rex": {
    "affinity0": 3450,
@@ -14952,7 +17662,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Rock Drake": {
    "affinity0": 8500,
@@ -14969,7 +17680,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Spino": {
    "affinity0": 3200,
@@ -14986,7 +17698,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Stegosaurus": {
    "affinity0": 6000,
@@ -15003,7 +17716,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Enraged Lightning Triceratops": {
    "affinity0": 3000,
@@ -15020,7 +17734,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Lightning Triceratops": {
    "affinity0": 3000,
@@ -15037,7 +17752,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Cave Minotaur": {
    "affinity0": 10000,
@@ -15054,7 +17770,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Minotarchos": {
    "affinity0": 10000,
@@ -15071,7 +17788,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Rhyniognatha Drone": {
    "affinity0": 6850,
@@ -15088,7 +17806,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Thanatos": {
    "affinity0": 10000,
@@ -15105,7 +17824,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Oasisaur": {
    "affinity0": 10000,
@@ -15122,7 +17842,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Cosmo": {
    "affinity0": 2200,
@@ -15139,7 +17860,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Armadoggo": {
    "affinity0": 10000,
@@ -15156,7 +17878,8 @@
    "torporInc": 0.06,
    "eats": [],
    "food": {},
-   "confirmed": false
+   "confirmed": false,
+   "food_from": ""
   },
   "Aberrant Oviraptor": {
    "affinity0": 960,
@@ -15171,9 +17894,102 @@
    "torporPS0": 0.208,
    "torporBase": 125,
    "torporInc": 0.06,
-   "eats": [],
-   "food": {},
-   "confirmed": false
+   "eats": [
+    "Fertilized Giganotosaurus Egg",
+    "Giganotosaurus Egg",
+    "Fertilized Quetzal Egg",
+    "Fertilized Tek Quetzal Egg",
+    "Quetzal Egg",
+    "Tek Quetzal Egg",
+    "Fertilized Rex Egg",
+    "Fertilized Tek Rex Egg",
+    "Rex Egg",
+    "Tek Rex Egg",
+    "Fertilized Aberrant Spino Egg",
+    "Fertilized Spino Egg",
+    "Spino Egg",
+    "Bronto Egg",
+    "Fertilized Bronto Egg",
+    "Carno Egg",
+    "Fertilized Aberrant Carno Egg",
+    "Fertilized Carno Egg"
+   ],
+   "food": {
+    "Fertilized Giganotosaurus Egg": {
+     "f": 300,
+     "a": 1200
+    },
+    "Giganotosaurus Egg": {
+     "f": 300,
+     "a": 1200
+    },
+    "Fertilized Quetzal Egg": {
+     "f": 200,
+     "a": 550
+    },
+    "Fertilized Tek Quetzal Egg": {
+     "f": 200,
+     "a": 550
+    },
+    "Quetzal Egg": {
+     "f": 200,
+     "a": 550
+    },
+    "Tek Quetzal Egg": {
+     "f": 200,
+     "a": 550
+    },
+    "Fertilized Rex Egg": {
+     "f": 200,
+     "a": 100
+    },
+    "Fertilized Tek Rex Egg": {
+     "f": 200,
+     "a": 100
+    },
+    "Rex Egg": {
+     "f": 200,
+     "a": 100
+    },
+    "Tek Rex Egg": {
+     "f": 200,
+     "a": 100
+    },
+    "Fertilized Aberrant Spino Egg": {
+     "f": 137.5,
+     "a": 80
+    },
+    "Fertilized Spino Egg": {
+     "f": 137.5,
+     "a": 80
+    },
+    "Spino Egg": {
+     "f": 137.5,
+     "a": 80
+    },
+    "Bronto Egg": {
+     "f": 250,
+     "a": 60
+    },
+    "Fertilized Bronto Egg": {
+     "f": 250,
+     "a": 60
+    },
+    "Carno Egg": {
+     "f": 137.5,
+     "a": 30
+    },
+    "Fertilized Aberrant Carno Egg": {
+     "f": 137.5,
+     "a": 30
+    },
+    "Fertilized Carno Egg": {
+     "f": 137.5,
+     "a": 30
+    }
+   },
+   "confirmed": true,
+   "food_from": "Oviraptor"
   }
  }
 }

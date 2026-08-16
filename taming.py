@@ -171,6 +171,7 @@ def calc(db: TamingDB, sp, level, food_name, mults=None, current_food=0.0):
         "wake_seconds": wake_seconds,
         "food_drain_per_sec": drain,
         "unconfirmed_food": food.get("u", False) or not sp.get("confirmed"),
+        "food_from": sp.get("food_from") or "",
         "violent": bool(sp.get("violent")),
         "non_violent": bool(sp.get("nonViolent")),
     }

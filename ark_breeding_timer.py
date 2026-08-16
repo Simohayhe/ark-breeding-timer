@@ -35,7 +35,7 @@ from afk_page import AfkPage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.11.0"
+APP_VERSION = "1.11.1"
 
 
 def _res_dir():
@@ -2689,7 +2689,9 @@ class NewTimerDialog(tk.Toplevel):
         self.tm_result.config(text="\n".join(lines))
 
         notes = []
-        if r["unconfirmed_food"]:
+        if r["food_from"]:
+            notes.append("※ 変種なので %s の食べ物データを使っています" % r["food_from"])
+        elif r["unconfirmed_food"]:
             notes.append("⚠ この恐竜の食べ物データが無いので、一般的な値で計算した"
                          "目安です")
         if r["non_violent"]:

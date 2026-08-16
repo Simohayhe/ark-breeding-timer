@@ -66,6 +66,45 @@ FOOD_JP = {
 }
 
 
+# tamingFoodData は元の種族しか載っていないが、変種は食性が同じなので
+# 接頭辞をはがして元の種族のデータを借りる。
+VARIANT_PREFIXES = (
+    "Aberrant ", "Tek ", "X-", "R-", "Enraged ", "Malfunctioned ", "Eerie ",
+    "Bionic ", "Elder ", "Astral ", "Summoned ", "Ascended ", "Zombie ",
+    "Skeletal ", "Bone ", "Party ", "Retrieve ", "Ghost ", "Aggressive ",
+    "Gamma ", "Beta ", "Alpha ",
+)
+# 名前の付け方が違うものだけ手当て
+VARIANT_ALIASES = {
+    "T-Rex": "Rex",
+    "Therizinosaurus": "Therizinosaur",
+    "Direwolf": "Direwolf",
+}
+
+
+def base_species_name(name, known):
+    """変種なら元の種族名を返す。分からなければ None。"""
+    n = name
+    for _ in range(3):          # 「Aberrant X-Rex」のような重ねがけに備える
+        cut = None
+        for p in VARIANT_PREFIXES:
+            if n.startswith(p) and len(n) > len(p):
+                cut = n[len(p):].strip()
+                break
+        if cut is None:
+            break
+        n = cut
+        if n in known:
+            return n
+        alias = VARIANT_ALIASES.get(n)
+        if alias and alias in known:
+            return alias
+    alias = VARIANT_ALIASES.get(n)
+    if alias and alias in known:
+        return alias
+    return None
+
+
 def load(path):
     with io.open(path, encoding="utf-8-sig") as f:
         return json.load(f)
@@ -114,9 +153,17 @@ def main():
             continue           # 計算のもとが無い
         if name in out:
             continue           # 同名は先勝ち
-        # tamingFoodData は ASE 時代のものなので、ASA で増えた恐竜は載っていない。
-        # その場合は「何を食べるか未確認」として、共通の食料テーブルから選ばせる。
-        entry = table.get(name) or {}
+        # tamingFoodData に無い恐竜は、まず変種として元の種族から借りる。
+        # それでも無ければ「未確認」として共通の食料テーブルから選ばせる。
+        entry = table.get(name)
+        borrowed = ""
+        if not (entry and entry.get("eats")):
+            src = base_species_name(name, table)
+            if src:
+                entry = table[src]
+                borrowed = src
+            else:
+                entry = entry or {}
 
         stats = s.get("fullStatsRaw") or []
         torpor = stats[STAT_TORPIDITY] if len(stats) > STAT_TORPIDITY else None
@@ -137,6 +184,8 @@ def main():
             "food": dict(entry.get("specialFoodValues") or {}),
             # 食べ物のデータが確認済みか（False なら共通の値で概算）
             "confirmed": bool(entry.get("eats")),
+            # 変種として別の種族から借りた場合、その元の名前
+            "food_from": borrowed,
         }
 
     data = {
@@ -157,8 +206,11 @@ def main():
     print("wrote %s (%d種 / 共通食料 %d種)" % (dst, len(out), len(default_food)))
 
     n_tor = sum(1 for v in out.values() if v["torporPS0"] > 0)
-    n_conf = sum(1 for v in out.values() if v["confirmed"])
-    print("  食べ物が確認済み: %d / %d（残りは共通の値で概算）" % (n_conf, len(out)))
+    n_conf = sum(1 for v in out.values() if v["confirmed"] and not v["food_from"])
+    n_borrow = sum(1 for v in out.values() if v["food_from"])
+    n_none = len(out) - n_conf - n_borrow
+    print("  食べ物データ: 直接 %d / 変種として借用 %d / 不明 %d"
+          % (n_conf, n_borrow, n_none))
     print("  気絶値の減りが分かる: %d / %d" % (n_tor, len(out)))
     for n in ("Rex", "Carcharodontosaurus", "Argentavis", "Giganotosaurus"):
         v = out.get(n)
