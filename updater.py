@@ -42,7 +42,12 @@ def is_newer(latest, current):
 
 # ---------------------------------------------------------------- 今の形態
 def install_kind():
-    """'onefile' / 'onedir' / 'source' のどれで動いているか。"""
+    """'installer' / 'onedir' / 'onefile' / 'source' のどれで動いているか。
+
+    installer = インストーラで入れたもの（隣に unins000.exe がある）。
+    この場合は setup.exe を当て直すのが正しい。フォルダを上書きするだけだと、
+    「設定 → アプリ」に出るバージョンが古いままになってしまう。
+    """
     if not getattr(sys, "frozen", False):
         return "source"
     meipass = getattr(sys, "_MEIPASS", "")
@@ -50,8 +55,10 @@ def install_kind():
     # onedir は展開先＝exeの隣（_internal）。onefile は %TEMP% に展開される。
     if meipass and os.path.normcase(os.path.dirname(meipass.rstrip("\\/"))) \
             != os.path.normcase(exe_dir):
-        return "onedir" if os.path.isdir(os.path.join(exe_dir, "_internal")) \
-            else "onefile"
+        if not os.path.isdir(os.path.join(exe_dir, "_internal")):
+            return "onefile"
+    if os.path.exists(os.path.join(exe_dir, "unins000.exe")):
+        return "installer"
     return "onedir"
 
 
@@ -87,13 +94,17 @@ def check(timeout=10):
 
 def pick_asset(info, kind):
     """今の形態に合うファイルを選ぶ。"""
-    zip_a = exe_a = None
+    zip_a = exe_a = setup_a = None
     for a in info.get("assets") or []:
         low = a["name"].lower()
         if low.endswith(".zip"):
             zip_a = zip_a or a
+        elif low.endswith("setup.exe"):
+            setup_a = setup_a or a
         elif low.endswith(".exe"):
             exe_a = exe_a or a
+    if kind == "installer":
+        return setup_a or zip_a or exe_a
     if kind == "onefile":
         return exe_a or zip_a
     return zip_a or exe_a
@@ -149,7 +160,12 @@ def apply(downloaded, on_log=None):
     pid = os.getpid()
     tmp = os.path.dirname(downloaded)
 
-    if downloaded.lower().endswith(".zip"):
+    if downloaded.lower().endswith("setup.exe"):
+        # インストーラに任せる。アプリを閉じるのも登録の更新も向こうがやる。
+        # （こちらが落としたファイルには「ダウンロード印」が付かないので
+        #   SmartScreen の警告は出ない）
+        action = '"%s" /VERYSILENT /NORESTART /SUPPRESSMSGBOXES' % downloaded
+    elif downloaded.lower().endswith(".zip"):
         # zip の中は ArkBreedingTimer/ になっている
         unpack = os.path.join(tmp, "unpacked")
         if os.path.isdir(unpack):

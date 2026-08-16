@@ -36,7 +36,7 @@ from afk_page import AfkPage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.13.0"
+APP_VERSION = "1.13.1"
 
 
 def _res_dir():
@@ -1128,6 +1128,9 @@ class App(tk.Tk):
         top.pack(fill="x")
         tk.Label(top, text="⏰ ふわふわタイマー", bg=th.BG, fg=th.INK,
                  font=F["head"]).pack(side="left")
+        # 更新できたかが一目で分かるように、版を出しておく
+        tk.Label(top, text=" v%s" % APP_VERSION, bg=th.BG, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", anchor="s", pady=(0, 4))
         # 窓が狭いときはこのまとまりごと下の行へ移す（_on_resize）。
         # 移動先が head なので、マスターは top ではなく head にしておく
         # （Tk は master かその子孫にしか pack できない）。
@@ -2915,9 +2918,12 @@ class UpdateDialog(tk.Toplevel):
             self.lbl_state.config(text="⚠ 入れ替えられるファイルが見つかりません",
                                   fg=th.PINK_DK)
             return
+        how = {"installer": "インストーラで入れ替えます",
+               "onedir": "フォルダを入れ替えます",
+               "onefile": "exe を入れ替えます"}.get(kind, "入れ替えます")
         self.lbl_state.config(
-            text="%s（%.1f MB）を入れ替えます。設定とタイマーはそのまま残ります"
-                 % (self.asset["name"], self.asset["size"] / 1024 / 1024),
+            text="%s（%.1f MB）で%s。設定とタイマーはそのまま残ります"
+                 % (self.asset["name"], self.asset["size"] / 1024 / 1024, how),
             fg=th.INK_SUB)
         self.btn_go.pack(side="right")
 
