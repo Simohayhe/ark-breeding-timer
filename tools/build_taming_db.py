@@ -23,6 +23,10 @@ DEFAULT_FOOD = os.path.join(_REL, "tamingFoodData.json")
 
 STAT_TORPIDITY = 2   # fullStatsRaw の並びで気絶値は3番目
 
+# ASE 時代にしか無い餌。このアプリは ASA 向けなので候補から外す。
+#   "Kibble" = v293 以前の統合キブル。いまのキブルは6段階（＋強化版）だけ。
+ASE_ONLY_FOODS = {"Kibble"}
+
 SKIP_NAME_PARTS = ("VR ", "Ghost", "Corrupted", "Malfunctioned", "Alpha ", "Brute ",
                    "Dinotar")
 SKIP_BP_PARTS = ("/Missions/", "TekCave", "/Gauntlet", "/Boss/")
@@ -56,7 +60,12 @@ FOOD_JP = {
     "Superior Kibble": "スーペリアキブル",
     "Exceptional Kibble": "エクセプショナルキブル",
     "Extraordinary Kibble": "エクストラオーディナリーキブル",
-    "Kibble": "キブル",
+    "Basic Augmented Kibble": "強化ベーシックキブル",
+    "Simple Augmented Kibble": "強化シンプルキブル",
+    "Regular Augmented Kibble": "強化レギュラーキブル",
+    "Superior Augmented Kibble": "強化スーペリアキブル",
+    "Exceptional Augmented Kibble": "強化エクセプショナルキブル",
+    "Extraordinary Augmented Kibble": "強化エクストラオーディナリーキブル",
     "Rare Mushroom": "レアキノコ",
     "Rare Flower": "レアフラワー",
     "Giant Bee Honey": "ハチミツ",
@@ -139,7 +148,9 @@ def main():
     species, ver_ase, ver_asa = merged_species(ase, asa)
     fooddata = load(foodp)
     table = fooddata["tamingFoodData"]
-    default_food = dict(table.get("default", {}).get("specialFoodValues") or {})
+    default_food = {k: v for k, v
+                    in (table.get("default", {}).get("specialFoodValues") or {}).items()
+                    if k not in ASE_ONLY_FOODS}
 
     out = {}
     for bp, s in species:
@@ -180,8 +191,10 @@ def main():
             "torporPS0": tam.get("torporDepletionPS0") or 0,
             "torporBase": (torpor[0] if torpor else 0),
             "torporInc": (torpor[1] if torpor else 0),
-            "eats": list(entry.get("eats") or []),
-            "food": dict(entry.get("specialFoodValues") or {}),
+            "eats": [x for x in (entry.get("eats") or [])
+                     if x not in ASE_ONLY_FOODS],
+            "food": {k: v for k, v in (entry.get("specialFoodValues") or {}).items()
+                     if k not in ASE_ONLY_FOODS},
             # 食べ物のデータが確認済みか（False なら共通の値で概算）
             "confirmed": bool(entry.get("eats")),
             # 変種として別の種族から借りた場合、その元の名前
