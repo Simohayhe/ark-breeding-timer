@@ -29,12 +29,13 @@ from tkinter import font as tkfont
 import afk
 import macro
 import sounds as snd
+import taming
 import theme as th
 from afk_page import AfkPage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.10.1"
+APP_VERSION = "1.11.0"
 
 
 def _res_dir():
@@ -62,6 +63,11 @@ DEFAULT_CONFIG = {
     "mating_interval_mult": 0.001,
     "imprint_amount_mult": 1.0,
     "gestation_uses_hatch_mult": True,
+    # テイム関係のサーバー倍率
+    "taming_speed": 1.0,          # TamingSpeedMultiplier
+    "food_drain": 1.0,            # DinoCharacterFoodDrainMultiplier
+    "wild_food_drain": 1.0,       # WildDinoCharacterFoodDrainMultiplier
+    "torpor_drain": 1.0,          # WildDinoTorporDrainMultiplier
     # 音
     "volume": 0.7,
     "sound_done": snd.DEFAULT_DONE,
@@ -1069,6 +1075,7 @@ class App(tk.Tk):
         self.cfg = dict(DEFAULT_CONFIG)
         self.cfg.update(load_json(CONFIG_PATH, {}))
         self.db = SpeciesDB(os.path.join(DATA_DIR, "species.json"))
+        self.tdb = taming.TamingDB(os.path.join(DATA_DIR, "taming.json"))
         self.notifier = Notifier(self)
         self.timers: list[BreedTimer] = []
         self.cards: dict[str, TimerCard] = {}
@@ -2154,43 +2161,36 @@ class NewTimerDialog(tk.Toplevel):
         self.transient(parent if parent is not None else app)
         self.attributes("-topmost", bool(app.cfg["always_on_top"]))
 
-        sw = tk.Frame(self, bg=th.BG)
+        sw = FlowFrame(self, bg=th.BG, gap_x=8, gap_y=6)
         sw.pack(fill="x", padx=18, pady=(16, 8))
-        self.btn_free = th.RoundButton(sw, "⏰ 自由タイマー",
-                                       lambda: self.switch("free"), kind="primary",
-                                       bg=th.BG, font=self.F["cute"])
-        self.btn_free.pack(side="left", padx=(0, 8))
-        self.btn_ark = th.RoundButton(sw, "🦖 ARKの恐竜から",
-                                      lambda: self.switch("ark"), kind="soft",
-                                      bg=th.BG, font=self.F["cute"])
-        self.btn_ark.pack(side="left")
-
         self.holder = tk.Frame(self, bg=th.BG)
         self.holder.pack(fill="both", expand=True, padx=12, pady=(0, 12))
-        self.page_free = th.Card(self.holder, bg=th.BG)
-        self.page_ark = th.Card(self.holder, bg=th.BG)
-        self._build_free(self.page_free.body)
-        self._build_ark(self.page_ark.body)
+
+        self.tab_btns, self.tab_pages = {}, {}
+        for key, label in (("free", "⏰ 自由タイマー"), ("ark", "🦖 ARKの恐竜から"),
+                           ("tame", "🍖 テイム")):
+            self.tab_btns[key] = sw.add(th.RoundButton(
+                sw, label, lambda k=key: self.switch(k), kind="soft", bg=th.BG,
+                font=self.F["cute"]))
+            self.tab_pages[key] = th.Card(self.holder, bg=th.BG)
+        self._build_free(self.tab_pages["free"].body)
+        self._build_ark(self.tab_pages["ark"].body)
+        self._build_tame(self.tab_pages["tame"].body)
         self.switch("free")
 
     def switch(self, which):
-        self.page_free.pack_forget()
-        self.page_ark.pack_forget()
-        if which == "free":
-            self.page_free.pack(fill="both", expand=True)
-            self.btn_free.itemconfigure(self.btn_free.shape, fill=th.PINK)
-            self.btn_ark.itemconfigure(self.btn_ark.shape, fill=th.BG_SOFT)
-            self.btn_free.fill, self.btn_ark.fill = th.PINK, th.BG_SOFT
-            self.btn_free.itemconfigure(self.btn_free.label, fill="#FFFFFF")
-            self.btn_ark.itemconfigure(self.btn_ark.label, fill=th.INK)
-        else:
-            self.page_ark.pack(fill="both", expand=True)
-            self.btn_ark.itemconfigure(self.btn_ark.shape, fill=th.PINK)
-            self.btn_free.itemconfigure(self.btn_free.shape, fill=th.BG_SOFT)
-            self.btn_ark.fill, self.btn_free.fill = th.PINK, th.BG_SOFT
-            self.btn_ark.itemconfigure(self.btn_ark.label, fill="#FFFFFF")
-            self.btn_free.itemconfigure(self.btn_free.label, fill=th.INK)
+        for card in self.tab_pages.values():
+            card.pack_forget()
+        self.tab_pages[which].pack(fill="both", expand=True)
+        for key, b in self.tab_btns.items():
+            on = key == which
+            b.fill = th.PINK if on else th.BG_SOFT
+            b.itemconfigure(b.shape, fill=b.fill)
+            b.itemconfigure(b.label, fill="#FFFFFF" if on else th.INK)
+        if which == "ark":
             self.refresh_list()
+        elif which == "tame":
+            self.tame_refresh_list()
 
     # ------------------------------------------------ 自由タイマー
     def _build_free(self, f):
@@ -2514,6 +2514,202 @@ class NewTimerDialog(tk.Toplevel):
         self.kv["gestation"].set(c["gestation"] > 0)
         self._start_preview()
 
+    # ------------------------------------------------ テイム
+    def _build_tame(self, f):
+        F = self.F
+        left = tk.Frame(f, bg=th.CARD)
+        left.pack(side="left", fill="both", expand=True)
+        tk.Label(left, text="テイムする恐竜（日本語でも英語でも）", bg=th.CARD,
+                 fg=th.INK_SUB, font=F["small"]).pack(anchor="w")
+        self.tm_q = tk.StringVar()
+        ent = th.soft_entry(left, self.tm_q, font=F["cute"])
+        ent.pack(fill="x", ipady=5, pady=(2, 8))
+        ent.bind("<KeyRelease>", lambda e: self.tame_refresh_list())
+        self.tm_list = tk.Listbox(left, bg=th.FIELD, fg=th.INK,
+                                  selectbackground=th.PINK,
+                                  selectforeground="#FFFFFF", borderwidth=0,
+                                  highlightthickness=0, font=F["ui"],
+                                  activestyle="none")
+        self.tm_list.pack(fill="both", expand=True)
+        self.tm_list.bind("<<ListboxSelect>>", lambda e: self.tame_select())
+
+        right = tk.Frame(f, bg=th.CARD)
+        right.pack(side="right", fill="y", padx=(14, 0))
+
+        r1 = tk.Frame(right, bg=th.CARD)
+        r1.pack(fill="x")
+        tk.Label(r1, text="レベル", bg=th.CARD, fg=th.INK, font=F["cute"],
+                 width=8, anchor="w").pack(side="left")
+        self.tm_level = tk.StringVar(value="150")
+        th.soft_entry(r1, self.tm_level, width=7).pack(side="left", ipady=3)
+        for lv in (5, 30, 75, 105, 150):
+            th.Chip(r1, str(lv), lambda v=lv: self.tm_level.set(str(v)),
+                    bg=th.CARD, font=F["small"]).pack(side="left", padx=2)
+
+        tk.Label(right, text="なにで餌付けする？", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(anchor="w", pady=(10, 2))
+        self.tm_food = tk.StringVar()
+        self.tm_cb = ttk.Combobox(right, textvariable=self.tm_food, state="readonly",
+                                  width=34, style="Cute.TCombobox", font=F["ui"])
+        self.tm_cb.pack(fill="x")
+        self.tm_cb.bind("<<ComboboxSelected>>", lambda e: self.tame_calc())
+
+        r2 = tk.Frame(right, bg=th.CARD)
+        r2.pack(fill="x", pady=(10, 0))
+        tk.Label(r2, text="いまの食料値", bg=th.CARD, fg=th.INK, font=F["cute"],
+                 width=12, anchor="w").pack(side="left")
+        self.tm_curfood = tk.StringVar(value="0")
+        th.soft_entry(r2, self.tm_curfood, width=8).pack(side="left", ipady=3)
+        tk.Label(right, text="0 のままでOK。入れると、それを消費しきるまでの"
+                            "待ち時間も足して計算します",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=330,
+                 justify="left").pack(anchor="w", pady=(2, 8))
+
+        self.tm_result = tk.Label(right, text="恐竜をえらんでね", bg=th.FIELD,
+                                  fg=th.INK, font=F["ui"], justify="left",
+                                  anchor="nw", padx=12, pady=10, width=40, height=11)
+        self.tm_result.pack(fill="x")
+        self.tm_note = tk.Label(right, text="", bg=th.CARD, fg=th.PINK_DK,
+                                font=F["small"], anchor="w", justify="left",
+                                wraplength=330)
+        self.tm_note.pack(fill="x", pady=(4, 0))
+
+        btm = tk.Frame(right, bg=th.CARD)
+        btm.pack(side="bottom", fill="x", pady=(12, 0))
+        th.RoundButton(btm, "⏰ タイマーにする", self.create_tame, kind="primary",
+                       bg=th.CARD, font=F["cute_b"], padx=18).pack(side="right")
+        th.RoundButton(btm, "やめる", self.destroy, kind="soft", bg=th.CARD,
+                       font=F["cute"]).pack(side="right", padx=8)
+
+        for v in (self.tm_level, self.tm_curfood):
+            v.trace_add("write", lambda *a: self.tame_calc())
+
+    def taming_mults(self):
+        c = self.app.cfg
+        return {"taming": c.get("taming_speed", 1.0),
+                "food_drain": c.get("food_drain", 1.0),
+                "wild_food_drain": c.get("wild_food_drain", 1.0),
+                "torpor_drain": c.get("torpor_drain", 1.0)}
+
+    def tame_refresh_list(self):
+        q = (self.tm_q.get() or "").strip().lower()
+        db = self.app.tdb
+        # 恐竜データ側の日本語名を借りて、日本語でも探せるようにする。
+        # 「Rex」で「Astral T-Rex」が先に出ないよう、前方一致を優先する。
+        hits, subs = [], []
+        for n in db.names():
+            sp = self.app.db.by_name.get(n)
+            jp = (sp or {}).get("jp", "")
+            low = n.lower()
+            if not q:
+                subs.append((n, jp))
+            elif low.startswith(q) or jp.startswith(q):
+                hits.append((n, jp))
+            elif q in low or q in jp:
+                subs.append((n, jp))
+        names = hits + subs
+        self.tm_names = names
+        self.tm_list.delete(0, "end")
+        for n, jp in names[:400]:
+            self.tm_list.insert("end", "  %s%s" % (n, ("   " + jp.split(" ")[0])
+                                                   if jp else ""))
+        if names:
+            self.tm_list.selection_clear(0, "end")
+            self.tm_list.selection_set(0)
+            self.tame_select()
+
+    def tame_select(self):
+        sel = self.tm_list.curselection()
+        if not sel:
+            return
+        self.tm_sp_name = self.tm_names[sel[0]][0]
+        sp = self.app.tdb.get(self.tm_sp_name)
+        foods = self.app.tdb.foods_for(sp)
+        self.tm_foods = foods
+        self.tm_cb["values"] = [self.app.tdb.food_label(x) for x in foods]
+        if foods:
+            self.tm_cb.current(0)
+        self.tame_calc()
+
+    def _tame_result(self):
+        name = getattr(self, "tm_sp_name", None)
+        if not name or not getattr(self, "tm_foods", None):
+            return None, None, "恐竜をえらんでね"
+        sp = self.app.tdb.get(name)
+        i = self.tm_cb.current()
+        if not 0 <= i < len(self.tm_foods):
+            return None, None, "食べ物をえらんでね"
+        try:
+            level = max(1, int(float(self.tm_level.get() or 1)))
+        except ValueError:
+            return None, None, "レベルは数字で"
+        try:
+            cur = max(0.0, float(self.tm_curfood.get() or 0))
+        except ValueError:
+            return None, None, "いまの食料値は数字で"
+        r = taming.calc(self.app.tdb, sp, level, self.tm_foods[i],
+                        self.taming_mults(), cur)
+        if not r.get("ok"):
+            return None, None, r.get("why") or "計算できません"
+        return sp, r, None
+
+    def tame_calc(self):
+        if not hasattr(self, "tm_result"):
+            return
+        sp, r, err = self._tame_result()
+        if err:
+            self.tm_result.config(text=err)
+            self.tm_note.config(text="")
+            return
+        lines = [
+            "🍖 必要な数    %d 個" % r["pieces"],
+            "⏰ かかる時間  %s" % fmt_dur(r["seconds"]),
+        ]
+        if r["wait_seconds"]:
+            lines.append("   食べ始めまで %s（合計 %s）" % (
+                fmt_dur(r["wait_seconds"]), fmt_dur(r["total_seconds"])))
+        if r["te_known"]:
+            lines.append("📈 テイム効率  %.1f%%  → +%dLv（Lv%d になる）" % (
+                r["te"] * 100, r["bonus"], r["level_after"]))
+        else:
+            lines.append("📈 テイム効率  データ無し（この恐竜は出せません）")
+        lines.append("")
+        if r["torpor_per_sec"] > 0:
+            lines.append("😵 気絶値      %s（%.1f/秒 で減る）" % (
+                "{:,}".format(int(r["total_torpor"])), r["torpor_per_sec"]))
+            lines.append("   起きるまで  %s" % fmt_dur(r["wake_seconds"]))
+            if r["torpor_needed"] > 0:
+                need = dict(r["narcotics"])
+                lines.append("   麻酔薬 %d / バイオトキシン %d" % (
+                    need.get("麻酔薬", 0), need.get("バイオトキシン", 0)))
+            else:
+                lines.append("   麻酔は要りません")
+        else:
+            lines.append("😵 気絶値      データ無し")
+        self.tm_result.config(text="\n".join(lines))
+
+        notes = []
+        if r["unconfirmed_food"]:
+            notes.append("⚠ この恐竜の食べ物データが無いので、一般的な値で計算した"
+                         "目安です")
+        if r["non_violent"]:
+            notes.append("※ 気絶させずにテイムする恐竜です")
+        self.tm_note.config(text="\n".join(notes))
+
+    def create_tame(self):
+        sp, r, err = self._tame_result()
+        if err:
+            self.tm_note.config(text="⚠ " + err)
+            return
+        label = "%s のテイム" % self.tm_sp_name
+        t = BreedTimer("custom", label, r["total_seconds"], self.tm_sp_name)
+        t.note = "%s × %d個 ／ %s" % (
+            self.app.tdb.food_label(self.tm_foods[self.tm_cb.current()]),
+            r["pieces"], ("TE %.1f%% → Lv%d" % (r["te"] * 100, r["level_after"]))
+            if r["te_known"] else "TE不明")
+        self.app.add_timer(t)
+        self.destroy()
+
     def create_ark(self):
         self.ark_err.config(text="")
         if not self.sp:
@@ -2573,6 +2769,12 @@ class SettingsDialog(tk.Toplevel):
         ("cuddle_interval_mult", "BabyCuddleIntervalMultiplier（刷り込み間隔）"),
         ("mating_interval_mult", "MatingIntervalMultiplier（再交配CD）"),
         ("imprint_amount_mult", "BabyImprintAmountMultiplier（刷り込み量）"),
+    ]
+    TAME_MULTS = [
+        ("taming_speed", "TamingSpeedMultiplier（テイム速度）"),
+        ("food_drain", "DinoCharacterFoodDrainMultiplier（食料の減り）"),
+        ("wild_food_drain", "WildDinoCharacterFoodDrainMultiplier（野生の食料）"),
+        ("torpor_drain", "WildDinoTorporDrainMultiplier（気絶値の減り）"),
     ]
 
     def __init__(self, app: App):
@@ -2834,6 +3036,17 @@ class SettingsDialog(tk.Toplevel):
             self.vars[key] = v
             th.soft_entry(row, v, width=8).pack(side="left", ipady=3)
 
+        tk.Label(f, text="\nテイムの倍率", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w")
+        for key, text in self.TAME_MULTS:
+            row = tk.Frame(f, bg=th.CARD)
+            row.pack(fill="x", pady=3)
+            tk.Label(row, text=text, bg=th.CARD, fg=th.INK, font=F["ui"],
+                     anchor="w", width=40).pack(side="left")
+            v = tk.StringVar(value=str(self.app.cfg.get(key, 1.0)))
+            self.vars[key] = v
+            th.soft_entry(row, v, width=8).pack(side="left", ipady=3)
+
         self.v_gest = tk.BooleanVar(
             value=bool(self.app.cfg.get("gestation_uses_hatch_mult", True)))
         self._check(f, "妊娠時間にも EggHatchSpeedMultiplier を掛ける",
@@ -2846,7 +3059,7 @@ class SettingsDialog(tk.Toplevel):
     def save(self):
         self.err.config(text="")
         try:
-            for key, _ in self.MULTS:
+            for key, _ in self.MULTS + self.TAME_MULTS:
                 val = float(self.vars[key].get())
                 if val <= 0:
                     raise ValueError(key)

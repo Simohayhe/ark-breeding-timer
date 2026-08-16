@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """exe をビルドする。
 
     python tools/build.py            # onefile と onedir(zip) の両方
@@ -110,6 +110,7 @@ def common_args(ver):
         "--icon", os.path.join("assets", "icon.ico"),
         "--version-file", write_version_info(ver),
         "--add-data", "data%sspecies.json%sdata" % (os.sep, os.pathsep),
+        "--add-data", "data%staming.json%sdata" % (os.sep, os.pathsep),
         "--hidden-import", "sounds", "--hidden-import", "theme",
         "ark_breeding_timer.py",
     ]
