@@ -31,11 +31,12 @@ import macro
 import sounds as snd
 import taming
 import theme as th
+import updater
 from afk_page import AfkPage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.11.1"
+APP_VERSION = "1.12.0"
 
 
 def _res_dir():
@@ -1134,6 +1135,8 @@ class App(tk.Tk):
         self.head_ctrl.pack(in_=top, side="right")
         th.RoundButton(self.head_ctrl, "⚙ 設定", self.open_settings, kind="soft",
                        bg=th.BG, font=F["small"]).pack(side="right", padx=(6, 0))
+        th.RoundButton(self.head_ctrl, "⬆ 更新", self.open_update, kind="soft",
+                       bg=th.BG, font=F["small"]).pack(side="right", padx=6)
         th.RoundButton(self.head_ctrl, "🔔 音を試す", self.test_sound, kind="soft",
                        bg=th.BG, font=F["small"]).pack(side="right", padx=6)
         th.RoundButton(self.head_ctrl, "🗕 ミニ表示", self.open_mini, kind="accent",
@@ -1749,6 +1752,9 @@ class App(tk.Tk):
 
     def open_settings(self):
         SettingsDialog(self)
+
+    def open_update(self):
+        UpdateDialog(self)
 
     def apply_topmost(self):
         self.cfg["always_on_top"] = bool(self.var_top.get())
@@ -2553,6 +2559,10 @@ class NewTimerDialog(tk.Toplevel):
                                   width=34, style="Cute.TCombobox", font=F["ui"])
         self.tm_cb.pack(fill="x")
         self.tm_cb.bind("<<ComboboxSelected>>", lambda e: self.tame_calc())
+        # 食べ物データが無い恐竜のときだけ出す（キブルを使わない恐竜が多いので既定は隠す）
+        self.tm_kibble = tk.BooleanVar(value=False)
+        self.tm_kibble_chk = self._check(right, "キブルも候補に出す",
+                                         self.tm_kibble, self.tame_select)
 
         r2 = tk.Frame(right, bg=th.CARD)
         r2.pack(fill="x", pady=(10, 0))
@@ -2624,7 +2634,13 @@ class NewTimerDialog(tk.Toplevel):
             return
         self.tm_sp_name = self.tm_names[sel[0]][0]
         sp = self.app.tdb.get(self.tm_sp_name)
-        foods = self.app.tdb.foods_for(sp)
+        known = bool(sp.get("eats"))
+        # 食べ物データが無いときだけ「キブルも出す」を見せる
+        if known:
+            self.tm_kibble_chk.pack_forget()
+        else:
+            self.tm_kibble_chk.pack(anchor="w", pady=(2, 0))
+        foods = self.app.tdb.foods_for(sp, include_kibble=self.tm_kibble.get())
         self.tm_foods = foods
         self.tm_cb["values"] = [self.app.tdb.food_label(x) for x in foods]
         if foods:
@@ -2694,6 +2710,8 @@ class NewTimerDialog(tk.Toplevel):
         elif r["unconfirmed_food"]:
             notes.append("⚠ この恐竜の食べ物データが無いので、一般的な値で計算した"
                          "目安です")
+            notes.append("　 テイム方法が特殊な恐竜（カルカロなど）はキブルを"
+                         "使わないので、キブルは既定で出していません")
         if r["non_violent"]:
             notes.append("※ 気絶させずにテイムする恐竜です")
         self.tm_note.config(text="\n".join(notes))
@@ -2761,6 +2779,162 @@ class NewTimerDialog(tk.Toplevel):
         self.app.rebuild_list()
         self.app.save_timers()
         self.destroy()
+
+
+# ---------------------------------------------------------------- 更新
+class UpdateDialog(tk.Toplevel):
+    """GitHub を見て、新しい版があれば内容を見せてから入れ替える。"""
+
+    def __init__(self, app: App):
+        super().__init__(app)
+        self.app = app
+        self.F = app.F
+        self.info = None
+        self.asset = None
+        self.busy = False
+        self.title("更新のかくにん")
+        self.configure(bg=th.BG)
+        self.geometry("560x520")
+        self.transient(app)
+        self.attributes("-topmost", bool(app.cfg["always_on_top"]))
+
+        card = th.Card(self, bg=th.BG)
+        card.pack(fill="both", expand=True, padx=10, pady=10)
+        b = card.body
+
+        self.lbl_head = tk.Label(b, text="いま v%s です" % APP_VERSION, bg=th.CARD,
+                                 fg=th.INK, font=self.F["cute_b"], anchor="w")
+        self.lbl_head.pack(fill="x")
+        self.lbl_state = tk.Label(b, text="たしかめています…", bg=th.CARD,
+                                  fg=th.INK_SUB, font=self.F["small"], anchor="w",
+                                  justify="left", wraplength=490)
+        self.lbl_state.pack(fill="x", pady=(2, 8))
+
+        box = tk.Frame(b, bg=th.FIELD)
+        box.pack(fill="both", expand=True)
+        self.txt = tk.Text(box, bg=th.FIELD, fg=th.INK, font=self.F["ui"],
+                           relief="flat", bd=0, wrap="word", padx=12, pady=10,
+                           highlightthickness=0)
+        vs = ttk.Scrollbar(box, orient="vertical", command=self.txt.yview,
+                           style="Cute.Vertical.TScrollbar")
+        self.txt.configure(yscrollcommand=vs.set)
+        vs.pack(side="right", fill="y")
+        self.txt.pack(side="left", fill="both", expand=True)
+        self.txt.insert("1.0", "")
+        self.txt.configure(state="disabled")
+
+        self.bar = th.RoundProgress(b, bg=th.CARD, color=th.LAV, height=6)
+
+        btm = tk.Frame(b, bg=th.CARD)
+        btm.pack(side="bottom", fill="x", pady=(10, 0))
+        self.btn_go = th.RoundButton(btm, "いますぐ更新", self.do_update,
+                                     kind="primary", bg=th.CARD,
+                                     font=self.F["cute_b"], padx=22)
+        th.RoundButton(btm, "キャンセル", self.destroy, kind="soft", bg=th.CARD,
+                       font=self.F["cute"]).pack(side="right", padx=8)
+        th.RoundButton(btm, "ページを開く", self.open_page, kind="ghost", bg=th.CARD,
+                       font=self.F["small"]).pack(side="left")
+
+        # 別スレッドの結果は箱に置くだけにして、本体側が見に行く。
+        # Tk のウィジェットをワーカースレッドから触るのは安全ではないため。
+        self._got_info = None
+        self._prog = None
+        self._done = None
+        threading.Thread(target=self._check, daemon=True).start()
+        self.after(120, self._poll)
+
+    def _check(self):
+        self._got_info = updater.check()
+
+    def _poll(self):
+        if not self.winfo_exists():
+            return
+        if self._got_info is not None:
+            info, self._got_info = self._got_info, None
+            self._show(info)
+        if self._prog is not None:
+            got, total = self._prog
+            self._prog = None
+            if total:
+                self.bar.set(got / total)
+        if self._done is not None:
+            ok, why = self._done
+            self._done = None
+            if ok:
+                self.app.on_close()   # バッチがこのプロセスの終了を待っている
+                return
+            self._failed(why)
+        self.after(120, self._poll)
+
+    def _set_text(self, s):
+        self.txt.configure(state="normal")
+        self.txt.delete("1.0", "end")
+        self.txt.insert("1.0", s)
+        self.txt.configure(state="disabled")
+
+    def _show(self, info):
+        if not self.winfo_exists():
+            return
+        if not info.get("ok"):
+            self.lbl_state.config(text="⚠ " + info.get("why", "失敗しました"),
+                                  fg=th.PINK_DK)
+            self._set_text("インターネットにつながっているか確かめてください。\n"
+                           "「ページを開く」から手で取りにいくこともできます。")
+            return
+        self.info = info
+        tag = info["tag"]
+        body = (info.get("body") or "").lstrip("﻿").strip()
+        self._set_text(body or "（更新内容が書かれていません）")
+        if not updater.is_newer(tag, APP_VERSION):
+            self.lbl_state.config(text="いちばん新しい版です（最新 %s）" % tag,
+                                  fg=th.MINT)
+            return
+
+        kind = updater.install_kind()
+        self.asset = updater.pick_asset(info, kind)
+        self.lbl_head.config(text="v%s  →  %s があります" % (APP_VERSION, tag))
+        if kind == "source":
+            self.lbl_state.config(
+                text="ソースから動いているので、ここからは更新できません。"
+                     "git pull してください", fg=th.PINK_DK)
+            return
+        if not self.asset:
+            self.lbl_state.config(text="⚠ 入れ替えられるファイルが見つかりません",
+                                  fg=th.PINK_DK)
+            return
+        self.lbl_state.config(
+            text="%s（%.1f MB）を入れ替えます。設定とタイマーはそのまま残ります"
+                 % (self.asset["name"], self.asset["size"] / 1024 / 1024),
+            fg=th.INK_SUB)
+        self.btn_go.pack(side="right")
+
+    # ---- 更新 ----
+    def open_page(self):
+        import webbrowser
+        webbrowser.open((self.info or {}).get("url") or updater.RELEASES_PAGE)
+
+    def do_update(self):
+        if self.busy or not self.asset:
+            return
+        self.busy = True
+        self.btn_go.set_text("更新中…")
+        self.bar.pack(fill="x", pady=(8, 0))
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def _run(self):
+        try:
+            path = updater.download(
+                self.asset, lambda got, total: setattr(self, "_prog", (got, total)))
+            ok, why = updater.apply(path)
+        except Exception as e:
+            ok, why = False, "%s: %s" % (e.__class__.__name__, e)
+        self._done = (ok, why)
+
+    def _failed(self, why):
+        self.busy = False
+        self.btn_go.set_text("いますぐ更新")
+        self.bar.pack_forget()
+        self.lbl_state.config(text="⚠ 更新できませんでした: %s" % why, fg=th.PINK_DK)
 
 
 # ---------------------------------------------------------------- 設定

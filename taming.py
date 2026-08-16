@@ -56,12 +56,20 @@ class TamingDB:
         jp = self.food_jp.get(name)
         return "%s（%s）" % (jp, name) if jp else name
 
-    def foods_for(self, sp):
-        """その種族が食べられるもの。未確認の種族には共通テーブルを全部出す。"""
+    def foods_for(self, sp, include_kibble=False):
+        """その種族が食べられるもの。
+
+        食べ物データが無い種族（ASAで追加された恐竜など）には共通テーブルを
+        出すが、**キブルは既定で出さない**。どのキブルが好物かが分からないうえ、
+        カルカロのようにテイム方法が特殊でキブルを使わない恐竜も多いため、
+        並べると嘘の選択肢になってしまう。
+        """
         names = list(sp.get("eats") or [])
-        if not names:
-            names = list(self.default_food)
-        # 値が引けるものだけ
+        if names:
+            return [n for n in names if self.food_value(sp, n)]
+        names = list(self.default_food)
+        if not include_kibble:
+            names = [n for n in names if "Kibble" not in n]
         return [n for n in names if self.food_value(sp, n)]
 
     def food_value(self, sp, name):
