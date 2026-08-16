@@ -53,8 +53,8 @@ class TamingDB:
         return self.species.get(name)
 
     def food_label(self, name):
-        jp = self.food_jp.get(name)
-        return "%s（%s）" % (jp, name) if jp else name
+        """画面に出す名前。日本語名があればそれだけ出す（英語は併記しない）。"""
+        return self.food_jp.get(name) or name
 
     def foods_for(self, sp, include_kibble=False):
         """その種族が食べられるもの。

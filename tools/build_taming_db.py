@@ -15,6 +15,8 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+from build_species_db import JP_NAMES  # noqa: E402  恐竜の日本語名を借りる
 _REL = os.path.join(os.path.dirname(PROJ), "ARKStatsExtractor", "ARKBreedingStats",
                     "json")
 DEFAULT_ASE = os.path.join(_REL, "values", "values.json")
@@ -72,7 +74,103 @@ FOOD_JP = {
     "Bio Toxin": "バイオトキシン",
     "Narcotic": "麻酔薬",
     "Narcoberry": "ナルコベリー",
+    # きのこ・作物
+    "Ascerbic Mushroom": "アセビックマッシュルーム",
+    "Aquatic Mushroom": "アクアティックマッシュルーム",
+    "Auric Mushroom": "オーリックマッシュルーム",
+    "Aggeravic Mushroom": "アグラビックマッシュルーム",
+    "Rockarrot": "ロッカロット",
+    "Longrass": "ロンググラス",
+    "Savoroot": "サボルート",
+    "Citronal": "シトロナル",
+    "Stimberry": "スティムベリー",
+    "Plant Species X Seed": "プラントスピーシーズXの種",
+    "Plant Species Y Seed": "プラントスピーシーズYの種",
+    "Plant Species Z Seed": "プラントスピーシーズZの種",
+    "Plant Species Z Seed (SpeedHack)": "プラントスピーシーズZの種",
+    # 素材・その他
+    "Black Pearl": "黒真珠",
+    "Chitin": "キチン",
+    "Clay": "粘土",
+    "Stone": "石",
+    "Metal": "金属",
+    "Sulfur": "硫黄",
+    "Element": "エレメント",
+    "Element Ore": "エレメント鉱石",
+    "Deathworm Horn": "デスワームの角",
+    "AnglerGel": "アングラージェル",
+    "Snow Owl Pellet": "スノーオウルのペレット",
+    "Beer Jar": "ビール樽",
+    "Broth of Enlightenment": "啓蒙のスープ",
+    "Bug Repellant": "虫除け",
+    "Ammunition": "弾薬",
+    "Other Items": "その他のもの",
+    "Archelon Algae (ASA)": "アーケロンの藻",
+    # 糞
+    "Human Feces": "人間の糞",
+    "Small Animal Feces": "小型動物の糞",
+    "Medium Animal Feces": "中型動物の糞",
+    "Large Animal Feces": "大型動物の糞",
+    # 卵（総称）
+    "Dinosaur Egg": "恐竜の卵",
+    "Golden Hesperornis Egg": "黄金のヘスペロルニスの卵",
 }
+
+# 卵の名前は略称で書かれているので、恐竜の日本語名に橋渡しする
+EGG_ALIASES = {
+    "Rex": "レックス", "Trike": "トリケラトプス", "Stego": "ステゴサウルス",
+    "Bronto": "ブロントサウルス", "Dilo": "ディロフォサウルス",
+    "Dimorph": "ディモルフォドン", "Diplo": "ディプロドクス",
+    "Lystro": "リストロサウルス", "Therizino": "テリジノサウルス",
+    "Pachyrhino": "パキリノサウルス", "Ankylo": "アンキロサウルス",
+    "Carno": "カルノタウルス", "Compy": "コンピー", "Turtle": "カルボネミス",
+    "Kentro": "ケントロサウルス", "Titanboa": "タイタンボア",
+    "Pulminoscorpius": "サソリ", "Moth": "モス", "Camelsaurus": "モルレラトプス",
+    "Featherlight": "フェザーライト", "Glowtail": "グロウテイル",
+    "Achaeopteryx": "アーケオプテリクス", "Archaeopteryx": "アーケオプテリクス",
+    "Hesperornis": "ヘスペロルニス", "Oviraptor": "オヴィラプトル",
+    "Pegomastax": "ペゴマスタクス", "Microraptor": "ミクロラプトル",
+    "Pachycephalosaurus": "パキケファロサウルス", "Mantis": "マンティス",
+    "Dimetrodon": "ディメトロドン",
+    "Vulture": "ハゲワシ", "Wyvern": "ワイバーン", "Basilisk": "バジリスク",
+    "Rock Drake": "ロックドレイク", "Snow Owl": "スノーオウル",
+    "Velonasaur": "ヴェロナサウルス", "Terror Bird": "テラーバード",
+    "Thorny Dragon": "ソーニードラゴン", "Giganotosaurus": "ギガノトサウルス",
+}
+
+
+def _dino_jp(word):
+    """卵の名前に出てくる恐竜名を日本語にする。分からなければ None。"""
+    if word in EGG_ALIASES:
+        return EGG_ALIASES[word]
+    jp = JP_NAMES.get(word)
+    if jp:
+        return jp.split(" ")[0]
+    return None
+
+
+def jp_food_name(name):
+    """食べ物の日本語名。表にあればそれ、卵なら組み立て、駄目なら None。"""
+    if name in FOOD_JP:
+        return FOOD_JP[name]
+    if name.endswith(" Egg"):
+        body = name[:-4]
+        fert = body.startswith("Fertilized ")
+        if fert:
+            body = body[len("Fertilized "):]
+        aberrant = body.startswith("Aberrant ")
+        if aberrant:
+            body = body[len("Aberrant "):]
+        tek = body.startswith("Tek ")
+        if tek:
+            body = body[len("Tek "):]
+        jp = _dino_jp(body)
+        if not jp:
+            return None
+        return "%s%s%sの%s" % ("アベレーション " if aberrant else "",
+                               "テック" if tek else "", jp,
+                               "受精卵" if fert else "卵")
+    return None
 
 
 # tamingFoodData は元の種族しか載っていないが、変種は食性が同じなので
@@ -201,6 +299,18 @@ def main():
             "food_from": borrowed,
         }
 
+    # 出てくる食べ物すべてに日本語名を用意する（卵は自動で組み立てる）
+    all_foods = set(default_food)
+    for v in out.values():
+        all_foods |= set(v["eats"]) | set(v["food"])
+    food_jp, no_jp = {}, []
+    for n in sorted(all_foods):
+        jp = jp_food_name(n)
+        if jp:
+            food_jp[n] = jp
+        else:
+            no_jp.append(n)
+
     data = {
         "source": {
             "ase_values_version": ver_ase,
@@ -209,7 +319,7 @@ def main():
             "generator": "tools/build_taming_db.py",
         },
         "default_food": default_food,
-        "food_jp": FOOD_JP,
+        "food_jp": food_jp,
         "species": out,
     }
     dst = os.path.join(PROJ, "data", "taming.json")
@@ -217,6 +327,9 @@ def main():
     with io.open(dst, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
     print("wrote %s (%d種 / 共通食料 %d種)" % (dst, len(out), len(default_food)))
+    print("  食べ物の日本語名: %d / %d" % (len(food_jp), len(all_foods)))
+    if no_jp:
+        print("  英語のまま: %s" % ", ".join(no_jp[:12]))
 
     n_tor = sum(1 for v in out.values() if v["torporPS0"] > 0)
     n_conf = sum(1 for v in out.values() if v["confirmed"] and not v["food_from"])

@@ -2494,6 +2494,12 @@ class NewTimerDialog(tk.Toplevel):
             self.lst.selection_clear(0, "end")
             self.lst.selection_set(0)
             self.on_select()
+        else:
+            # 見つからなかったときに前の恐竜が居座らないようにする
+            self.sp = None
+            self.calc = None
+            self.lbl_calc.config(text="その名前の恐竜は見つかりません")
+            self.lbl_start.config(text="")
 
     def on_select(self):
         sel = self.lst.curselection()
@@ -2627,6 +2633,13 @@ class NewTimerDialog(tk.Toplevel):
             self.tm_list.selection_clear(0, "end")
             self.tm_list.selection_set(0)
             self.tame_select()
+        else:
+            # 見つからなかったときに前の恐竜が居座らないようにする
+            self.tm_sp_name = None
+            self.tm_foods = []
+            self.tm_cb["values"] = []
+            self.tm_result.config(text="その名前の恐竜は見つかりません")
+            self.tm_note.config(text="")
 
     def tame_select(self):
         sel = self.tm_list.curselection()
