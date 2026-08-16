@@ -36,7 +36,7 @@ from afk_page import AfkPage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.13.1"
+APP_VERSION = "1.13.2"
 
 
 def _res_dir():
@@ -2164,8 +2164,8 @@ class NewTimerDialog(tk.Toplevel):
         self.title("新しいタイマー")
         self.configure(bg=th.BG)
         # くり返しの欄をひらいても「つくる」が隠れない高さ
-        self.geometry("800x700")
-        self.minsize(700, 560)
+        self.geometry("800x750")
+        self.minsize(700, 620)
         # 本体をしまっているときは、出どころのウィンドウに紐づける
         self.transient(parent if parent is not None else app)
         self.attributes("-topmost", bool(app.cfg["always_on_top"]))
@@ -2810,7 +2810,10 @@ class UpdateDialog(tk.Toplevel):
         self.busy = False
         self.title("更新のかくにん")
         self.configure(bg=th.BG)
-        self.geometry("560x520")
+        # 中身（見出し＋更新内容13行＋ボタン）にぴったり合う大きさ。
+        # 大きすぎるとカードの下に余白が出るし、小さいとボタンが隠れる。
+        self.geometry("560x430")
+        self.minsize(520, 430)
         self.transient(app)
         self.attributes("-topmost", bool(app.cfg["always_on_top"]))
 
@@ -2826,21 +2829,8 @@ class UpdateDialog(tk.Toplevel):
                                   justify="left", wraplength=490)
         self.lbl_state.pack(fill="x", pady=(2, 8))
 
-        box = tk.Frame(b, bg=th.FIELD)
-        box.pack(fill="both", expand=True)
-        self.txt = tk.Text(box, bg=th.FIELD, fg=th.INK, font=self.F["ui"],
-                           relief="flat", bd=0, wrap="word", padx=12, pady=10,
-                           highlightthickness=0)
-        vs = ttk.Scrollbar(box, orient="vertical", command=self.txt.yview,
-                           style="Cute.Vertical.TScrollbar")
-        self.txt.configure(yscrollcommand=vs.set)
-        vs.pack(side="right", fill="y")
-        self.txt.pack(side="left", fill="both", expand=True)
-        self.txt.insert("1.0", "")
-        self.txt.configure(state="disabled")
-
-        self.bar = th.RoundProgress(b, bg=th.CARD, color=th.LAV, height=6)
-
+        # ボタンを先に下へ確保する。あとから置くと、更新内容の欄が場所を
+        # 全部取ってボタンが窓の外へ押し出されてしまう。
         btm = tk.Frame(b, bg=th.CARD)
         btm.pack(side="bottom", fill="x", pady=(10, 0))
         self.btn_go = th.RoundButton(btm, "いますぐ更新", self.do_update,
@@ -2850,6 +2840,21 @@ class UpdateDialog(tk.Toplevel):
                        font=self.F["cute"]).pack(side="right", padx=8)
         th.RoundButton(btm, "ページを開く", self.open_page, kind="ghost", bg=th.CARD,
                        font=self.F["small"]).pack(side="left")
+        self.bar = th.RoundProgress(b, bg=th.CARD, color=th.LAV, height=6)
+
+        box = tk.Frame(b, bg=th.FIELD)
+        box.pack(fill="both", expand=True)
+        # Text の既定は 80x24 で、そのままだと窓より大きい高さを要求してしまう。
+        # 明示的に小さくして、あふれた分はスクロールで見せる。
+        self.txt = tk.Text(box, bg=th.FIELD, fg=th.INK, font=self.F["ui"],
+                           relief="flat", bd=0, wrap="word", padx=12, pady=10,
+                           highlightthickness=0, width=1, height=13)
+        vs = ttk.Scrollbar(box, orient="vertical", command=self.txt.yview,
+                           style="Cute.Vertical.TScrollbar")
+        self.txt.configure(yscrollcommand=vs.set)
+        vs.pack(side="right", fill="y")
+        self.txt.pack(side="left", fill="both", expand=True)
+        self.txt.configure(state="disabled")
 
         # 別スレッドの結果は箱に置くだけにして、本体側が見に行く。
         # Tk のウィジェットをワーカースレッドから触るのは安全ではないため。
@@ -2937,7 +2942,7 @@ class UpdateDialog(tk.Toplevel):
             return
         self.busy = True
         self.btn_go.set_text("更新中…")
-        self.bar.pack(fill="x", pady=(8, 0))
+        self.bar.pack(side="bottom", fill="x", pady=(8, 0))
         threading.Thread(target=self._run, daemon=True).start()
 
     def _run(self):
@@ -2978,12 +2983,20 @@ class SettingsDialog(tk.Toplevel):
         self.F = app.F
         self.title("設定")
         self.configure(bg=th.BG)
-        self.geometry("600x660")
+        self.geometry("620x730")
         self.transient(app)
         self.attributes("-topmost", bool(app.cfg["always_on_top"]))
 
         sw = FlowFrame(self, bg=th.BG, gap_x=8, gap_y=6)
         sw.pack(fill="x", padx=18, pady=(16, 8))
+        # 保存ボタンとエラー欄を先に下へ確保してから、中身を入れる。
+        # 逆にすると、中身が長いタブでボタンが窓の外へ出てしまう。
+        self.err = tk.Label(self, text="", bg=th.BG, fg=th.PINK_DK,
+                            font=self.F["small"], anchor="w", justify="left",
+                            wraplength=540)
+        btm = tk.Frame(self, bg=th.BG)
+        btm.pack(side="bottom", fill="x", padx=18, pady=(0, 14))
+        self.err.pack(side="bottom", fill="x", padx=18)
         self.holder = tk.Frame(self, bg=th.BG)
         self.holder.pack(fill="both", expand=True, padx=12, pady=(0, 8))
 
@@ -2998,12 +3011,6 @@ class SettingsDialog(tk.Toplevel):
         self._build_timer(self.pages["timer"].body)
         self._build_ark(self.pages["ark"].body)
 
-        self.err = tk.Label(self, text="", bg=th.BG, fg=th.PINK_DK,
-                            font=self.F["small"], anchor="w", justify="left",
-                            wraplength=540)
-        self.err.pack(fill="x", padx=18)
-        btm = tk.Frame(self, bg=th.BG)
-        btm.pack(fill="x", padx=18, pady=(0, 14))
         th.RoundButton(btm, "保存する", self.save, kind="primary", bg=th.BG,
                        font=self.F["cute_b"], padx=28).pack(side="right")
         th.RoundButton(btm, "やめる", self.destroy, kind="soft", bg=th.BG,
@@ -3172,7 +3179,7 @@ class SettingsDialog(tk.Toplevel):
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w")
 
     def _add_quick_row(self, label, sec):
-        if len(self.quick_rows) >= 12:
+        if len(self.quick_rows) >= 8:
             return
         F = self.F
         row = tk.Frame(self.quick_rows_box, bg=th.CARD)
