@@ -36,7 +36,7 @@ from afk_page import AfkPage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.12.1"
+APP_VERSION = "1.13.0"
 
 
 def _res_dir():
