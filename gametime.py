@@ -57,7 +57,7 @@ class GameClock:
 
     def __init__(self, sync_real=0.0, sync_game=0, day_real=1500.0,
                  night_real=1500.0, address="", restarts=None,
-                 restart_minutes=3.0, restart_done=0.0):
+                 restart_minutes=3.0, restart_done=0.0, day_boundary=None):
         self.sync_real = float(sync_real)      # 合わせたときの実時刻(epoch)
         self.sync_game = int(sync_game)        # そのときのゲーム内秒
         self.day_real = max(1.0, float(day_real))      # 昼12時間にかかる実秒
@@ -68,6 +68,9 @@ class GameClock:
         self.restarts = list(restarts or [])
         self.restart_minutes = float(restart_minutes or 0)
         self.restart_done = float(restart_done or 0)   # ここまでは補正済み
+        # ARKの「Day N」が変わるゲーム内時刻。最初の1回で学習して、
+        # 以降はそこを基準に自動で合わせ直す。
+        self.day_boundary = day_boundary
 
     @property
     def synced(self):
@@ -204,6 +207,37 @@ class GameClock:
                 g = end % DAY_SECONDS
         return moved
 
+    def on_day_changed(self, prev_at, now=None):
+        """サーバーの「Day N」が変わったときに呼ぶ。
+
+        prev_at は前に変わった時刻(epoch)。2回ぶん揃えば、その間隔が
+        そのまま「ゲーム内1日にかかる実時間」なので、速さを測り直せる。
+        さらに、日の変わり目はいつも同じゲーム内時刻なので、そこへ合わせ直す。
+        戻り値は何をしたかの説明。
+        """
+        now = now if now is not None else time.time()
+        done = []
+        # 1) 前回の変わり目からの実時間 = ゲーム内1日ぶん
+        if prev_at and now - prev_at > 60:
+            full = now - prev_at
+            old = self.full_day_real()
+            if old > 0:
+                ratio = full / old
+                if 0.2 <= ratio <= 5.0:      # 極端な値は無視（落ちていた等）
+                    self.day_real *= ratio
+                    self.night_real *= ratio
+                    done.append("速さを測り直しました（1日 %.1f分）" % (full / 60))
+        # 2) 日の変わり目のゲーム内時刻を覚える／そこへ合わせ直す
+        if self.day_boundary is None:
+            if self.synced:
+                self.day_boundary = self.game_at(now)
+                done.append("日の変わり目を %s と覚えました"
+                            % fmt_game_time(self.day_boundary))
+        else:
+            self.sync(self.day_boundary, now)
+            done.append("%s に合わせ直しました" % fmt_game_time(self.day_boundary))
+        return "／".join(done)
+
     def apply_restarts(self, now=None):
         """過ぎた定期再起動のぶんだけ、時計を止める。止めた回数を返す。"""
         if not self.synced or not self.restarts or self.restart_minutes <= 0:
@@ -228,7 +262,8 @@ class GameClock:
                 "day_real": self.day_real, "night_real": self.night_real,
                 "address": self.address, "restarts": self.restarts,
                 "restart_minutes": self.restart_minutes,
-                "restart_done": self.restart_done}
+                "restart_done": self.restart_done,
+                "day_boundary": self.day_boundary}
 
     @classmethod
     def from_dict(cls, d):
@@ -236,7 +271,8 @@ class GameClock:
         return cls(d.get("sync_real", 0.0), d.get("sync_game", 0),
                    d.get("day_real", 1500.0), d.get("night_real", 1500.0),
                    d.get("address", ""), d.get("restarts"),
-                   d.get("restart_minutes", 3.0), d.get("restart_done", 0.0))
+                   d.get("restart_minutes", 3.0), d.get("restart_done", 0.0),
+                   d.get("day_boundary"))
 
 
 class ClockSet:

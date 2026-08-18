@@ -1,140 +1,118 @@
 # -*- coding: utf-8 -*-
-"""サーバーの死活監視（A2S）。
+"""サーバーの死活監視（EOS）。
 
-他人が建てたサーバーは中を覗けないが、A2S_INFO という標準のUDPクエリなら
-外から「起きているか・何人いるか・どのマップか」が取れる。
-サーバー一覧サイトが見ているのと同じ情報。
+ASA は A2S を喋らないので、Epic に登録されているセッション情報を見る（eos.py）。
+IPとポートを覚えておけば、そのサーバーが今起きているか・何人いるか・
+ARKの「Day N」がいくつかが分かる。
 
-これを使う理由:
-  ARK のゲーム内時間は**サーバーが動いている間しか進まない**。
-  定期再起動やクラッシュで落ちていた分だけ、こちらの時計はズレる。
-  落ちているのを見つけたら、その間だけ時計を止めれば自動で合い続ける。
-
-（問い合わせ部分の作りは game-server-manager の core/a2s.py と同じ）
+分かることの使いみち:
+  * 落ちている間はゲーム内時間も止まるので、その間だけ時計を止める
+  * Day が増えた瞬間 = ゲーム内の日付が変わった瞬間。これを2回つかまえれば
+    「ゲーム内1日 = 実何分か」がそのまま測れるし、時計の合わせ直しにも使える
 """
 from __future__ import annotations
 
-import socket
-import struct
 import threading
 import time
 
-A2S_INFO = b"\xFF\xFF\xFF\xFFTSource Engine Query\x00"
-DEFAULT_TIMEOUT = 3.0
-
-
-class A2SError(Exception):
-    pass
-
-
-def _read_cstr(data, pos):
-    end = data.index(b"\x00", pos)
-    return data[pos:end].decode("utf-8", "replace"), end + 1
-
-
-def info(host, port, timeout=DEFAULT_TIMEOUT):
-    """A2S_INFO を投げてサーバー情報を返す。応答が無ければ A2SError。"""
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(timeout)
-    try:
-        s.sendto(A2S_INFO, (host, port))
-        data, _ = s.recvfrom(4096)
-        if len(data) >= 5 and data[4:5] == b"A":     # チャレンジ要求
-            s.sendto(A2S_INFO + data[5:9], (host, port))
-            data, _ = s.recvfrom(4096)
-    except (socket.timeout, OSError) as exc:
-        raise A2SError("応答がありません（%s:%s）" % (host, port)) from exc
-    finally:
-        s.close()
-
-    if len(data) < 6 or data[4:5] != b"I":
-        raise A2SError("応答の形式が想定と違います")
-    pos = 6                                          # ヘッダ4 + 'I' + protocol
-    out = {}
-    for key in ("name", "map", "folder", "game"):
-        out[key], pos = _read_cstr(data, pos)
-    try:
-        out["app_id"] = struct.unpack_from("<H", data, pos)[0]
-        pos += 2
-        out["players"] = data[pos]
-        out["max_players"] = data[pos + 1]
-        out["bots"] = data[pos + 2]
-    except (struct.error, IndexError):
-        pass                                          # 人数まで読めなくても生死は分かる
-    return out
-
-
-def parse_address(text, default_port=27015):
-    """'1.2.3.4:27015' / 'host 27015' / 'host' を (host, port) に。"""
-    t = (text or "").strip()
-    if not t:
-        return None
-    t = t.replace(",", " ").replace(":", " ")
-    parts = [x for x in t.split() if x]
-    if not parts:
-        return None
-    host = parts[0]
-    port = default_port
-    if len(parts) > 1:
-        try:
-            port = int(parts[1])
-        except ValueError:
-            return None
-    if not 1 <= port <= 65535:
-        return None
-    return host, port
+import eos
 
 
 class Watcher(threading.Thread):
-    """登録されたサーバーを順に叩いて、生死を覚えておくスレッド。
+    """登録されたサーバーを順に見て、状態を覚えておくスレッド。
 
-    get_targets() は [(キー, 'host:port'), ...] を返す関数。
-    生死が変わったとき、落ちている間の秒数を on_hold(キー, 秒) で知らせる。
+    get_targets() は [(キー, "IP:ポート"), ...] を返す関数。
+    生死やDayの変化は on_event(キー, 種類, 値) で知らせる。
+      種類 "hold" … 落ちていた秒数（時計を止める）
+      種類 "day"  … Dayが増えた（値は (前のDay, 新しいDay, 前回増えた時刻)）
     """
 
-    def __init__(self, get_targets, on_hold=None, interval=60.0):
+    def __init__(self, get_targets, on_event=None, interval=60.0):
         super().__init__(daemon=True)
         self.get_targets = get_targets
-        self.on_hold = on_hold
+        self.on_event = on_event
         self.interval = float(interval)
         self._halt = threading.Event()
-        self.state = {}          # キー -> 最後に見た結果
-        self._last_seen = {}     # キー -> 最後に確認した時刻
+        self.client = eos.Client()
+        self.state = {}        # キー -> 最後に見た結果
+        self._last_seen = {}   # キー -> 最後に確認した時刻
+        self._day_at = {}      # キー -> そのDayになった時刻
 
     def stop(self):
         self._halt.set()
 
+    # ---- 1件ぶんの問い合わせ ----
     def check_now(self, key, address):
-        """1件だけその場で確認する（画面の「ためす」用）。"""
-        addr = parse_address(address)
-        if not addr:
-            return {"ok": False, "why": "アドレスの書き方が違います（例 1.2.3.4:27015）"}
-        try:
-            d = info(*addr)
-        except A2SError as e:
-            return {"ok": False, "why": str(e), "online": False, "at": time.time()}
-        except Exception as e:
-            return {"ok": False, "why": "%s: %s" % (e.__class__.__name__, e),
+        ip, port = eos.parse_address(address)
+        if not ip:
+            return {"ok": False, "why": "アドレスの書き方が違います（例 1.2.3.4:7980）",
                     "online": False, "at": time.time()}
-        d.update({"ok": True, "online": True, "at": time.time()})
-        return d
+        try:
+            sessions = self.client.sessions_by_address(ip)
+        except eos.EosError as e:
+            return {"ok": False, "why": str(e)[:90], "online": False,
+                    "at": time.time()}
+        if not sessions:
+            return {"ok": True, "why": "そのIPにサーバーが見つかりません",
+                    "online": False, "at": time.time(), "sessions": []}
+        hit = None
+        if port:
+            hit = next((s for s in sessions if s["port"] == port), None)
+        else:
+            hit = sessions[0]
+        if hit is None:
+            return {"ok": True, "why": "そのポートのサーバーが見つかりません",
+                    "online": False, "at": time.time(), "sessions": sessions}
+        out = dict(hit)
+        out.update({"ok": True, "online": True, "at": time.time(),
+                    "sessions": sessions})
+        return out
 
+    def list_servers(self, address):
+        """そのIPにあるサーバー一覧（マップを選ばせる用）。"""
+        ip, _ = eos.parse_address(address)
+        if not ip:
+            return []
+        try:
+            return self.client.sessions_by_address(ip)
+        except eos.EosError:
+            return []
+
+    # ---- 見張る ----
     def run(self):
         while not self._halt.is_set():
             for key, address in (self.get_targets() or []):
                 if self._halt.is_set():
                     break
-                res = self.check_now(key, address)
-                prev = self.state.get(key)
-                now = res.get("at") or time.time()
-                # 落ちている間は、前回の確認からの時間だけ時計を止める
-                if prev is not None and not res.get("online"):
-                    gap = now - self._last_seen.get(key, now)
-                    if gap > 0 and self.on_hold:
-                        try:
-                            self.on_hold(key, gap)
-                        except Exception:
-                            pass
-                self._last_seen[key] = now
-                self.state[key] = res
-            self._halt.wait(max(10.0, self.interval))
+                self._check_one(key, address)
+            self._halt.wait(max(20.0, self.interval))
+
+    def _check_one(self, key, address):
+        res = self.check_now(key, address)
+        prev = self.state.get(key)
+        now = res.get("at") or time.time()
+
+        # 落ちている間は、前回見たときからの時間だけ時計を止める
+        if prev is not None and not res.get("online") and self.on_event:
+            gap = now - self._last_seen.get(key, now)
+            if gap > 0:
+                self._fire(key, "hold", gap)
+
+        # Day が増えたら知らせる（前に増えた時刻も一緒に）
+        day = res.get("day")
+        if res.get("online") and day is not None:
+            old = (prev or {}).get("day")
+            if old is not None and day != old:
+                self._fire(key, "day", (old, day, self._day_at.get(key)))
+                self._day_at[key] = now
+            elif key not in self._day_at:
+                self._day_at[key] = now
+
+        self._last_seen[key] = now
+        self.state[key] = res
+
+    def _fire(self, key, kind, value):
+        try:
+            self.on_event(key, kind, value)
+        except Exception:
+            pass

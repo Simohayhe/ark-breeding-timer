@@ -178,18 +178,24 @@ class GameTimePage(tk.Frame):
 
         tk.Label(c, text="\nサーバーを見張る（ズレの自動補正）", bg=th.CARD,
                  fg=th.INK, font=F["cute_b"]).pack(anchor="w")
-        tk.Label(c, text="ゲーム内時間はサーバーが動いている間しか進みません。"
-                         "落ちている間は時計を止めるので、再起動をまたいでも合い続けます",
+        tk.Label(c, text="IPを入れて「🔍 マップを探す」を押すと、そのサーバーの"
+                         "マップ一覧が出ます。選ぶと死活を見張って、落ちている間は"
+                         "時計を止めます。ARKの日付が変わるたびに速さも自動で測り直します",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=740,
                  justify="left").pack(anchor="w")
         r4 = tk.Frame(c, bg=th.CARD)
         r4.pack(fill="x", pady=(4, 0))
         self.v_addr = tk.StringVar()
         th.soft_entry(r4, self.v_addr, width=26).pack(side="left", ipady=3)
-        tk.Label(r4, text=" 例 1.2.3.4:27015（クエリポート）", bg=th.CARD,
+        tk.Label(r4, text=" 例 1.2.3.4:7980（ゲームポート）", bg=th.CARD,
                  fg=th.INK_SUB, font=F["small"]).pack(side="left", padx=4)
         th.RoundButton(r4, "▶ ためす", self.test_addr, kind="soft", bg=th.CARD,
                        font=F["small"], padx=12, pady=5).pack(side="left", padx=6)
+        th.RoundButton(r4, "🔍 マップを探す", self.find_servers, kind="accent",
+                       bg=th.CARD, font=F["small"], padx=12,
+                       pady=5).pack(side="left")
+        self.pick_box = tk.Frame(c, bg=th.CARD)
+        self.pick_box.pack(fill="x", pady=(4, 0))
         self.lbl_watch = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
                                   font=F["small"], anchor="w", justify="left",
                                   wraplength=740)
@@ -453,12 +459,47 @@ class GameTimePage(tk.Frame):
         r = self.app.watcher.check_now(self.app.clocks.current, addr)
         if r.get("online"):
             self.lbl_watch.config(
-                text="✅ 起きています — %s ／ マップ %s ／ %s人"
-                     % (r.get("name", "?")[:40], r.get("map", "?"),
-                        r.get("players", "?")), fg=th.MINT)
+                text="✅ 起きています — %s ／ %s ／ %s/%s人 ／ Day %s"
+                     % (r.get("name", "?")[:38], r.get("map", "?"),
+                        r.get("players", "?"), r.get("max_players", "?"),
+                        r.get("day", "?")), fg=th.MINT)
         else:
             self.lbl_watch.config(text="⚠ %s" % r.get("why", "つながりません"),
                                   fg=th.PINK_DK)
+
+    def find_servers(self):
+        """IPからマップ一覧を引いて、押すとそのポートを入れる。"""
+        addr = self.v_addr.get().strip()
+        if not addr:
+            self.lbl_watch.config(text="⚠ さきにIPを入れてください", fg=th.PINK_DK)
+            return
+        self.lbl_watch.config(text="探しています…", fg=th.INK_SUB)
+        self.update_idletasks()
+        found = self.app.watcher.list_servers(addr)
+        for w in self.pick_box.winfo_children():
+            w.destroy()
+        if not found:
+            self.lbl_watch.config(text="⚠ そのIPにサーバーが見つかりません",
+                                  fg=th.PINK_DK)
+            return
+        ip = addr.replace(":", " ").split()[0]
+        self.lbl_watch.config(text="✅ %d個 見つかりました。使うマップを押してください"
+                                   % len(found), fg=th.MINT)
+        for srv in sorted(found, key=lambda x: x.get("port") or 0):
+            label = "%s  %s/%s人" % (srv["map"].replace("_WP", ""),
+                                     srv["players"], srv["max_players"])
+            th.Chip(self.pick_box, label,
+                    lambda s=srv, i=ip: self.pick_server(i, s),
+                    bg=th.CARD, font=self.app.F["small"]).pack(side="left",
+                                                               padx=2, pady=2)
+
+    def pick_server(self, ip, srv):
+        self.v_addr.set("%s:%s" % (ip, srv["port"]))
+        self.save_fields()
+        self.lbl_watch.config(text="✅ %s を見張ります（%s）"
+                                   % (srv["map"], srv["name"][:36]), fg=th.MINT)
+        for w in self.pick_box.winfo_children():
+            w.destroy()
 
     # ---------------- 表示 ----------------
     def update_view(self, now=None):
@@ -502,8 +543,16 @@ class GameTimePage(tk.Frame):
             self.lbl_restart.config(text="（未設定）", fg=th.INK_SUB)
         self.lbl_total.config(text="1日 %.1f分" % (c.full_day_real() / 60))
         st = self.app.watcher.state.get(cs.current)
-        if st is not None and not self.lbl_watch.cget("text").startswith(("⚠", "問")):
-            self.lbl_watch.config(
-                text=("✅ 見張っています（%s人）" % st.get("players", "?"))
-                if st.get("online") else "⚠ いま落ちています（時計を止めています）",
-                fg=th.MINT if st.get("online") else th.PINK_DK)
+        msg = self.app.watch_msg.get(cs.current)
+        head = self.lbl_watch.cget("text")
+        if st is not None and not head.startswith(("⚠", "問", "探", "✅ %d" % 0)):
+            if st.get("online"):
+                txt = "✅ 見張り中 — %s/%s人 ／ Day %s" % (
+                    st.get("players", "?"), st.get("max_players", "?"),
+                    st.get("day", "?"))
+                if msg:
+                    txt += " ／ " + msg
+                self.lbl_watch.config(text=txt, fg=th.MINT)
+            else:
+                self.lbl_watch.config(text="⚠ いま落ちています（時計を止めています）",
+                                      fg=th.PINK_DK)

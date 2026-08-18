@@ -39,7 +39,7 @@ from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.16.1"
+APP_VERSION = "1.17.0"
 
 
 def _res_dir():
@@ -1104,8 +1104,9 @@ class App(tk.Tk):
         self.clocks = gametime.ClockSet.migrate(self.cfg.get("game_clock"),
                                                 self.cfg.get("game_clocks"))
         self.watcher = serverwatch.Watcher(
-            self._watch_targets, self._watch_hold,
+            self._watch_targets, self._watch_event,
             self.cfg.get("watch_interval", 60))
+        self.watch_msg = {}
         self.watcher.start()
         # チェックリストは本体とミニ表示で同じものを見せるので App が持つ
         self.checklist_items = load_checklist()
@@ -1659,11 +1660,19 @@ class App(tk.Tk):
                 out.append((name, c.address))
         return out
 
-    def _watch_hold(self, name, seconds):
-        """落ちていた分だけ、そのマップの時計を止める。"""
+    def _watch_event(self, name, kind, value):
+        """見張りスレッドからの知らせ。Tkは触らず、時計だけ動かす。"""
         c = self.clocks.clocks.get(name)
-        if c is not None:
-            c.hold(seconds)
+        if c is None:
+            return
+        if kind == "hold":
+            # 落ちている間はゲーム内時間も進まないので、その分だけ止める
+            c.hold(value)
+        elif kind == "day":
+            _old, _new, prev_at = value
+            msg = c.on_day_changed(prev_at)
+            if msg:
+                self.watch_msg[name] = msg
 
     def save_clocks(self):
         self.cfg["game_clocks"] = self.clocks.to_dict()
