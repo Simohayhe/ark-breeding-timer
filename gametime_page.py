@@ -79,10 +79,28 @@ class GameTimePage(tk.Frame):
         th.RoundButton(r1, "☀ 朝を知らせる", lambda: self.make_timer("day"),
                        kind="soft", bg=th.CARD, font=F["small"], padx=12,
                        pady=6).pack(side="left", padx=6)
+        r2 = tk.Frame(c, bg=th.CARD)
+        r2.pack(fill="x", pady=(4, 0))
+        tk.Label(r2, text="ゲーム内", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+        self.v_at = tk.StringVar(value="20:00")
+        at = th.soft_entry(r2, self.v_at, width=8,
+                           font=("Segoe UI Semibold", 15))
+        at.pack(side="left", padx=4, ipady=2)
+        at.bind("<Return>", lambda ev: self.make_at_timer())
+        tk.Label(r2, text="になったら", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+        th.RoundButton(r2, "⏰ 知らせる", self.make_at_timer, kind="mint",
+                       bg=th.CARD, font=F["small"], padx=12,
+                       pady=5).pack(side="left", padx=8)
+        for q in ("18:00", "20:00", "22:00", "00:00", "04:00"):
+            th.Chip(r2, q, lambda v=q: self.v_at.set(v), bg=th.CARD,
+                    font=F["small"]).pack(side="left", padx=2)
+
         self.lbl_msg = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
                                 font=F["small"], anchor="w", justify="left",
                                 wraplength=740)
-        self.lbl_msg.pack(fill="x")
+        self.lbl_msg.pack(fill="x", pady=(4, 0))
 
         sp = tk.Frame(c, bg=th.CARD)
         sp.pack(fill="x", pady=(10, 0))
@@ -248,6 +266,27 @@ class GameTimePage(tk.Frame):
         note = "ゲーム内 %s になったら" % G.fmt_game_time(
             G.NIGHT_START if which == "night" else G.DAY_START)
         self.app.add_game_time_timer(label, left, note)
+        self.lbl_msg.config(text="⏰ タイマーを作りました（%s後）" % _hms(left),
+                            fg=th.MINT)
+
+    def make_at_timer(self):
+        """好きなゲーム内時刻になったら知らせるタイマーを作る。"""
+        c = self.app.clocks.get()
+        if c is None or not c.synced:
+            self.lbl_msg.config(text="⚠ さきに時刻を合わせてください", fg=th.PINK_DK)
+            return
+        target = G.parse_game_time(self.v_at.get())
+        if target is None:
+            self.lbl_msg.config(text="⚠ 20:00 のように入れてください", fg=th.PINK_DK)
+            return
+        left = c.real_until(target)
+        if not left or left <= 0:
+            self.lbl_msg.config(text="⚠ その時刻は計算できませんでした", fg=th.PINK_DK)
+            return
+        name = self.app.clocks.current
+        self.app.add_game_time_timer(
+            "🕐 %s %s" % (name, G.fmt_game_time(target)), left,
+            "ゲーム内 %s になったら" % G.fmt_game_time(target))
         self.lbl_msg.config(text="⏰ タイマーを作りました（%s後）" % _hms(left),
                             fg=th.MINT)
 
