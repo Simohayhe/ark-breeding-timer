@@ -187,6 +187,8 @@ class GameClock:
         self.measuring = True
         self.measure_since = float(now if now is not None else time.time())
         return True, "測りはじめました（日の変わり目を2回待ちます）"
+
+    def drift_at(self, game_sec, real_now=None):
         """入れ直した時刻と、時計が思っていた時刻の差（秒）。
 
         プラスなら時計が進みすぎ、マイナスなら遅れている。合わせる前に呼ぶこと。

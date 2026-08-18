@@ -603,15 +603,15 @@ class GameTimePage(tk.Frame):
         try:
             sec = float(self.v_ival.get().strip())
         except ValueError:
-            self.lbl_ival.config(text="⚠ 数字を入れてください", fg=th.PINK_DK)
+            self.lbl_ival.config(text="  ⚠ 数字を入れてください", fg=th.PINK_DK)
             return
         if sec < 20:
-            self.lbl_ival.config(text="⚠ 20秒以上にしてください", fg=th.PINK_DK)
+            self.lbl_ival.config(text="  ⚠ 20秒以上にしてください", fg=th.PINK_DK)
             return
         self.app.cfg["watch_interval"] = sec
         self.app.watcher.interval = sec
         self.app.save_cfg()
-        self.lbl_ival.config(text="✅ %g秒ごとにしました" % sec, fg=th.MINT)
+        self.lbl_ival.config(text="  ✅ %g秒ごとにしました" % sec, fg=th.MINT)
 
     def toggle_maps(self, show=None):
         self.maps_open = (not self.maps_open) if show is None else bool(show)
@@ -651,13 +651,13 @@ class GameTimePage(tk.Frame):
         """
         text = self.v_bulk.get().strip()
         if not text:
-            self.lbl_bulk.config(text="⚠ IPを入れてください", fg=th.PINK_DK)
+            self.lbl_bulk.config(text="  ⚠ IPを入れてください", fg=th.PINK_DK)
             return
         self.lbl_bulk.config(text="  探しています…", fg=th.INK_SUB)
         self.update_idletasks()
         found = self.app.watcher.list_servers(text)
         if not found:
-            self.lbl_bulk.config(text="⚠ そのIPにサーバーが見つかりません",
+            self.lbl_bulk.config(text="  ⚠ そのIPにサーバーが見つかりません",
                                  fg=th.PINK_DK)
             return
         ip = text.replace(":", " ").split()[0]
