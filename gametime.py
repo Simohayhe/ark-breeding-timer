@@ -74,7 +74,7 @@ class GameClock:
     def __init__(self, sync_real=0.0, sync_game=0, day_real=DEFAULT_DAY_REAL,
                  night_real=DEFAULT_NIGHT_REAL, address="", restarts=None,
                  restart_minutes=3.0, restart_done=0.0, day_boundary=None,
-                 total_measured=False):
+                 total_measured=False, measuring=False, measure_since=0.0):
         self.sync_real = float(sync_real)      # 合わせたときの実時刻(epoch)
         self.sync_game = int(sync_game)        # そのときのゲーム内秒
         self.day_real = max(1.0, float(day_real))      # 昼ぜんぶにかかる実秒
@@ -91,6 +91,9 @@ class GameClock:
         # Dayの変化から1日の合計を測れたか。測れていれば、合わせ直しのときに
         # 合計はいじらず「昼と夜の配分」だけを解く。
         self.total_measured = bool(total_measured)
+        # 「1日の長さを測る」を押した状態。日の変わり目を2回つかまえたら降ろす
+        self.measuring = bool(measuring)
+        self.measure_since = float(measure_since or 0)
 
     @property
     def synced(self):
@@ -172,7 +175,18 @@ class GameClock:
         # 合わせ直した時点より前の再起動を後から引かないようにする
         self.restart_done = self.sync_real
 
-    def drift_at(self, game_sec, real_now=None):
+    def start_measure(self, now=None):
+        """1日の長さの自動計測をはじめる。
+
+        中身は「日の変わり目を2回つかまえる」だけなので、押したあとは
+        ほうっておけばいい（画面を開いておく必要も、この時計を選んでおく
+        必要もない）。アプリが動いてさえいれば見張りが進める。
+        """
+        if not self.address:
+            return False, "さきにサーバーのアドレスを入れてください"
+        self.measuring = True
+        self.measure_since = float(now if now is not None else time.time())
+        return True, "測りはじめました（日の変わり目を2回待ちます）"
         """入れ直した時刻と、時計が思っていた時刻の差（秒）。
 
         プラスなら時計が進みすぎ、マイナスなら遅れている。合わせる前に呼ぶこと。
@@ -323,6 +337,7 @@ class GameClock:
                 self.day_real *= ratio
                 self.night_real *= ratio
                 self.total_measured = True
+                self.measuring = False       # 測り終わり
                 done.append("速さを測り直しました（1日 %.1f分）" % (full / 60))
         # 2) 日の変わり目のゲーム内時刻を覚える／そこへ合わせ直す
         if self.day_boundary is None:
@@ -453,6 +468,8 @@ class GameClock:
                 "restart_done": self.restart_done,
                 "day_boundary": self.day_boundary,
                 "total_measured": self.total_measured,
+                "measuring": self.measuring,
+                "measure_since": self.measure_since,
                 "model": 2}
 
     @classmethod
@@ -471,7 +488,8 @@ class GameClock:
                    day, night,
                    d.get("address", ""), d.get("restarts"),
                    d.get("restart_minutes", 3.0), d.get("restart_done", 0.0),
-                   d.get("day_boundary"), d.get("total_measured", False))
+                   d.get("day_boundary"), d.get("total_measured", False),
+                   d.get("measuring", False), d.get("measure_since", 0.0))
 
 
 class ClockSet:

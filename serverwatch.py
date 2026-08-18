@@ -68,6 +68,13 @@ class Watcher(threading.Thread):
                     "sessions": sessions})
         return out
 
+    def day_at(self, key):
+        """そのマップで前に Day が変わった時刻。まだ見ていなければ None。
+
+        「あと何分で測り終わるか」を出すのに使う。
+        """
+        return self._day_at.get(key)
+
     def list_servers(self, address):
         """そのIPにあるサーバー一覧（マップを選ばせる用）。"""
         ip, _ = eos.parse_address(address)

@@ -10,6 +10,7 @@ ARK は「今の時刻を返す」RCONコマンドを持っていないので、
 """
 from __future__ import annotations
 
+import time
 import tkinter as tk
 from tkinter import ttk
 
@@ -62,6 +63,7 @@ class GameTimePage(tk.Frame):
         super().__init__(master, bg=th.BG)
         self.app = app
         self._loading = False
+        self._total_msg_until = 0.0   # ①の一言をいつまで出しておくか
         self.meter = None
         self.meter_phase = None
         F = app.F
@@ -206,13 +208,39 @@ class GameTimePage(tk.Frame):
                  font=F["cute"]).pack(side="left")
         th.RoundButton(s1, "決定", self.apply_total, kind="soft", bg=th.CARD,
                        font=F["small"], padx=12, pady=5).pack(side="left", padx=8)
-        self.lbl_total = tk.Label(s1, text="", bg=th.CARD, fg=th.INK_SUB,
-                                  font=F["small"])
-        self.lbl_total.pack(side="left")
+        th.RoundButton(s1, "⏱ 自動で測る", self.measure_one, kind="mint",
+                       bg=th.CARD, font=F["small"], padx=12,
+                       pady=5).pack(side="left")
+        th.RoundButton(s1, "⏱ まとめて測る", self.toggle_bulk_measure,
+                       kind="accent", bg=th.CARD, font=F["small"], padx=12,
+                       pady=5).pack(side="left", padx=6)
+        self.lbl_total = tk.Label(cs_, text="", bg=th.CARD, fg=th.INK_SUB,
+                                  font=F["small"], anchor="w", justify="left",
+                                  wraplength=740)
+        self.lbl_total.pack(fill="x", pady=(2, 0))
+
+        # 「まとめて測る」で開く、どのマップを測るかの選び場
+        self.bulk_open = False
+        self.bulk_box = tk.Frame(cs_, bg=th.CARD)
+        self.bulk_rows = tk.Frame(self.bulk_box, bg=th.CARD)
+        self.bulk_rows.pack(fill="x")
+        self.bulk_vars = {}
+        bb = tk.Frame(self.bulk_box, bg=th.CARD)
+        bb.pack(fill="x", pady=(4, 0))
+        th.RoundButton(bb, "▶ 選んだマップを測る", self.measure_selected,
+                       kind="primary", bg=th.CARD, font=F["small"], padx=14,
+                       pady=6).pack(side="left")
+        th.RoundButton(bb, "全部えらぶ", lambda: self._bulk_all(True),
+                       kind="soft", bg=th.CARD, font=F["small"], padx=12,
+                       pady=5).pack(side="left", padx=6)
+        th.RoundButton(bb, "ぜんぶ外す", lambda: self._bulk_all(False),
+                       kind="ghost", bg=th.CARD, font=F["small"], padx=12,
+                       pady=5).pack(side="left")
 
         # ② 昼か夜を実測
         mt = tk.Frame(cs_, bg=th.CARD)
         mt.pack(fill="x", pady=(8, 0))
+        self._bulk_anchor = mt      # まとめて測る欄はこの手前に出す
         tk.Label(mt, text="② 測るのは", bg=th.CARD, fg=th.INK,
                  font=F["cute_b"]).pack(side="left")
         self.v_phase = tk.StringVar(value="auto")
@@ -452,44 +480,138 @@ class GameTimePage(tk.Frame):
         lbl.pack(side="left", padx=10)
         return {"btn": pick, "label": lbl}
 
+    def _say_total(self, text, fg, secs=12):
+        """①の脇に一言。しばらくしたら進み具合の表示に戻る。"""
+        self.lbl_total.config(text=text, fg=fg)
+        self._total_msg_until = time.time() + secs
+
+    # ---------------- 1日の長さの自動計測 ----------------
+    def measure_one(self):
+        """いま選んでいるマップだけ測りはじめる。"""
+        name = self.app.clocks.current
+        c = self.app.clocks.get()
+        if c is None:
+            self._say_total("⚠ さきにマップを追加してください", th.PINK_DK)
+            return
+        ok, why = c.start_measure()
+        self.app.save_clocks()
+        self.update_view()
+        self._say_total(("⏱ %s を%s" % (name, why)) if ok else "⚠ " + why,
+                        th.MINT if ok else th.PINK_DK)
+
+    def toggle_bulk_measure(self):
+        """どのマップを測るかの選び場を開け閉めする。"""
+        self.bulk_open = not self.bulk_open
+        if not self.bulk_open:
+            self.bulk_box.pack_forget()
+            self.bulk_vars = {}      # 閉じたら選択は残さない
+            return
+        for w in self.bulk_rows.winfo_children():
+            w.destroy()
+        self.bulk_vars = {}
+        F = self.app.F
+        cs = self.app.clocks
+        ready = [n for n in cs.order
+                 if (cs.clocks.get(n) is not None and cs.clocks[n].address)]
+        if not ready:
+            tk.Label(self.bulk_rows, text="アドレスの入ったマップがありません。"
+                                          "IPからマップを登録してください",
+                     bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w")
+        row = None
+        for i, n in enumerate(ready):
+            if i % 3 == 0:
+                row = tk.Frame(self.bulk_rows, bg=th.CARD)
+                row.pack(fill="x")
+            c = cs.clocks[n]
+            # まだ測れていないマップを最初から選んでおく
+            v = tk.BooleanVar(value=not c.total_measured)
+            self.bulk_vars[n] = v
+            mark = "" if not c.total_measured else "（測定済 %.0f分）" % (
+                c.full_day_real() / 60)
+            if c.measuring:
+                mark = "（測定中）"
+            tk.Checkbutton(row, text=n + mark, variable=v, bg=th.CARD,
+                           fg=th.INK, activebackground=th.CARD,
+                           activeforeground=th.INK, selectcolor=th.FIELD,
+                           font=F["small"], bd=0, highlightthickness=0,
+                           anchor="w", width=26).pack(side="left")
+        self.bulk_box.pack(fill="x", pady=(4, 0), before=self._bulk_anchor)
+
+    def _bulk_all(self, on):
+        for v in self.bulk_vars.values():
+            v.set(bool(on))
+
+    def measure_selected(self):
+        """選んだマップをまとめて測りはじめる。"""
+        picked = [n for n, v in self.bulk_vars.items() if v.get()]
+        if not picked:
+            self._say_total("⚠ 測るマップを選んでください", th.PINK_DK)
+            return
+        started, skipped = [], []
+        for n in picked:
+            c = self.app.clocks.clocks.get(n)
+            if c is None:
+                continue
+            ok, _why = c.start_measure()
+            (started if ok else skipped).append(n)
+        self.app.save_clocks()
+        self.toggle_bulk_measure()
+        self.update_view()
+        msg = "⏱ %d個のマップを測りはじめました（%s）" % (len(started),
+                                                       "、".join(started[:6]))
+        if len(started) > 6:
+            msg += " ほか"
+        if skipped:
+            msg += "／%d個はアドレスが無いので飛ばしました" % len(skipped)
+        self._say_total(msg, th.MINT if started else th.PINK_DK)
+
+    def measure_text(self, name, c):
+        """測定中の進み具合。測っていなければ None。"""
+        if not c.measuring:
+            return None
+        at = self.app.watcher.day_at(name)
+        if not at:
+            return "最初の日の変わり目を待っています"
+        left = c.full_day_real() - (time.time() - at)
+        if left <= 0:
+            return "まもなく結果が出ます"
+        return "あと約%d分" % max(1, int(round(left / 60)))
+
     def apply_total(self):
         """1日の長さを入れ直す。昼と夜の比は保ったまま伸び縮みさせる。"""
         c = self.app.clocks.get()
         if c is None:
-            self.lbl_total.config(text="  ⚠ さきにマップを追加してください",
-                                  fg=th.PINK_DK)
+            self._say_total("⚠ さきにマップを追加してください", th.PINK_DK)
             return
         try:
             mins = float(self.v_total.get().strip())
         except ValueError:
-            self.lbl_total.config(text="  ⚠ 数字を入れてください", fg=th.PINK_DK)
+            self._say_total("⚠ 数字を入れてください", th.PINK_DK)
             return
         if not 1 <= mins <= 24 * 60:
-            self.lbl_total.config(text="  ⚠ 1〜1440分で入れてください",
-                                  fg=th.PINK_DK)
+            self._say_total("⚠ 1〜1440分で入れてください", th.PINK_DK)
             return
         c.set_total(mins * 60)
         c.total_measured = True
         self.app.save_clocks()
         self._load_fields()
         self.update_view()
-        self.lbl_total.config(text="  ✅ 1日を %.1f分にしました。②へどうぞ" % mins,
-                              fg=th.MINT)
+        self._say_total("✅ 1日を %.1f分にしました。②へどうぞ" % mins, th.MINT)
 
     def save_interval(self):
         """見張りの間隔を変える。見張りスレッドは次の周回から新しい値で動く。"""
         try:
             sec = float(self.v_ival.get().strip())
         except ValueError:
-            self.lbl_ival.config(text="  ⚠ 数字を入れてください", fg=th.PINK_DK)
+            self.lbl_ival.config(text="⚠ 数字を入れてください", fg=th.PINK_DK)
             return
         if sec < 20:
-            self.lbl_ival.config(text="  ⚠ 20秒以上にしてください", fg=th.PINK_DK)
+            self.lbl_ival.config(text="⚠ 20秒以上にしてください", fg=th.PINK_DK)
             return
         self.app.cfg["watch_interval"] = sec
         self.app.watcher.interval = sec
         self.app.save_cfg()
-        self.lbl_ival.config(text="  ✅ %g秒ごとにしました" % sec, fg=th.MINT)
+        self.lbl_ival.config(text="✅ %g秒ごとにしました" % sec, fg=th.MINT)
 
     def toggle_maps(self, show=None):
         self.maps_open = (not self.maps_open) if show is None else bool(show)
@@ -529,13 +651,13 @@ class GameTimePage(tk.Frame):
         """
         text = self.v_bulk.get().strip()
         if not text:
-            self.lbl_bulk.config(text="  ⚠ IPを入れてください", fg=th.PINK_DK)
+            self.lbl_bulk.config(text="⚠ IPを入れてください", fg=th.PINK_DK)
             return
         self.lbl_bulk.config(text="  探しています…", fg=th.INK_SUB)
         self.update_idletasks()
         found = self.app.watcher.list_servers(text)
         if not found:
-            self.lbl_bulk.config(text="  ⚠ そのIPにサーバーが見つかりません",
+            self.lbl_bulk.config(text="⚠ そのIPにサーバーが見つかりません",
                                  fg=th.PINK_DK)
             return
         ip = text.replace(":", " ").split()[0]
@@ -553,7 +675,7 @@ class GameTimePage(tk.Frame):
         self.v_bulk.set("")
         self.rebuild()
         self.toggle_maps(True)
-        msg = "  ✅ %d個を登録しました" % added
+        msg = "✅ %d個を登録しました" % added
         if skipped:
             msg += "（%d個は登録済み）" % skipped
         self.lbl_bulk.config(text=msg, fg=th.MINT)
@@ -758,6 +880,9 @@ class GameTimePage(tk.Frame):
             st = self.app.watcher.state.get(name)
             if st is not None:
                 mark = "  ✅" if st.get("online") else "  ⚠ 落ちています"
+            prog = self.measure_text(name, c)
+            if prog:
+                mark += "  ⏱" + prog
             row["label"].config(
                 text="%s %s ／ %s まで %s%s" % (
                     "🌙" if night else "☀", G.fmt_game_time(g),
@@ -782,12 +907,16 @@ class GameTimePage(tk.Frame):
                      % ("・".join(c.restarts), c.restart_minutes), fg=th.MINT)
         else:
             self.lbl_restart.config(text="（未設定）", fg=th.INK_SUB)
-        if not self.lbl_total.cget("text").startswith(("  ✅", "  ⚠")):
-            self.lbl_total.config(
-                text=("  ✅ Dayの変わり目から測れています"
-                      if c.total_measured
-                      else "  ⏳ まだ測れていません（次の変わり目で自動で測ります）"),
-                fg=th.MINT if c.total_measured else th.INK_SUB)
+        if time.time() >= self._total_msg_until:
+            prog = self.measure_text(cs.current, c)
+            if prog:
+                txt, col = "⏱ 測定中 — " + prog, th.MINT
+            elif c.total_measured:
+                txt, col = "✅ 1日の長さは測れています", th.MINT
+            else:
+                txt, col = ("⏳ まだ測れていません。「⏱ 自動で測る」を押すと、"
+                            "日の変わり目を2回つかまえて勝手に測ります"), th.INK_SUB
+            self.lbl_total.config(text=txt, fg=col)
         st = self.app.watcher.state.get(cs.current)
         msg = self.app.watch_msg.get(cs.current)
         head = self.lbl_watch.cget("text")
