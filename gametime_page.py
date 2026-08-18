@@ -211,6 +211,9 @@ class GameTimePage(tk.Frame):
         th.RoundButton(r4, "🔍 マップを探す", self.find_servers, kind="accent",
                        bg=th.CARD, font=F["small"], padx=12,
                        pady=5).pack(side="left")
+        th.RoundButton(r4, "↺ 学習をやり直す", self.forget_learned, kind="ghost",
+                       bg=th.CARD, font=F["small"], padx=10,
+                       pady=5).pack(side="left", padx=6)
         self.pick_box = tk.Frame(c, bg=th.CARD)
         self.pick_box.pack(fill="x", pady=(4, 0))
         self.lbl_watch = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
@@ -495,6 +498,19 @@ class GameTimePage(tk.Frame):
         else:
             self.lbl_watch.config(text="⚠ %s" % r.get("why", "つながりません"),
                                   fg=th.PINK_DK)
+
+    def forget_learned(self):
+        """測り直しからやり直す（変な値を掴んだときの逃げ道）。"""
+        c = self.app.clocks.get()
+        if c is None:
+            return
+        c.forget_learned()
+        self.app.watch_msg.pop(self.app.clocks.current, None)
+        self.app.save_clocks()
+        self._load_fields()
+        self.lbl_watch.config(text="↺ 覚えた速さと変わり目を捨てました。"
+                                   "Dayが2回変わると測り直します", fg=th.INK_SUB)
+        self.update_view()
 
     def find_servers(self):
         """IPからマップ一覧を引いて、押すとそのポートを入れる。"""

@@ -103,9 +103,9 @@ class Watcher(threading.Thread):
         if res.get("online") and day is not None:
             old = (prev or {}).get("day")
             if old is not None and day != old:
+                # 起点は「前に Day が変わった時刻」だけ。見張りを始めた時刻を
+                # 起点にすると、1日ぶんに満たない時間を1日と誤って測ってしまう。
                 self._fire(key, "day", (old, day, self._day_at.get(key)))
-                self._day_at[key] = now
-            elif key not in self._day_at:
                 self._day_at[key] = now
 
         self._last_seen[key] = now

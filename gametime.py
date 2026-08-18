@@ -220,21 +220,26 @@ class GameClock:
         戻り値は何をしたかの説明。
         """
         now = now if now is not None else time.time()
+        if not prev_at:
+            # 1回目は起点が無い。「見張りを始めてから」の時間は1日ではないので
+            # 何も測らない。次の変化から本物の1日ぶんが測れる。
+            return "日付が変わりました（次の変わり目で速さを測ります）"
         done = []
         # 1) 前回の変わり目からの実時間 = ゲーム内1日ぶん
-        if prev_at and now - prev_at > 60:
-            full = now - prev_at
-            old = self.full_day_real()
-            if old > 0:
-                ratio = full / old
-                if 0.2 <= ratio <= 5.0:      # 極端な値は無視（落ちていた等）
-                    self.day_real *= ratio
-                    self.night_real *= ratio
-                    self.total_measured = True
-                    done.append("速さを測り直しました（1日 %.1f分）" % (full / 60))
+        full = now - prev_at
+        if full >= 300:                      # 5分未満は短すぎる（取りこぼし等）
+            before = self.full_day_real()
+            if before > 0 and 0.2 <= full / before <= 5.0:
+                ratio = full / before
+                self.day_real *= ratio
+                self.night_real *= ratio
+                self.total_measured = True
+                done.append("速さを測り直しました（1日 %.1f分）" % (full / 60))
         # 2) 日の変わり目のゲーム内時刻を覚える／そこへ合わせ直す
         if self.day_boundary is None:
-            if self.synced:
+            # 合わせ直したのが前の変わり目より後（＝ズレが小さい）ときだけ覚える。
+            # 速さが分かっていない状態で覚えると、まるで違う時刻を掴んでしまう。
+            if self.synced and self.total_measured and self.sync_real >= prev_at:
                 self.day_boundary = self.game_at(now)
                 done.append("日の変わり目を %s と覚えました"
                             % fmt_game_time(self.day_boundary))
@@ -242,6 +247,13 @@ class GameClock:
             self.sync(self.day_boundary, now)
             done.append("%s に合わせ直しました" % fmt_game_time(self.day_boundary))
         return "／".join(done)
+
+    def forget_learned(self):
+        """覚えた速さと変わり目を捨てて、測り直しからやり直す。"""
+        self.day_boundary = None
+        self.total_measured = False
+        self.day_real = 1500.0
+        self.night_real = 1500.0
 
     def solve_split(self, prev_game, prev_real, new_game, new_real):
         """2回の同期から、昼と夜の配分を割り出す。
