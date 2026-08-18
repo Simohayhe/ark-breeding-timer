@@ -27,16 +27,19 @@ from tkinter import ttk, messagebox, filedialog
 from tkinter import font as tkfont
 
 import afk
+import gametime
 import macro
 import sounds as snd
+import serverwatch
 import taming
 import theme as th
 import updater
 from afk_page import AfkPage
+from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.13.2"
+APP_VERSION = "1.14.0"
 
 
 def _res_dir():
@@ -116,6 +119,10 @@ DEFAULT_CONFIG = {
     "macro_hotkey_on": True,
     "macro_hotkey_mods": macro.MOD_CONTROL,
     "macro_hotkey_vk": 0x52,           # R
+    # ゲーム内時計（マップごとに、合わせた時刻・進む速さ・見張るサーバー）
+    "game_clock": {},        # 昔の1つだけの形（引き継ぎ用）
+    "game_clocks": {},
+    "watch_interval": 60,    # 死活を見に行く間隔（秒）
     # 画面
     "always_on_top": True,
     "geometry": "980x700",
@@ -1094,6 +1101,12 @@ class App(tk.Tk):
         self._hotkey_err = ""
         # 起動前に終わっていたタイマーを開いた瞬間に消さないための基準時刻
         self.start_ts = time.time()
+        self.clocks = gametime.ClockSet.migrate(self.cfg.get("game_clock"),
+                                                self.cfg.get("game_clocks"))
+        self.watcher = serverwatch.Watcher(
+            self._watch_targets, self._watch_hold,
+            self.cfg.get("watch_interval", 60))
+        self.watcher.start()
         # チェックリストは本体とミニ表示で同じものを見せるので App が持つ
         self.checklist_items = load_checklist()
         self.checklist_pages = []
@@ -1162,7 +1175,8 @@ class App(tk.Tk):
         for key, label in (("timers", "⏰ タイマー"),
                            ("checklist", "🗒 チェックリスト"),
                            ("afk", "🎮 AFK防止"),
-                           ("macro", "🖱 マクロ")):
+                           ("macro", "🖱 マクロ"),
+                           ("gametime", "🌙 ゲーム内時計")):
             self.tabs[key] = tabs.add(
                 Pill(tabs, label, lambda k=key: self.show_page(k), bg=th.BG,
                      font=F["cute"]))
@@ -1207,6 +1221,9 @@ class App(tk.Tk):
 
         # ---------------- マクロのページ ----------------
         self.page_macro = MacroPage(self, self)
+
+        # ---------------- ゲーム内時計のページ ----------------
+        self.page_gametime = GameTimePage(self, self)
         self.apply_hotkey()
 
         self.show_page(self.cfg.get("page") or "timers")
@@ -1259,7 +1276,7 @@ class App(tk.Tk):
 
     def show_page(self, name):
         """⏰タイマー / 🗒チェックリスト / 🎮AFK防止 / 🖱マクロ の切り替え。"""
-        if name not in ("timers", "checklist", "afk", "macro"):
+        if name not in ("timers", "checklist", "afk", "macro", "gametime"):
             name = "timers"
         self.page = name
         for key, pill in self.tabs.items():
@@ -1268,19 +1285,23 @@ class App(tk.Tk):
         self.page_check.pack_forget()
         self.page_afk.pack_forget()
         self.page_macro.pack_forget()
+        self.page_gametime.pack_forget()
         if name == "checklist":
             self.page_check.pack(fill="both", expand=True, padx=18, pady=(0, 12))
         elif name == "afk":
             self.page_afk.pack(fill="both", expand=True, padx=12, pady=(0, 12))
         elif name == "macro":
             self.page_macro.pack(fill="both", expand=True, padx=12, pady=(0, 12))
+        elif name == "gametime":
+            self.page_gametime.pack(fill="both", expand=True, padx=12,
+                                    pady=(0, 12))
         else:
             self.page_timer.pack(fill="both", expand=True)
         self.cfg["page"] = name
 
     def _on_wheel(self, e):
         page = getattr(self, "page", "timers")
-        if page in ("afk", "macro"):
+        if page in ("afk", "macro", "gametime"):
             return   # スクロールする一覧が無いページ
         cv = self.page_check.canvas if page == "checklist" else self.canvas
         try:
@@ -1444,6 +1465,8 @@ class App(tk.Tk):
         self._update_head(now)
         self._afk_tick(now)
         self._macro_tick()
+        if getattr(self, "page", "") == "gametime":
+            self.page_gametime.update_view(now)
         self.after(250, self._tick)
 
     # ---------------- マクロ（連射） ----------------
@@ -1624,6 +1647,31 @@ class App(tk.Tk):
             out.append(t)
         return out
 
+    def _watch_targets(self):
+        """見張る相手の一覧。アドレスを入れたマップだけ。"""
+        out = []
+        for name in self.clocks.order:
+            c = self.clocks.clocks.get(name)
+            if c is not None and c.address:
+                out.append((name, c.address))
+        return out
+
+    def _watch_hold(self, name, seconds):
+        """落ちていた分だけ、そのマップの時計を止める。"""
+        c = self.clocks.clocks.get(name)
+        if c is not None:
+            c.hold(seconds)
+
+    def save_clocks(self):
+        self.cfg["game_clocks"] = self.clocks.to_dict()
+
+    def add_game_time_timer(self, label, seconds, note=""):
+        """ゲーム内時計から「夜になったら」タイマーを作る。"""
+        t = BreedTimer("custom", label, seconds)
+        t.note = note
+        self.add_timer(t)
+        return t
+
     def imprint_next(self, t: BreedTimer):
         t.imp_index += 1
         if t.imp_index >= t.imp_count:
@@ -1765,6 +1813,7 @@ class App(tk.Tk):
         self.save_cfg()
 
     def save_cfg(self):
+        self.cfg["game_clocks"] = self.clocks.to_dict()
         try:
             self.cfg["geometry"] = self.winfo_geometry()
         except Exception:
@@ -1778,6 +1827,7 @@ class App(tk.Tk):
         self.save_timers()
         snd.stop()
         self.stop_macro()          # 連射を止め忘れて暴走させない
+        self.watcher.stop()
         if self.hotkey is not None:
             self.hotkey.stop()
         self.destroy()
