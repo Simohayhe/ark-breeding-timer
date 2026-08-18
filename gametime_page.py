@@ -11,6 +11,7 @@ ARK は「今の時刻を返す」RCONコマンドを持っていないので、
 from __future__ import annotations
 
 import tkinter as tk
+from tkinter import ttk
 
 import gametime as G
 import serverwatch as W
@@ -35,8 +36,24 @@ class GameTimePage(tk.Frame):
         self.meter_phase = None
         F = app.F
 
+        # 中身が縦に長いので、ページごとスクロールできるようにする。
+        # （「マップを探す」が画面の下に隠れて押せなかった）
+        self.canvas = tk.Canvas(self, bg=th.BG, highlightthickness=0, bd=0)
+        vs = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview,
+                           style="Cute.Vertical.TScrollbar")
+        self.canvas.configure(yscrollcommand=vs.set)
+        vs.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.inner = tk.Frame(self.canvas, bg=th.BG)
+        self._win = self.canvas.create_window((0, 0), window=self.inner,
+                                              anchor="nw")
+        self.inner.bind("<Configure>", lambda e: self.canvas.configure(
+            scrollregion=self.canvas.bbox("all")))
+        self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfigure(
+            self._win, width=e.width))
+
         # ---- 上: マップの一覧 ----
-        top = th.Card(self, bg=th.BG)
+        top = th.Card(self.inner, bg=th.BG)
         top.pack(fill="x")
         b = top.body
         head = tk.Frame(b, bg=th.CARD)
@@ -55,7 +72,7 @@ class GameTimePage(tk.Frame):
         self.rows = {}
 
         # ---- 下: 選んだマップの設定 ----
-        conf = th.Card(self, bg=th.BG)
+        conf = th.Card(self.inner, bg=th.BG)
         conf.pack(fill="x", pady=(8, 0))
         c = conf.body
         self.lbl_sel = tk.Label(c, text="", bg=th.CARD, fg=th.INK,
@@ -404,7 +421,19 @@ class GameTimePage(tk.Frame):
         if g is None:
             self.lbl_msg.config(text="⚠ 17:30 のように入れてください", fg=th.PINK_DK)
             return
-        ok, why = c.calibrate(g)
+        # 1日の合計が Day の変化から分かっているときは、合計をいじらず
+        # 「昼と夜の配分」だけを解く（そのほうが正確）。
+        if c.synced and c.total_measured:
+            prev_game, prev_real = c.sync_game, c.sync_real
+            c.sync(g)
+            why = c.solve_split(prev_game, prev_real, c.sync_game, c.sync_real)
+            if why:
+                ok = True
+            else:
+                ok, why = True, ("時刻を合わせました（配分を出すには、"
+                                 "同じ時間帯でもう一度・1時間ほどあけて）")
+        else:
+            ok, why = c.calibrate(g)
         self.lbl_msg.config(text=why, fg=th.MINT if ok else th.INK_SUB)
         if ok:
             self._load_fields()

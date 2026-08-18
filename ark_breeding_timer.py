@@ -39,7 +39,7 @@ from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.17.0"
+APP_VERSION = "1.17.1"
 
 
 def _res_dir():
@@ -1302,9 +1302,12 @@ class App(tk.Tk):
 
     def _on_wheel(self, e):
         page = getattr(self, "page", "timers")
-        if page in ("afk", "macro", "gametime"):
+        if page in ("afk", "macro"):
             return   # スクロールする一覧が無いページ
-        cv = self.page_check.canvas if page == "checklist" else self.canvas
+        if page == "gametime":
+            cv = self.page_gametime.canvas
+        else:
+            cv = self.page_check.canvas if page == "checklist" else self.canvas
         try:
             cv.yview_scroll(int(-e.delta / 120), "units")
         except tk.TclError:

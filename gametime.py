@@ -57,7 +57,8 @@ class GameClock:
 
     def __init__(self, sync_real=0.0, sync_game=0, day_real=1500.0,
                  night_real=1500.0, address="", restarts=None,
-                 restart_minutes=3.0, restart_done=0.0, day_boundary=None):
+                 restart_minutes=3.0, restart_done=0.0, day_boundary=None,
+                 total_measured=False):
         self.sync_real = float(sync_real)      # 合わせたときの実時刻(epoch)
         self.sync_game = int(sync_game)        # そのときのゲーム内秒
         self.day_real = max(1.0, float(day_real))      # 昼12時間にかかる実秒
@@ -71,6 +72,9 @@ class GameClock:
         # ARKの「Day N」が変わるゲーム内時刻。最初の1回で学習して、
         # 以降はそこを基準に自動で合わせ直す。
         self.day_boundary = day_boundary
+        # Dayの変化から1日の合計を測れたか。測れていれば、合わせ直しのときに
+        # 合計はいじらず「昼と夜の配分」だけを解く。
+        self.total_measured = bool(total_measured)
 
     @property
     def synced(self):
@@ -226,6 +230,7 @@ class GameClock:
                 if 0.2 <= ratio <= 5.0:      # 極端な値は無視（落ちていた等）
                     self.day_real *= ratio
                     self.night_real *= ratio
+                    self.total_measured = True
                     done.append("速さを測り直しました（1日 %.1f分）" % (full / 60))
         # 2) 日の変わり目のゲーム内時刻を覚える／そこへ合わせ直す
         if self.day_boundary is None:
@@ -237,6 +242,35 @@ class GameClock:
             self.sync(self.day_boundary, now)
             done.append("%s に合わせ直しました" % fmt_game_time(self.day_boundary))
         return "／".join(done)
+
+    def solve_split(self, prev_game, prev_real, new_game, new_real):
+        """2回の同期から、昼と夜の配分を割り出す。
+
+        1日の合計(day_real + night_real)は Day の変化から分かっているので、
+        あとは「1回目から2回目までの実時間」を式にすれば連立方程式で解ける。
+
+            昼D + 夜N = 合計T                     … Dayの変化から
+            a×D + b×N = 実際にかかった時間        … a,b は昼夜をまたいだ割合
+
+        1回目と2回目が同じ側（両方とも昼、など）だと a と b の差が小さく
+        解が暴れるので、そのときは何もしない。戻り値は説明かNone。
+        """
+        total = self.full_day_real()
+        elapsed = new_real - prev_real
+        if total <= 0 or elapsed < 60 or elapsed > total * 1.2:
+            return None                      # 間が短すぎ/1日以上あいている
+        gd, gn = crossed(prev_game, new_game)
+        half = 12.0 * 3600
+        a, b = gd / half, gn / half
+        if abs(a - b) < 0.15:
+            return None                      # 昼夜の割合が近すぎて分けられない
+        day = (elapsed - b * total) / (a - b)
+        if not (0.05 * total <= day <= 0.95 * total):
+            return None                      # ありえない値
+        self.day_real = day
+        self.night_real = total - day
+        return ("昼と夜の配分が分かりました（昼 %.1f分 / 夜 %.1f分）"
+                % (self.day_real / 60, self.night_real / 60))
 
     def apply_restarts(self, now=None):
         """過ぎた定期再起動のぶんだけ、時計を止める。止めた回数を返す。"""
@@ -263,7 +297,8 @@ class GameClock:
                 "address": self.address, "restarts": self.restarts,
                 "restart_minutes": self.restart_minutes,
                 "restart_done": self.restart_done,
-                "day_boundary": self.day_boundary}
+                "day_boundary": self.day_boundary,
+                "total_measured": self.total_measured}
 
     @classmethod
     def from_dict(cls, d):
@@ -272,7 +307,7 @@ class GameClock:
                    d.get("day_real", 1500.0), d.get("night_real", 1500.0),
                    d.get("address", ""), d.get("restarts"),
                    d.get("restart_minutes", 3.0), d.get("restart_done", 0.0),
-                   d.get("day_boundary"))
+                   d.get("day_boundary"), d.get("total_measured", False))
 
 
 class ClockSet:
@@ -414,3 +449,33 @@ class TapMeter:
         """この速さでの「ゲーム内12時間」にかかる実秒。"""
         p = self.per_game_minute()
         return None if p is None else p * 720      # 12時間 = 720ゲーム内分
+
+
+def crossed(g0, g1):
+    """ゲーム内 g0 から g1 まで進むあいだの「昼」「夜」の秒数を返す。
+
+    前へ進む向きだけを見る（1日ぶんで折り返す）。昼と夜で速さが違うので、
+    実時間に直すにはこの内訳が要る。
+    """
+    g0 = int(g0) % DAY_SECONDS
+    g1 = int(g1) % DAY_SECONDS
+    total = (g1 - g0) % DAY_SECONDS
+    day_sec = night_sec = 0
+    g = g0
+    left = total
+    guard = 0
+    while left > 0 and guard < 10:
+        guard += 1
+        if DAY_START <= g < NIGHT_START:
+            end, is_day = NIGHT_START, True
+        else:
+            end, is_day = (DAY_START + DAY_SECONDS if g >= NIGHT_START
+                           else DAY_START), False
+        span = min(left, (end - g) if end > g else (end + DAY_SECONDS - g))
+        if is_day:
+            day_sec += span
+        else:
+            night_sec += span
+        left -= span
+        g = (g + span) % DAY_SECONDS
+    return day_sec, night_sec
