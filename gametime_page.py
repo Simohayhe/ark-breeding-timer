@@ -67,6 +67,24 @@ class GameTimePage(tk.Frame):
         ent.pack(side="right", padx=6, ipady=3)
         ent.bind("<Return>", lambda e: self.add_map())
 
+        bulk = tk.Frame(b, bg=th.CARD)
+        bulk.pack(fill="x", pady=(6, 0))
+        tk.Label(bulk, text="サーバーのIPを入れると、そのマップを全部登録して"
+                            "自動で測りはじめます", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(anchor="w")
+        brow = tk.Frame(b, bg=th.CARD)
+        brow.pack(fill="x", pady=(2, 0))
+        self.v_bulk = tk.StringVar()
+        be = th.soft_entry(brow, self.v_bulk, width=22)
+        be.pack(side="left", ipady=3)
+        be.bind("<Return>", lambda e: self.add_from_ip())
+        th.RoundButton(brow, "🔍 このIPのマップを全部追加", self.add_from_ip,
+                       kind="accent", bg=th.CARD, font=F["small"], padx=14,
+                       pady=6).pack(side="left", padx=6)
+        self.lbl_bulk = tk.Label(brow, text="", bg=th.CARD, fg=th.INK_SUB,
+                                 font=F["small"])
+        self.lbl_bulk.pack(side="left")
+
         self.rows_box = tk.Frame(b, bg=th.CARD)
         self.rows_box.pack(fill="x", pady=(8, 0))
         self.rows = {}
@@ -358,6 +376,42 @@ class GameTimePage(tk.Frame):
         self.v_new.set("")
         self.app.save_clocks()
         self.rebuild()
+
+    def add_from_ip(self):
+        """IPを1つ入れるだけで、そのサーバーのマップを全部登録する。
+
+        1つずつ名前を打って、IPを入れて、マップを選んで…をやらずに済む。
+        登録した時点で見張りが始まるので、あとは放っておけば速さも測れる。
+        """
+        text = self.v_bulk.get().strip()
+        if not text:
+            self.lbl_bulk.config(text="  ⚠ IPを入れてください", fg=th.PINK_DK)
+            return
+        self.lbl_bulk.config(text="  探しています…", fg=th.INK_SUB)
+        self.update_idletasks()
+        found = self.app.watcher.list_servers(text)
+        if not found:
+            self.lbl_bulk.config(text="  ⚠ そのIPにサーバーが見つかりません",
+                                 fg=th.PINK_DK)
+            return
+        ip = text.replace(":", " ").split()[0]
+        added = skipped = 0
+        for srv in sorted(found, key=lambda x: x.get("port") or 0):
+            name = (srv.get("map") or "").replace("_WP", "") or "?"
+            if not self.app.clocks.add(name):
+                skipped += 1
+                continue
+            c = self.app.clocks.get(name)
+            if c is not None:
+                c.address = "%s:%s" % (ip, srv.get("port"))
+            added += 1
+        self.app.save_clocks()
+        self.v_bulk.set("")
+        self.rebuild()
+        msg = "  ✅ %d個を登録しました" % added
+        if skipped:
+            msg += "（%d個は登録済み）" % skipped
+        self.lbl_bulk.config(text=msg, fg=th.MINT)
 
     def del_map(self, name):
         if not self.app.ask_delete(name, parent=self.winfo_toplevel()):
