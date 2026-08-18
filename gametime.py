@@ -324,3 +324,57 @@ def _restart_occurrences(times, now, back_days=2):
         for day in range(-back_days, 1):
             out.append(midnight + day * DAY_SECONDS + sec)
     return sorted(out)
+
+
+class TapMeter:
+    """ゲーム内時計の進む速さを、押した間隔から実測する。
+
+    使いかた: ゲーム内の時刻表示を見ながら、分が変わるたびに tap() を呼ぶ。
+    数回ぶん貯まれば「ゲーム内1分あたり実何秒か」が出る。
+
+    step は「何ゲーム内分ごとに押すか」。1分ごとが押しやすいが、
+    10分ごとにすればもっと正確になる。
+    """
+
+    def __init__(self, step=1):
+        self.step = max(1, int(step))
+        self.taps = []
+
+    def tap(self, now=None):
+        self.taps.append(now if now is not None else time.time())
+        return len(self.taps)
+
+    def reset(self):
+        self.taps = []
+
+    @property
+    def intervals(self):
+        return [b - a for a, b in zip(self.taps, self.taps[1:])]
+
+    @property
+    def count(self):
+        """使える間隔の数（押した回数 - 1）。"""
+        return max(0, len(self.taps) - 1)
+
+    def per_game_minute(self):
+        """ゲーム内1分あたりの実秒。まだ測れないなら None。
+
+        押し間違いの影響を減らすため、3つ以上あるときは中央値を使う。
+        """
+        iv = self.intervals
+        if not iv:
+            return None
+        iv = sorted(iv)
+        n = len(iv)
+        mid = iv[n // 2] if n % 2 else (iv[n // 2 - 1] + iv[n // 2]) / 2
+        return mid / self.step
+
+    def spread(self):
+        """間隔のばらつき（最大と最小の差、秒）。押し方の安定を見る目安。"""
+        iv = self.intervals
+        return (max(iv) - min(iv)) if len(iv) >= 2 else None
+
+    def half_day_real(self):
+        """この速さでの「ゲーム内12時間」にかかる実秒。"""
+        p = self.per_game_minute()
+        return None if p is None else p * 720      # 12時間 = 720ゲーム内分

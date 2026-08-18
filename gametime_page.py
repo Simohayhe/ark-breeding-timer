@@ -31,6 +31,8 @@ class GameTimePage(tk.Frame):
         super().__init__(master, bg=th.BG)
         self.app = app
         self._loading = False
+        self.meter = None
+        self.meter_phase = None
         F = app.F
 
         # ---- 上: マップの一覧 ----
@@ -121,6 +123,27 @@ class GameTimePage(tk.Frame):
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
                                                                   pady=(2, 0))
 
+        # ---- タップで実測 ----
+        mt = tk.Frame(c, bg=th.CARD)
+        mt.pack(fill="x", pady=(6, 0))
+        self.btn_meter = th.RoundButton(mt, "⏱ 実測する", self.meter_click,
+                                        kind="mint", bg=th.CARD, font=F["small"],
+                                        padx=14, pady=6, width=210)
+        self.btn_meter.pack(side="left")
+        self.btn_use = th.RoundButton(mt, "この速さを使う", self.meter_use,
+                                      kind="primary", bg=th.CARD, font=F["small"],
+                                      padx=12, pady=6)
+        th.RoundButton(mt, "やめる", self.meter_cancel, kind="ghost", bg=th.CARD,
+                       font=F["small"], padx=10, pady=6).pack(side="left", padx=6)
+        tk.Label(mt, text="何ゲーム内分ごとに押す", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(8, 2))
+        self.v_step = tk.StringVar(value="1")
+        th.soft_entry(mt, self.v_step, width=4).pack(side="left", ipady=2)
+        self.lbl_meter = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
+                                  font=F["small"], anchor="w", justify="left",
+                                  wraplength=740)
+        self.lbl_meter.pack(fill="x", pady=(2, 0))
+
         tk.Label(c, text="定期再起動（ズレの自動補正）", bg=th.CARD, fg=th.INK,
                  font=F["cute_b"]).pack(anchor="w")
         tk.Label(c, text="サーバーが落ちている間はゲーム内時間も止まります。"
@@ -169,6 +192,76 @@ class GameTimePage(tk.Frame):
                   self.v_restarts, self.v_rmin):
             v.trace_add("write", lambda *a: self.save_fields())
         self.rebuild()
+
+
+    # ---------------- タップで速さを実測する ----------------
+    def meter_click(self):
+        """1回目で開始、2回目以降は「いま押した」として記録する。"""
+        c = self.app.clocks.get()
+        if c is None:
+            self.lbl_meter.config(text="⚠ さきにマップを追加してください",
+                                  fg=th.PINK_DK)
+            return
+        if self.meter is None:
+            try:
+                step = max(1, int(float(self.v_step.get() or 1)))
+            except ValueError:
+                step = 1
+            self.meter = G.TapMeter(step)
+            self.meter_phase = (G.is_night(c.game_at()) if c.synced else None)
+            self.btn_meter.set_text("ここで押す（0回）")
+            self.lbl_meter.config(
+                text="ゲーム内の時計を見ながら、%d分ごとに押してください。"
+                     "3回以上で結果が出ます" % step, fg=th.INK)
+            return
+        n = self.meter.tap()
+        self.btn_meter.set_text("ここで押す（%d回）" % n)
+        self._meter_report()
+
+    def _meter_report(self):
+        m = self.meter
+        per = m.per_game_minute()
+        if per is None:
+            self.lbl_meter.config(text="あと %d回 押すと結果が出ます" % (2 - len(m.taps)),
+                                  fg=th.INK)
+            return
+        half = m.half_day_real() / 60.0
+        sp = m.spread()
+        phase = "夜" if self.meter_phase else "昼"
+        msg = ("ゲーム内1分 = %.1f秒 ／ %s12時間ぶん = %.1f分" % (per, phase, half))
+        if sp is not None:
+            msg += "（ばらつき %.1f秒）" % sp
+        if m.count >= 3:
+            msg += "　→ 「この速さを使う」で反映できます"
+            self.btn_use.pack(side="left", padx=6)
+        self.lbl_meter.config(text=msg, fg=th.MINT if m.count >= 3 else th.INK)
+
+    def meter_use(self):
+        c = self.app.clocks.get()
+        m = self.meter
+        if c is None or m is None or m.half_day_real() is None:
+            return
+        half_min = m.half_day_real() / 60.0
+        self._loading = True
+        try:
+            if self.meter_phase:
+                self.v_night.set("%g" % round(half_min, 1))
+            else:
+                self.v_day.set("%g" % round(half_min, 1))
+        finally:
+            self._loading = False
+        self.save_fields()
+        which = "夜" if self.meter_phase else "昼"
+        self.meter_cancel()
+        self.lbl_meter.config(text="✅ %sの長さを %.1f分にしました" % (which, half_min),
+                              fg=th.MINT)
+
+    def meter_cancel(self):
+        self.meter = None
+        self.meter_phase = None
+        self.btn_meter.set_text("⏱ 実測する")
+        self.btn_use.pack_forget()
+        self.lbl_meter.config(text="", fg=th.INK_SUB)
 
     # ---------------- マップ一覧 ----------------
     def rebuild(self):
