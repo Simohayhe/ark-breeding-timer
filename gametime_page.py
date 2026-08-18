@@ -139,6 +139,13 @@ class GameTimePage(tk.Frame):
                  font=F["small"]).pack(side="left", padx=(8, 2))
         self.v_step = tk.StringVar(value="1")
         th.soft_entry(mt, self.v_step, width=4).pack(side="left", ipady=2)
+        self.v_phase = tk.StringVar(value="auto")
+        for txt, val in (("自動", "auto"), ("昼", "day"), ("夜", "night")):
+            tk.Radiobutton(mt, text=txt, variable=self.v_phase, value=val,
+                           bg=th.CARD, fg=th.INK, activebackground=th.CARD,
+                           activeforeground=th.INK, selectcolor=th.FIELD,
+                           font=F["small"], bd=0,
+                           highlightthickness=0).pack(side="left", padx=(6, 0))
         self.lbl_meter = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
                                   font=F["small"], anchor="w", justify="left",
                                   wraplength=740)
@@ -207,12 +214,25 @@ class GameTimePage(tk.Frame):
                 step = max(1, int(float(self.v_step.get() or 1)))
             except ValueError:
                 step = 1
+            want = self.v_phase.get()
+            if want == "day":
+                self.meter_phase = False
+            elif want == "night":
+                self.meter_phase = True
+            elif c.synced:
+                self.meter_phase = G.is_night(c.game_at())
+            else:
+                # まだ合わせていないと昼夜が分からない。勝手に昼にしない。
+                self.lbl_meter.config(
+                    text="⚠ まだ時刻を合わせていないので、昼か夜かを選んでから"
+                         "押してください", fg=th.PINK_DK)
+                return
             self.meter = G.TapMeter(step)
-            self.meter_phase = (G.is_night(c.game_at()) if c.synced else None)
             self.btn_meter.set_text("ここで押す（0回）")
             self.lbl_meter.config(
-                text="ゲーム内の時計を見ながら、%d分ごとに押してください。"
-                     "3回以上で結果が出ます" % step, fg=th.INK)
+                text="いま測っているのは【%s】です。ゲーム内の時計を見ながら、"
+                     "%d分ごとに押してください。3回以上で結果が出ます"
+                     % ("夜" if self.meter_phase else "昼", step), fg=th.INK)
             return
         n = self.meter.tap()
         self.btn_meter.set_text("ここで押す（%d回）" % n)
