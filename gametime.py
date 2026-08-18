@@ -7,8 +7,11 @@ ARK には「今の時刻を返す」RCONコマンドが無いので、
 昼と夜で進む速さが違う（サーバー設定の DayTimeSpeedScale / NightTimeSpeedScale）ので、
 1日を「昼の区間」と「夜の区間」に分けて別々の速さで進める。
 
-  昼: 05:30 → 17:30 （ゲーム内12時間）を day_real 秒（実時間）で進む
-  夜: 17:30 → 05:30 （ゲーム内12時間）を night_real 秒（実時間）で進む
+  昼: 05:15 → 20:25 （ゲーム内15時間10分）を day_real 秒（実時間）で進む
+  夜: 20:25 → 05:15 （ゲーム内 8時間50分）を night_real 秒（実時間）で進む
+
+**昼夜は半分ずつではない**。ARKの昼は夜よりずっと長い（15h10m 対 8h50m）。
+倍率1のときで昼41.5分・夜18.6分、合わせてちょうど実1時間になる。
 
 速さは設定で直接入れてもいいし、時刻を2回合わせれば自動で測れる（calibrate）。
 """
@@ -17,8 +20,13 @@ from __future__ import annotations
 import time
 
 DAY_SECONDS = 24 * 3600          # ゲーム内の1日
-DAY_START = 5 * 3600 + 30 * 60   # 05:30 夜明け
-NIGHT_START = 17 * 3600 + 30 * 60  # 17:30 日暮れ
+DAY_START = 5 * 3600 + 15 * 60     # 05:15 夜明け
+NIGHT_START = 20 * 3600 + 25 * 60  # 20:25 日暮れ
+DAY_SPAN = NIGHT_START - DAY_START       # 昼のゲーム内秒（15時間10分）
+NIGHT_SPAN = DAY_SECONDS - DAY_SPAN      # 夜のゲーム内秒（ 8時間50分）
+# 倍率1のときの実時間。1ゲーム内時間が昼164秒・夜126秒で、合計ちょうど3600秒
+DEFAULT_DAY_REAL = 2487.0
+DEFAULT_NIGHT_REAL = 1113.0
 
 
 def parse_game_time(text):
@@ -55,14 +63,14 @@ def is_night(game_sec):
 class GameClock:
     """合わせた時刻から、いまのゲーム内時刻を割り出す。"""
 
-    def __init__(self, sync_real=0.0, sync_game=0, day_real=1500.0,
-                 night_real=1500.0, address="", restarts=None,
+    def __init__(self, sync_real=0.0, sync_game=0, day_real=DEFAULT_DAY_REAL,
+                 night_real=DEFAULT_NIGHT_REAL, address="", restarts=None,
                  restart_minutes=3.0, restart_done=0.0, day_boundary=None,
                  total_measured=False):
         self.sync_real = float(sync_real)      # 合わせたときの実時刻(epoch)
         self.sync_game = int(sync_game)        # そのときのゲーム内秒
-        self.day_real = max(1.0, float(day_real))      # 昼12時間にかかる実秒
-        self.night_real = max(1.0, float(night_real))  # 夜12時間にかかる実秒
+        self.day_real = max(1.0, float(day_real))      # 昼ぜんぶにかかる実秒
+        self.night_real = max(1.0, float(night_real))  # 夜ぜんぶにかかる実秒
         self.address = address or ""   # 死活を見るサーバー（host:port）
         # 定期再起動（実時間の "HH:MM" の並び）と、そのとき止まる分数。
         # サーバーが落ちている間はゲーム内時間が進まないので、その分を差し引く。
@@ -84,11 +92,10 @@ class GameClock:
     def _segment(self, game_sec):
         """(この区間の終わりのゲーム内秒, ゲーム内1秒あたりの実秒)"""
         g = int(game_sec) % DAY_SECONDS
-        half = 12 * 3600
         if DAY_START <= g < NIGHT_START:
-            return NIGHT_START, self.day_real / half
+            return NIGHT_START, self.day_real / DAY_SPAN
         end = DAY_START + DAY_SECONDS if g >= NIGHT_START else DAY_START
-        return end, self.night_real / half
+        return end, self.night_real / NIGHT_SPAN
 
     def game_at(self, real_now=None):
         """いまのゲーム内秒。"""
@@ -252,8 +259,8 @@ class GameClock:
         """覚えた速さと変わり目を捨てて、測り直しからやり直す。"""
         self.day_boundary = None
         self.total_measured = False
-        self.day_real = 1500.0
-        self.night_real = 1500.0
+        self.day_real = DEFAULT_DAY_REAL
+        self.night_real = DEFAULT_NIGHT_REAL
 
     def solve_split(self, prev_game, prev_real, new_game, new_real):
         """2回の同期から、昼と夜の配分を割り出す。
@@ -272,8 +279,7 @@ class GameClock:
         if total <= 0 or elapsed < 60 or elapsed > total * 1.2:
             return None                      # 間が短すぎ/1日以上あいている
         gd, gn = crossed(prev_game, new_game)
-        half = 12.0 * 3600
-        a, b = gd / half, gn / half
+        a, b = gd / float(DAY_SPAN), gn / float(NIGHT_SPAN)
         if abs(a - b) < 0.15:
             return None                      # 昼夜の割合が近すぎて分けられない
         day = (elapsed - b * total) / (a - b)
@@ -310,13 +316,23 @@ class GameClock:
                 "restart_minutes": self.restart_minutes,
                 "restart_done": self.restart_done,
                 "day_boundary": self.day_boundary,
-                "total_measured": self.total_measured}
+                "total_measured": self.total_measured,
+                "model": 2}
 
     @classmethod
     def from_dict(cls, d):
         d = d or {}
+        day = float(d.get("day_real", DEFAULT_DAY_REAL))
+        night = float(d.get("night_real", DEFAULT_NIGHT_REAL))
+        if d.get("model") != 2 and day > 0 and night > 0:
+            # v1.20.0 まで昼夜を12時間ずつだと思って持っていた値。区間の長さが
+            # 変わったので、そのままでは意味が違う。1日の合計だけは Day の変化から
+            # 測れた本物なので、それを保って既定の比で振り直す。
+            total = day + night
+            ratio = DEFAULT_DAY_REAL / (DEFAULT_DAY_REAL + DEFAULT_NIGHT_REAL)
+            day, night = total * ratio, total * (1 - ratio)
         return cls(d.get("sync_real", 0.0), d.get("sync_game", 0),
-                   d.get("day_real", 1500.0), d.get("night_real", 1500.0),
+                   day, night,
                    d.get("address", ""), d.get("restarts"),
                    d.get("restart_minutes", 3.0), d.get("restart_done", 0.0),
                    d.get("day_boundary"), d.get("total_measured", False))
@@ -457,10 +473,12 @@ class TapMeter:
         iv = self.intervals
         return (max(iv) - min(iv)) if len(iv) >= 2 else None
 
-    def half_day_real(self):
-        """この速さでの「ゲーム内12時間」にかかる実秒。"""
+    def phase_real(self, night=False):
+        """この速さのまま進んだとして、昼（または夜）ぜんぶにかかる実秒。"""
         p = self.per_game_minute()
-        return None if p is None else p * 720      # 12時間 = 720ゲーム内分
+        if p is None:
+            return None
+        return p * ((NIGHT_SPAN if night else DAY_SPAN) / 60.0)
 
 
 def crossed(g0, g1):

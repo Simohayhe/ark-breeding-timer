@@ -188,11 +188,11 @@ class GameTimePage(tk.Frame):
         cs_ = self.fold_speed.body
         sp = tk.Frame(cs_, bg=th.CARD)
         sp.pack(fill="x")
-        tk.Label(sp, text="昼(05:30-17:30)", bg=th.CARD, fg=th.INK,
+        tk.Label(sp, text="昼(05:15-20:25)", bg=th.CARD, fg=th.INK,
                  font=F["cute"]).pack(side="left")
         self.v_day = tk.StringVar()
         th.soft_entry(sp, self.v_day, width=6).pack(side="left", padx=4, ipady=3)
-        tk.Label(sp, text="分　夜(17:30-05:30)", bg=th.CARD, fg=th.INK,
+        tk.Label(sp, text="分　夜(20:25-05:15)", bg=th.CARD, fg=th.INK,
                  font=F["cute"]).pack(side="left")
         self.v_night = tk.StringVar()
         th.soft_entry(sp, self.v_night, width=6).pack(side="left", padx=4, ipady=3)
@@ -262,6 +262,26 @@ class GameTimePage(tk.Frame):
         self.fold_watch = Fold(c, "サーバーを見張る（ズレの自動補正）", F["cute_b"])
         self.fold_watch.pack(fill="x", pady=(6, 0))
         cw_ = self.fold_watch.body
+        iv = tk.Frame(cw_, bg=th.CARD)
+        iv.pack(fill="x", pady=(0, 4))
+        tk.Label(iv, text="見に行く間隔", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+        self.v_ival = tk.StringVar(value="%g" % self.app.cfg.get("watch_interval",
+                                                                 60))
+        e2 = th.soft_entry(iv, self.v_ival, width=5)
+        e2.pack(side="left", padx=4, ipady=3)
+        e2.bind("<Return>", lambda ev: self.save_interval())
+        tk.Label(iv, text="秒ごと", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+        th.RoundButton(iv, "決定", self.save_interval, kind="soft", bg=th.CARD,
+                       font=F["small"], padx=12, pady=5).pack(side="left", padx=8)
+        self.lbl_ival = tk.Label(iv, text="", bg=th.CARD, fg=th.INK_SUB,
+                                 font=F["small"])
+        self.lbl_ival.pack(side="left")
+        tk.Label(cw_, text="短くすると日の変わり目をつかまえる精度が上がりますが、"
+                          "Epicへの問い合わせが増えます（20秒以上・既定60秒）",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=740,
+                 justify="left").pack(anchor="w", pady=(0, 4))
         tk.Label(cw_, text="IPを入れて「🔍 マップを探す」を押すと、そのサーバーの"
                          "マップ一覧が出ます。選ぶと死活を見張って、落ちている間は"
                          "時計を止めます。ARKの日付が変わるたびに速さも自動で測り直します",
@@ -338,10 +358,10 @@ class GameTimePage(tk.Frame):
             self.lbl_meter.config(text="あと %d回 押すと結果が出ます" % (2 - len(m.taps)),
                                   fg=th.INK)
             return
-        half = m.half_day_real() / 60.0
+        half = m.phase_real(bool(self.meter_phase)) / 60.0
         sp = m.spread()
         phase = "夜" if self.meter_phase else "昼"
-        msg = ("ゲーム内1分 = %.1f秒 ／ %s12時間ぶん = %.1f分" % (per, phase, half))
+        msg = ("ゲーム内1分 = %.1f秒 ／ %sぜんぶで %.1f分" % (per, phase, half))
         if sp is not None:
             msg += "（ばらつき %.1f秒）" % sp
         if m.count >= 3:
@@ -352,9 +372,9 @@ class GameTimePage(tk.Frame):
     def meter_use(self):
         c = self.app.clocks.get()
         m = self.meter
-        if c is None or m is None or m.half_day_real() is None:
+        if c is None or m is None or m.phase_real() is None:
             return
-        half_min = m.half_day_real() / 60.0
+        half_min = m.phase_real(bool(self.meter_phase)) / 60.0
         self._loading = True
         try:
             if self.meter_phase:
@@ -406,6 +426,21 @@ class GameTimePage(tk.Frame):
                        anchor="w")
         lbl.pack(side="left", padx=10)
         return {"btn": pick, "label": lbl}
+
+    def save_interval(self):
+        """見張りの間隔を変える。見張りスレッドは次の周回から新しい値で動く。"""
+        try:
+            sec = float(self.v_ival.get().strip())
+        except ValueError:
+            self.lbl_ival.config(text="  ⚠ 数字を入れてください", fg=th.PINK_DK)
+            return
+        if sec < 20:
+            self.lbl_ival.config(text="  ⚠ 20秒以上にしてください", fg=th.PINK_DK)
+            return
+        self.app.cfg["watch_interval"] = sec
+        self.app.watcher.interval = sec
+        self.app.save_cfg()
+        self.lbl_ival.config(text="  ✅ %g秒ごとにしました" % sec, fg=th.MINT)
 
     def toggle_maps(self, show=None):
         self.maps_open = (not self.maps_open) if show is None else bool(show)
