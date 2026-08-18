@@ -625,19 +625,8 @@ class GameTimePage(tk.Frame):
         if g is None:
             self.lbl_msg.config(text="⚠ 17:30 のように入れてください", fg=th.PINK_DK)
             return
-        # 1日の合計が Day の変化から分かっているときは、合計をいじらず
-        # 「昼と夜の配分」だけを解く（そのほうが正確）。
-        if c.synced and c.total_measured:
-            prev_game, prev_real = c.sync_game, c.sync_real
-            c.sync(g)
-            why = c.solve_split(prev_game, prev_real, c.sync_game, c.sync_real)
-            if why:
-                ok = True
-            else:
-                ok, why = True, ("時刻を合わせました（配分を出すには、"
-                                 "同じ時間帯でもう一度・1時間ほどあけて）")
-        else:
-            ok, why = c.calibrate(g)
+        # ズレを見てから合わせる。入れ直すたびに速さが正しくなっていく
+        ok, why = c.resync(g)
         self.lbl_msg.config(text=why, fg=th.MINT if ok else th.INK_SUB)
         if ok:
             self._load_fields()

@@ -55,6 +55,14 @@ def fmt_game_time(sec):
     return "%02d:%02d" % (sec // 3600, (sec % 3600) // 60)
 
 
+def fmt_span(sec):
+    """ズレの大きさを「3分12秒」のように。"""
+    sec = int(round(abs(sec)))
+    if sec < 60:
+        return "%d秒" % sec
+    return "%d分%02d秒" % (sec // 60, sec % 60)
+
+
 def is_night(game_sec):
     g = int(game_sec) % DAY_SECONDS
     return g >= NIGHT_START or g < DAY_START
@@ -163,6 +171,80 @@ class GameClock:
         self.sync_game = int(game_sec) % DAY_SECONDS
         # 合わせ直した時点より前の再起動を後から引かないようにする
         self.restart_done = self.sync_real
+
+    def drift_at(self, game_sec, real_now=None):
+        """入れ直した時刻と、時計が思っていた時刻の差（秒）。
+
+        プラスなら時計が進みすぎ、マイナスなら遅れている。合わせる前に呼ぶこと。
+        """
+        if not self.synced:
+            return None
+        pred = self.game_at(real_now)
+        if pred is None:
+            return None
+        d = (pred - (int(game_sec) % DAY_SECONDS)) % DAY_SECONDS
+        if d > DAY_SECONDS / 2:
+            d -= DAY_SECONDS
+        return d
+
+    def resync(self, game_sec, real_now=None):
+        """ユーザーが時刻を入れ直したとき。ズレを見て学習してから合わせ直す。
+
+        直し方は3通り。上から順に当てはまるものを使う。
+
+          1. 前回と今回が**同じ時間帯の中**に収まっている
+             → その時間帯の長さがそのまま出る。1日の長さが分かっていれば
+               逆側は引き算（②昼か夜を実測→③逆算 と同じ理屈）
+          2. 昼と夜をまたいでいて、1日の長さが分かっている
+             → 連立方程式で昼夜の配分を解く（solve_split）
+          3. 1日の長さが分かっていない
+             → 昼夜まとめて同じ割合で伸び縮みさせる（calibrate）
+
+        戻り値は (合わせたか, 説明)。説明にはズレの大きさも入れる。
+        """
+        now = real_now if real_now is not None else time.time()
+        g = int(game_sec) % DAY_SECONDS
+        if not self.synced:
+            self.sync(g, now)
+            return True, "1回目なので、いまの時刻を覚えました"
+
+        drift = self.drift_at(g, now)
+        note = ""
+        if drift is not None:
+            if abs(drift) < 30:
+                note = "ズレは %s でした（ほぼ合っています）" % fmt_span(drift)
+            else:
+                note = "ゲーム内時刻が %s %sいました" % (
+                    fmt_span(drift), "進みすぎて" if drift > 0 else "遅れて")
+
+        prev_game, prev_real = self.sync_game, self.sync_real
+        elapsed = now - prev_real
+        advance = (g - prev_game) % DAY_SECONDS
+        if elapsed < 60 or advance <= 0 or elapsed > 1.5 * self.full_day_real():
+            self.sync(g, now)
+            tail = "時刻だけ合わせました（学習するには1分以上・1日以内であけて）"
+            return True, (note + "／" + tail) if note else tail
+
+        learned = None
+        gd, gn = crossed(prev_game, g)
+        if self.total_measured and (gd == 0 or gn == 0):
+            # 片側だけで収まった。その時間帯の長さが直接出る
+            night = gd == 0
+            span = NIGHT_SPAN if night else DAY_SPAN
+            phase_real = elapsed * span / float(gn if night else gd)
+            before = self.night_real if night else self.day_real
+            if before > 0 and 0.2 <= phase_real / before <= 5.0:
+                ok, learned = self.apply_measured_phase(phase_real, night)
+                if not ok:
+                    learned = None
+        elif self.total_measured:
+            learned = self.solve_split(prev_game, prev_real, g, now)
+
+        if learned is None:
+            _, why = self.calibrate(g, now)      # calibrate が自分で合わせ直す
+            return True, (note + "／" + why) if note else why
+        self.sync(g, now)
+        return True, (note + "／" + learned) if note else learned
 
     def calibrate(self, game_sec, real_now=None):
         """2回目以降の同期。ズレから速さを測り直す。
