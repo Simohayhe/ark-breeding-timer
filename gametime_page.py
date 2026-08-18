@@ -27,6 +27,36 @@ def _hms(sec):
     return "%d:%02d" % (m, s)
 
 
+class Fold(tk.Frame):
+    """見出しを押すと開け閉めするひとかたまり。
+
+    ゲーム内時計は設定項目が多くて、全部出しっぱなしだと画面がうるさい。
+    普段さわらないものは閉じておいて、必要なときだけ開く。
+    """
+
+    def __init__(self, master, title, font, bg=th.CARD, opened=False):
+        super().__init__(master, bg=bg)
+        self.title = title
+        self.opened = bool(opened)
+        self.head = tk.Label(self, text="", bg=bg, fg=th.INK, font=font,
+                             anchor="w", cursor="hand2")
+        self.head.pack(fill="x")
+        self.head.bind("<Button-1>", lambda e: self.toggle())
+        self.body = tk.Frame(self, bg=bg)
+        self._paint()
+
+    def _paint(self):
+        self.head.config(text=("▼ " if self.opened else "▶ ") + self.title)
+        if self.opened:
+            self.body.pack(fill="x", pady=(2, 0))
+        else:
+            self.body.pack_forget()
+
+    def toggle(self):
+        self.opened = not self.opened
+        self._paint()
+
+
 class GameTimePage(tk.Frame):
     def __init__(self, master, app):
         super().__init__(master, bg=th.BG)
@@ -52,30 +82,36 @@ class GameTimePage(tk.Frame):
         self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfigure(
             self._win, width=e.width))
 
-        # ---- 上: マップの一覧 ----
+        # ---- 上: マップ（プルダウンで開く） ----
         top = th.Card(self.inner, bg=th.BG)
         top.pack(fill="x")
         b = top.body
         head = tk.Frame(b, bg=th.CARD)
         head.pack(fill="x")
-        tk.Label(head, text="マップ", bg=th.CARD, fg=th.INK,
-                 font=F["cute_b"]).pack(side="left")
-        th.RoundButton(head, "＋ 追加", self.add_map, kind="soft", bg=th.CARD,
-                       font=F["small"], padx=12, pady=5).pack(side="right")
-        self.v_new = tk.StringVar()
-        ent = th.soft_entry(head, self.v_new, width=16)
-        ent.pack(side="right", padx=6, ipady=3)
-        ent.bind("<Return>", lambda e: self.add_map())
+        self.btn_maps = th.RoundButton(head, "🗺 マップ ▾", self.toggle_maps,
+                                       kind="primary", bg=th.CARD,
+                                       font=F["cute"], padx=14, pady=6,
+                                       width=230)
+        self.btn_maps.pack(side="left")
+        self.lbl_now = tk.Label(head, text="", bg=th.CARD, fg=th.INK,
+                                font=F["ui"], anchor="w")
+        self.lbl_now.pack(side="left", padx=10)
 
-        bulk = tk.Frame(b, bg=th.CARD)
-        bulk.pack(fill="x", pady=(6, 0))
-        tk.Label(bulk, text="サーバーのIPを入れると、そのマップを全部登録して"
+        self.maps_open = False
+        self.maps_box = tk.Frame(b, bg=th.CARD)
+        self.rows_box = tk.Frame(self.maps_box, bg=th.CARD)
+        self.rows_box.pack(fill="x")
+        self.rows = {}
+
+        addb = tk.Frame(self.maps_box, bg=th.CARD)
+        addb.pack(fill="x", pady=(10, 0))
+        tk.Label(addb, text="サーバーのIPを入れると、そのマップを全部登録して"
                             "自動で測りはじめます", bg=th.CARD, fg=th.INK_SUB,
                  font=F["small"]).pack(anchor="w")
-        brow = tk.Frame(b, bg=th.CARD)
+        brow = tk.Frame(addb, bg=th.CARD)
         brow.pack(fill="x", pady=(2, 0))
         self.v_bulk = tk.StringVar()
-        be = th.soft_entry(brow, self.v_bulk, width=22)
+        be = th.soft_entry(brow, self.v_bulk, width=20)
         be.pack(side="left", ipady=3)
         be.bind("<Return>", lambda e: self.add_from_ip())
         th.RoundButton(brow, "🔍 このIPのマップを全部追加", self.add_from_ip,
@@ -85,9 +121,17 @@ class GameTimePage(tk.Frame):
                                  font=F["small"])
         self.lbl_bulk.pack(side="left")
 
-        self.rows_box = tk.Frame(b, bg=th.CARD)
-        self.rows_box.pack(fill="x", pady=(8, 0))
-        self.rows = {}
+        nrow = tk.Frame(addb, bg=th.CARD)
+        nrow.pack(fill="x", pady=(4, 0))
+        tk.Label(nrow, text="名前だけで足す", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(0, 6))
+        self.v_new = tk.StringVar()
+        ent = th.soft_entry(nrow, self.v_new, width=16)
+        ent.pack(side="left", ipady=3)
+        ent.bind("<Return>", lambda e: self.add_map())
+        th.RoundButton(nrow, "＋ 追加", self.add_map, kind="soft", bg=th.CARD,
+                       font=F["small"], padx=12, pady=5).pack(side="left",
+                                                              padx=6)
 
         # ---- 下: 選んだマップの設定 ----
         conf = th.Card(self.inner, bg=th.BG)
@@ -139,8 +183,11 @@ class GameTimePage(tk.Frame):
                                 wraplength=740)
         self.lbl_msg.pack(fill="x", pady=(4, 0))
 
-        sp = tk.Frame(c, bg=th.CARD)
-        sp.pack(fill="x", pady=(10, 0))
+        self.fold_speed = Fold(c, "進む速さ（昼・夜の長さ／実測）", F["cute_b"])
+        self.fold_speed.pack(fill="x", pady=(10, 0))
+        cs_ = self.fold_speed.body
+        sp = tk.Frame(cs_, bg=th.CARD)
+        sp.pack(fill="x")
         tk.Label(sp, text="昼(05:30-17:30)", bg=th.CARD, fg=th.INK,
                  font=F["cute"]).pack(side="left")
         self.v_day = tk.StringVar()
@@ -154,12 +201,12 @@ class GameTimePage(tk.Frame):
         self.lbl_total = tk.Label(sp, text="", bg=th.CARD, fg=th.INK_SUB,
                                   font=F["small"])
         self.lbl_total.pack(side="left", padx=10)
-        tk.Label(c, text="1分以上あけて2回目を合わせると、進む速さを自動で測り直します",
+        tk.Label(cs_, text="1分以上あけて2回目を合わせると、進む速さを自動で測り直します",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
                                                                   pady=(2, 0))
 
         # ---- タップで実測 ----
-        mt = tk.Frame(c, bg=th.CARD)
+        mt = tk.Frame(cs_, bg=th.CARD)
         mt.pack(fill="x", pady=(6, 0))
         self.btn_meter = th.RoundButton(mt, "⏱ 実測する", self.meter_click,
                                         kind="mint", bg=th.CARD, font=F["small"],
@@ -181,18 +228,19 @@ class GameTimePage(tk.Frame):
                            activeforeground=th.INK, selectcolor=th.FIELD,
                            font=F["small"], bd=0,
                            highlightthickness=0).pack(side="left", padx=(6, 0))
-        self.lbl_meter = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
+        self.lbl_meter = tk.Label(cs_, text="", bg=th.CARD, fg=th.INK_SUB,
                                   font=F["small"], anchor="w", justify="left",
                                   wraplength=740)
         self.lbl_meter.pack(fill="x", pady=(2, 0))
 
-        tk.Label(c, text="定期再起動（ズレの自動補正）", bg=th.CARD, fg=th.INK,
-                 font=F["cute_b"]).pack(anchor="w")
-        tk.Label(c, text="サーバーが落ちている間はゲーム内時間も止まります。"
+        self.fold_restart = Fold(c, "定期再起動（ズレの自動補正）", F["cute_b"])
+        self.fold_restart.pack(fill="x", pady=(6, 0))
+        cr_ = self.fold_restart.body
+        tk.Label(cr_, text="サーバーが落ちている間はゲーム内時間も止まります。"
                          "再起動の時刻を入れておくと、その分を自動で差し引きます",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=740,
                  justify="left").pack(anchor="w")
-        r5 = tk.Frame(c, bg=th.CARD)
+        r5 = tk.Frame(cr_, bg=th.CARD)
         r5.pack(fill="x", pady=(4, 0))
         tk.Label(r5, text="毎日", bg=th.CARD, fg=th.INK,
                  font=F["cute"]).pack(side="left")
@@ -205,20 +253,21 @@ class GameTimePage(tk.Frame):
         th.soft_entry(r5, self.v_rmin, width=5).pack(side="left", padx=4, ipady=3)
         tk.Label(r5, text="分ほど止まる", bg=th.CARD, fg=th.INK,
                  font=F["cute"]).pack(side="left")
-        tk.Label(c, text="例: 6:00, 12:00, 18:00 のようにカンマ区切りで",
+        tk.Label(cr_, text="例: 6:00, 12:00, 18:00 のようにカンマ区切りで",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w")
-        self.lbl_restart = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
+        self.lbl_restart = tk.Label(cr_, text="", bg=th.CARD, fg=th.INK_SUB,
                                     font=F["small"], anchor="w")
         self.lbl_restart.pack(fill="x")
 
-        tk.Label(c, text="\nサーバーを見張る（ズレの自動補正）", bg=th.CARD,
-                 fg=th.INK, font=F["cute_b"]).pack(anchor="w")
-        tk.Label(c, text="IPを入れて「🔍 マップを探す」を押すと、そのサーバーの"
+        self.fold_watch = Fold(c, "サーバーを見張る（ズレの自動補正）", F["cute_b"])
+        self.fold_watch.pack(fill="x", pady=(6, 0))
+        cw_ = self.fold_watch.body
+        tk.Label(cw_, text="IPを入れて「🔍 マップを探す」を押すと、そのサーバーの"
                          "マップ一覧が出ます。選ぶと死活を見張って、落ちている間は"
                          "時計を止めます。ARKの日付が変わるたびに速さも自動で測り直します",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=740,
                  justify="left").pack(anchor="w")
-        r4 = tk.Frame(c, bg=th.CARD)
+        r4 = tk.Frame(cw_, bg=th.CARD)
         r4.pack(fill="x", pady=(4, 0))
         self.v_addr = tk.StringVar()
         th.soft_entry(r4, self.v_addr, width=26).pack(side="left", ipady=3)
@@ -232,9 +281,9 @@ class GameTimePage(tk.Frame):
         th.RoundButton(r4, "↺ 学習をやり直す", self.forget_learned, kind="ghost",
                        bg=th.CARD, font=F["small"], padx=10,
                        pady=5).pack(side="left", padx=6)
-        self.pick_box = tk.Frame(c, bg=th.CARD)
+        self.pick_box = tk.Frame(cw_, bg=th.CARD)
         self.pick_box.pack(fill="x", pady=(4, 0))
-        self.lbl_watch = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
+        self.lbl_watch = tk.Label(cw_, text="", bg=th.CARD, fg=th.INK_SUB,
                                   font=F["small"], anchor="w", justify="left",
                                   wraplength=740)
         self.lbl_watch.pack(fill="x", pady=(4, 0))
@@ -334,7 +383,7 @@ class GameTimePage(tk.Frame):
         self.rows.clear()
         cs = self.app.clocks
         if not cs.order:
-            tk.Label(self.rows_box, text="「＋ 追加」でマップを登録してください",
+            tk.Label(self.rows_box, text="サーバーのIPを入れてマップを登録してください",
                      bg=th.CARD, fg=th.INK_SUB, font=self.app.F["small"]).pack(
                 anchor="w", pady=6)
         for name in cs.order:
@@ -358,11 +407,21 @@ class GameTimePage(tk.Frame):
         lbl.pack(side="left", padx=10)
         return {"btn": pick, "label": lbl}
 
+    def toggle_maps(self, show=None):
+        self.maps_open = (not self.maps_open) if show is None else bool(show)
+        if self.maps_open:
+            self.maps_box.pack(fill="x", pady=(8, 0))
+        else:
+            self.maps_box.pack_forget()
+        self.btn_maps.set_text("🗺 %s %s" % (self.app.clocks.current or "マップ",
+                                             "▴" if self.maps_open else "▾"))
+
     def select(self, name):
         self.app.clocks.current = name
         self.app.save_clocks()
         self._load_fields()
         self.lbl_msg.config(text="")
+        self.toggle_maps(False)      # 選んだら閉じる
         self.update_view()
 
     def add_map(self):
@@ -376,6 +435,7 @@ class GameTimePage(tk.Frame):
         self.v_new.set("")
         self.app.save_clocks()
         self.rebuild()
+        self.toggle_maps(True)
 
     def add_from_ip(self):
         """IPを1つ入れるだけで、そのサーバーのマップを全部登録する。
@@ -408,6 +468,7 @@ class GameTimePage(tk.Frame):
         self.app.save_clocks()
         self.v_bulk.set("")
         self.rebuild()
+        self.toggle_maps(True)
         msg = "  ✅ %d個を登録しました" % added
         if skipped:
             msg += "（%d個は登録済み）" % skipped
@@ -627,6 +688,12 @@ class GameTimePage(tk.Frame):
                     "🌙" if night else "☀", G.fmt_game_time(g),
                     "朝" if night else "夜", _hms(left), mark),
                 fg=th.LAV if night else th.INK)
+
+        cur = self.rows.get(cs.current)
+        self.lbl_now.config(text=cur["label"].cget("text") if cur else "",
+                            fg=cur["label"].cget("fg") if cur else th.INK_SUB)
+        self.btn_maps.set_text("🗺 %s %s" % (cs.current or "マップ",
+                                             "▴" if self.maps_open else "▾"))
 
         c = cs.get()
         if c is None:
