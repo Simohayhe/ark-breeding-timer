@@ -121,6 +121,31 @@ class GameTimePage(tk.Frame):
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
                                                                   pady=(2, 0))
 
+        tk.Label(c, text="定期再起動（ズレの自動補正）", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w")
+        tk.Label(c, text="サーバーが落ちている間はゲーム内時間も止まります。"
+                         "再起動の時刻を入れておくと、その分を自動で差し引きます",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=740,
+                 justify="left").pack(anchor="w")
+        r5 = tk.Frame(c, bg=th.CARD)
+        r5.pack(fill="x", pady=(4, 0))
+        tk.Label(r5, text="毎日", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+        self.v_restarts = tk.StringVar()
+        th.soft_entry(r5, self.v_restarts, width=24).pack(side="left", padx=4,
+                                                          ipady=3)
+        tk.Label(r5, text="に、", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+        self.v_rmin = tk.StringVar()
+        th.soft_entry(r5, self.v_rmin, width=5).pack(side="left", padx=4, ipady=3)
+        tk.Label(r5, text="分ほど止まる", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+        tk.Label(c, text="例: 6:00, 12:00, 18:00 のようにカンマ区切りで",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w")
+        self.lbl_restart = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
+                                    font=F["small"], anchor="w")
+        self.lbl_restart.pack(fill="x")
+
         tk.Label(c, text="\nサーバーを見張る（ズレの自動補正）", bg=th.CARD,
                  fg=th.INK, font=F["cute_b"]).pack(anchor="w")
         tk.Label(c, text="ゲーム内時間はサーバーが動いている間しか進みません。"
@@ -140,7 +165,8 @@ class GameTimePage(tk.Frame):
                                   wraplength=740)
         self.lbl_watch.pack(fill="x", pady=(4, 0))
 
-        for v in (self.v_day, self.v_night, self.v_addr):
+        for v in (self.v_day, self.v_night, self.v_addr,
+                  self.v_restarts, self.v_rmin):
             v.trace_add("write", lambda *a: self.save_fields())
         self.rebuild()
 
@@ -210,10 +236,14 @@ class GameTimePage(tk.Frame):
                 self.v_day.set("")
                 self.v_night.set("")
                 self.v_addr.set("")
+                self.v_restarts.set("")
+                self.v_rmin.set("")
             else:
                 self.v_day.set("%g" % round(c.day_real / 60, 1))
                 self.v_night.set("%g" % round(c.night_real / 60, 1))
                 self.v_addr.set(c.address or "")
+                self.v_restarts.set(", ".join(c.restarts))
+                self.v_rmin.set("%g" % round(c.restart_minutes, 1))
         finally:
             self._loading = False
 
@@ -233,6 +263,16 @@ class GameTimePage(tk.Frame):
         if n > 0:
             c.night_real = n * 60
         c.address = self.v_addr.get().strip()
+        times = []
+        for part in self.v_restarts.get().replace("、", ",").split(","):
+            part = part.strip()
+            if part and G.parse_game_time(part) is not None:
+                times.append(part)
+        c.restarts = times
+        try:
+            c.restart_minutes = max(0.0, float(self.v_rmin.get() or 0))
+        except ValueError:
+            pass
         self.app.save_clocks()
         self.update_view()
 
@@ -341,6 +381,12 @@ class GameTimePage(tk.Frame):
             self.lbl_total.config(text="")
             return
         self.lbl_sel.config(text="⚙ %s の設定" % cs.current)
+        if c.restarts and c.restart_minutes > 0:
+            self.lbl_restart.config(
+                text="→ %s に %g分ずつ、自動で差し引きます"
+                     % ("・".join(c.restarts), c.restart_minutes), fg=th.MINT)
+        else:
+            self.lbl_restart.config(text="（未設定）", fg=th.INK_SUB)
         self.lbl_total.config(text="1日 %.1f分" % (c.full_day_real() / 60))
         st = self.app.watcher.state.get(cs.current)
         if st is not None and not self.lbl_watch.cget("text").startswith(("⚠", "問")):

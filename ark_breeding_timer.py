@@ -39,7 +39,7 @@ from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.14.0"
+APP_VERSION = "1.15.0"
 
 
 def _res_dir():
@@ -1465,6 +1465,9 @@ class App(tk.Tk):
         self._update_head(now)
         self._afk_tick(now)
         self._macro_tick()
+        # 過ぎた定期再起動のぶんを差し引く（画面を開いていなくても効かせる）
+        for _c in self.clocks.clocks.values():
+            _c.apply_restarts(now)
         if getattr(self, "page", "") == "gametime":
             self.page_gametime.update_view(now)
         self.after(250, self._tick)

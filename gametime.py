@@ -56,12 +56,18 @@ class GameClock:
     """合わせた時刻から、いまのゲーム内時刻を割り出す。"""
 
     def __init__(self, sync_real=0.0, sync_game=0, day_real=1500.0,
-                 night_real=1500.0, address=""):
+                 night_real=1500.0, address="", restarts=None,
+                 restart_minutes=3.0, restart_done=0.0):
         self.sync_real = float(sync_real)      # 合わせたときの実時刻(epoch)
         self.sync_game = int(sync_game)        # そのときのゲーム内秒
         self.day_real = max(1.0, float(day_real))      # 昼12時間にかかる実秒
         self.night_real = max(1.0, float(night_real))  # 夜12時間にかかる実秒
         self.address = address or ""   # 死活を見るサーバー（host:port）
+        # 定期再起動（実時間の "HH:MM" の並び）と、そのとき止まる分数。
+        # サーバーが落ちている間はゲーム内時間が進まないので、その分を差し引く。
+        self.restarts = list(restarts or [])
+        self.restart_minutes = float(restart_minutes or 0)
+        self.restart_done = float(restart_done or 0)   # ここまでは補正済み
 
     @property
     def synced(self):
@@ -141,6 +147,8 @@ class GameClock:
     def sync(self, game_sec, real_now=None):
         self.sync_real = real_now if real_now is not None else time.time()
         self.sync_game = int(game_sec) % DAY_SECONDS
+        # 合わせ直した時点より前の再起動を後から引かないようにする
+        self.restart_done = self.sync_real
 
     def calibrate(self, game_sec, real_now=None):
         """2回目以降の同期。ズレから速さを測り直す。
@@ -196,20 +204,39 @@ class GameClock:
                 g = end % DAY_SECONDS
         return moved
 
+    def apply_restarts(self, now=None):
+        """過ぎた定期再起動のぶんだけ、時計を止める。止めた回数を返す。"""
+        if not self.synced or not self.restarts or self.restart_minutes <= 0:
+            return 0
+        now = now if now is not None else time.time()
+        if self.restart_done <= 0:
+            self.restart_done = now      # 初回は過去にさかのぼらない
+            return 0
+        applied = 0
+        for occ in _restart_occurrences(self.restarts, now):
+            if self.restart_done < occ <= now:
+                self.hold(self.restart_minutes * 60)
+                self.restart_done = occ
+                applied += 1
+        return applied
+
     def full_day_real(self):
         return self.day_real + self.night_real
 
     def to_dict(self):
         return {"sync_real": self.sync_real, "sync_game": self.sync_game,
                 "day_real": self.day_real, "night_real": self.night_real,
-                "address": self.address}
+                "address": self.address, "restarts": self.restarts,
+                "restart_minutes": self.restart_minutes,
+                "restart_done": self.restart_done}
 
     @classmethod
     def from_dict(cls, d):
         d = d or {}
         return cls(d.get("sync_real", 0.0), d.get("sync_game", 0),
                    d.get("day_real", 1500.0), d.get("night_real", 1500.0),
-                   d.get("address", ""))
+                   d.get("address", ""), d.get("restarts"),
+                   d.get("restart_minutes", 3.0), d.get("restart_done", 0.0))
 
 
 class ClockSet:
@@ -280,3 +307,20 @@ class ClockSet:
             cs.order.append("マップ1")
             cs.current = "マップ1"
         return cs
+
+
+def _restart_occurrences(times, now, back_days=2):
+    """"HH:MM" の並びから、直近 back_days 日ぶんの実時刻(epoch)を古い順に返す。"""
+    # 秒未満を残すと、呼ぶたびに候補の時刻が微妙にズレて
+    # 同じ再起動を何度も引いてしまう。整数秒に丸めておく。
+    now = int(now)
+    lt = time.localtime(now)
+    midnight = now - (lt.tm_hour * 3600 + lt.tm_min * 60 + lt.tm_sec)
+    out = []
+    for t in times:
+        sec = parse_game_time(t)     # "HH:MM" を秒に（実時刻にもそのまま使える）
+        if sec is None:
+            continue
+        for day in range(-back_days, 1):
+            out.append(midnight + day * DAY_SECONDS + sec)
+    return sorted(out)
