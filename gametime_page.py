@@ -183,13 +183,71 @@ class GameTimePage(tk.Frame):
                                 wraplength=740)
         self.lbl_msg.pack(fill="x", pady=(4, 0))
 
-        self.fold_speed = Fold(c, "進む速さ（昼・夜の長さ／実測）", F["cute_b"])
+        self.fold_speed = Fold(c, "進む速さ（1日 → 昼か夜を実測 → 残りを逆算）",
+                               F["cute_b"])
         self.fold_speed.pack(fill="x", pady=(10, 0))
         cs_ = self.fold_speed.body
-        sp = tk.Frame(cs_, bg=th.CARD)
-        sp.pack(fill="x")
-        tk.Label(sp, text="昼(05:15-20:25)", bg=th.CARD, fg=th.INK,
+        tk.Label(cs_, text="ARKの昼は 05:15〜20:25、夜は 20:25〜05:15 で半分ずつでは"
+                           "ありません。1日の長さが分かっていれば、昼か夜のどちらか"
+                           "だけ測れば逆側は引き算で出ます",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=740,
+                 justify="left").pack(anchor="w", pady=(0, 6))
+
+        # ① 1日の長さ
+        s1 = tk.Frame(cs_, bg=th.CARD)
+        s1.pack(fill="x")
+        tk.Label(s1, text="① 1日の長さ", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(side="left")
+        self.v_total = tk.StringVar()
+        et = th.soft_entry(s1, self.v_total, width=6)
+        et.pack(side="left", padx=6, ipady=3)
+        et.bind("<Return>", lambda ev: self.apply_total())
+        tk.Label(s1, text="分", bg=th.CARD, fg=th.INK,
                  font=F["cute"]).pack(side="left")
+        th.RoundButton(s1, "決定", self.apply_total, kind="soft", bg=th.CARD,
+                       font=F["small"], padx=12, pady=5).pack(side="left", padx=8)
+        self.lbl_total = tk.Label(s1, text="", bg=th.CARD, fg=th.INK_SUB,
+                                  font=F["small"])
+        self.lbl_total.pack(side="left")
+
+        # ② 昼か夜を実測
+        mt = tk.Frame(cs_, bg=th.CARD)
+        mt.pack(fill="x", pady=(8, 0))
+        tk.Label(mt, text="② 測るのは", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(side="left")
+        self.v_phase = tk.StringVar(value="auto")
+        for txt, val in (("いま居るほう", "auto"), ("昼", "day"), ("夜", "night")):
+            tk.Radiobutton(mt, text=txt, variable=self.v_phase, value=val,
+                           bg=th.CARD, fg=th.INK, activebackground=th.CARD,
+                           activeforeground=th.INK, selectcolor=th.FIELD,
+                           font=F["small"], bd=0,
+                           highlightthickness=0).pack(side="left", padx=(6, 0))
+        tk.Label(mt, text="／ 何ゲーム内分ごとに押す", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(8, 2))
+        self.v_step = tk.StringVar(value="1")
+        th.soft_entry(mt, self.v_step, width=4).pack(side="left", ipady=2)
+
+        mt2 = tk.Frame(cs_, bg=th.CARD)
+        mt2.pack(fill="x", pady=(4, 0))
+        self.btn_meter = th.RoundButton(mt2, "⏱ 実測する", self.meter_click,
+                                        kind="mint", bg=th.CARD, font=F["small"],
+                                        padx=14, pady=6, width=210)
+        self.btn_meter.pack(side="left")
+        self.btn_use = th.RoundButton(mt2, "③ この速さを使う（逆側も逆算）",
+                                      self.meter_use, kind="primary", bg=th.CARD,
+                                      font=F["small"], padx=12, pady=6)
+        th.RoundButton(mt2, "やめる", self.meter_cancel, kind="ghost", bg=th.CARD,
+                       font=F["small"], padx=10, pady=6).pack(side="left", padx=6)
+        self.lbl_meter = tk.Label(cs_, text="", bg=th.CARD, fg=th.INK_SUB,
+                                  font=F["small"], anchor="w", justify="left",
+                                  wraplength=740)
+        self.lbl_meter.pack(fill="x", pady=(2, 0))
+
+        # ③ 結果（手で直すこともできる）
+        sp = tk.Frame(cs_, bg=th.CARD)
+        sp.pack(fill="x", pady=(8, 0))
+        tk.Label(sp, text="③ 結果　昼(05:15-20:25)", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(side="left")
         self.v_day = tk.StringVar()
         th.soft_entry(sp, self.v_day, width=6).pack(side="left", padx=4, ipady=3)
         tk.Label(sp, text="分　夜(20:25-05:15)", bg=th.CARD, fg=th.INK,
@@ -198,40 +256,9 @@ class GameTimePage(tk.Frame):
         th.soft_entry(sp, self.v_night, width=6).pack(side="left", padx=4, ipady=3)
         tk.Label(sp, text="分（実時間）", bg=th.CARD, fg=th.INK_SUB,
                  font=F["small"]).pack(side="left")
-        self.lbl_total = tk.Label(sp, text="", bg=th.CARD, fg=th.INK_SUB,
-                                  font=F["small"])
-        self.lbl_total.pack(side="left", padx=10)
         tk.Label(cs_, text="1分以上あけて2回目を合わせると、進む速さを自動で測り直します",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
                                                                   pady=(2, 0))
-
-        # ---- タップで実測 ----
-        mt = tk.Frame(cs_, bg=th.CARD)
-        mt.pack(fill="x", pady=(6, 0))
-        self.btn_meter = th.RoundButton(mt, "⏱ 実測する", self.meter_click,
-                                        kind="mint", bg=th.CARD, font=F["small"],
-                                        padx=14, pady=6, width=210)
-        self.btn_meter.pack(side="left")
-        self.btn_use = th.RoundButton(mt, "この速さを使う", self.meter_use,
-                                      kind="primary", bg=th.CARD, font=F["small"],
-                                      padx=12, pady=6)
-        th.RoundButton(mt, "やめる", self.meter_cancel, kind="ghost", bg=th.CARD,
-                       font=F["small"], padx=10, pady=6).pack(side="left", padx=6)
-        tk.Label(mt, text="何ゲーム内分ごとに押す", bg=th.CARD, fg=th.INK_SUB,
-                 font=F["small"]).pack(side="left", padx=(8, 2))
-        self.v_step = tk.StringVar(value="1")
-        th.soft_entry(mt, self.v_step, width=4).pack(side="left", ipady=2)
-        self.v_phase = tk.StringVar(value="auto")
-        for txt, val in (("自動", "auto"), ("昼", "day"), ("夜", "night")):
-            tk.Radiobutton(mt, text=txt, variable=self.v_phase, value=val,
-                           bg=th.CARD, fg=th.INK, activebackground=th.CARD,
-                           activeforeground=th.INK, selectcolor=th.FIELD,
-                           font=F["small"], bd=0,
-                           highlightthickness=0).pack(side="left", padx=(6, 0))
-        self.lbl_meter = tk.Label(cs_, text="", bg=th.CARD, fg=th.INK_SUB,
-                                  font=F["small"], anchor="w", justify="left",
-                                  wraplength=740)
-        self.lbl_meter.pack(fill="x", pady=(2, 0))
 
         self.fold_restart = Fold(c, "定期再起動（ズレの自動補正）", F["cute_b"])
         self.fold_restart.pack(fill="x", pady=(6, 0))
@@ -370,24 +397,22 @@ class GameTimePage(tk.Frame):
         self.lbl_meter.config(text=msg, fg=th.MINT if m.count >= 3 else th.INK)
 
     def meter_use(self):
+        """測ったほうを入れて、逆側は1日の長さの残りから逆算する。"""
         c = self.app.clocks.get()
         m = self.meter
         if c is None or m is None or m.phase_real() is None:
             return
-        half_min = m.phase_real(bool(self.meter_phase)) / 60.0
-        self._loading = True
-        try:
-            if self.meter_phase:
-                self.v_night.set("%g" % round(half_min, 1))
-            else:
-                self.v_day.set("%g" % round(half_min, 1))
-        finally:
-            self._loading = False
-        self.save_fields()
-        which = "夜" if self.meter_phase else "昼"
+        night = bool(self.meter_phase)
+        ok, msg = c.apply_measured_phase(m.phase_real(night), night)
+        if not ok:
+            self.lbl_meter.config(text="⚠ " + msg, fg=th.PINK_DK)
+            return
+        self.app.save_clocks()
         self.meter_cancel()
-        self.lbl_meter.config(text="✅ %sの長さを %.1f分にしました" % (which, half_min),
-                              fg=th.MINT)
+        self._load_fields()
+        self.update_view()          # 速さが変わったので残り時間を出し直す
+        self.lbl_meter.config(text=msg,
+                              fg=th.MINT if msg.startswith("✅") else th.PINK_DK)
 
     def meter_cancel(self):
         self.meter = None
@@ -426,6 +451,30 @@ class GameTimePage(tk.Frame):
                        anchor="w")
         lbl.pack(side="left", padx=10)
         return {"btn": pick, "label": lbl}
+
+    def apply_total(self):
+        """1日の長さを入れ直す。昼と夜の比は保ったまま伸び縮みさせる。"""
+        c = self.app.clocks.get()
+        if c is None:
+            self.lbl_total.config(text="  ⚠ さきにマップを追加してください",
+                                  fg=th.PINK_DK)
+            return
+        try:
+            mins = float(self.v_total.get().strip())
+        except ValueError:
+            self.lbl_total.config(text="  ⚠ 数字を入れてください", fg=th.PINK_DK)
+            return
+        if not 1 <= mins <= 24 * 60:
+            self.lbl_total.config(text="  ⚠ 1〜1440分で入れてください",
+                                  fg=th.PINK_DK)
+            return
+        c.set_total(mins * 60)
+        c.total_measured = True
+        self.app.save_clocks()
+        self._load_fields()
+        self.update_view()
+        self.lbl_total.config(text="  ✅ 1日を %.1f分にしました。②へどうぞ" % mins,
+                              fg=th.MINT)
 
     def save_interval(self):
         """見張りの間隔を変える。見張りスレッドは次の周回から新しい値で動く。"""
@@ -522,12 +571,14 @@ class GameTimePage(tk.Frame):
         self._loading = True
         try:
             if c is None:
+                self.v_total.set("")
                 self.v_day.set("")
                 self.v_night.set("")
                 self.v_addr.set("")
                 self.v_restarts.set("")
                 self.v_rmin.set("")
             else:
+                self.v_total.set("%g" % round(c.full_day_real() / 60, 1))
                 self.v_day.set("%g" % round(c.day_real / 60, 1))
                 self.v_night.set("%g" % round(c.night_real / 60, 1))
                 self.v_addr.set(c.address or "")
@@ -742,7 +793,12 @@ class GameTimePage(tk.Frame):
                      % ("・".join(c.restarts), c.restart_minutes), fg=th.MINT)
         else:
             self.lbl_restart.config(text="（未設定）", fg=th.INK_SUB)
-        self.lbl_total.config(text="1日 %.1f分" % (c.full_day_real() / 60))
+        if not self.lbl_total.cget("text").startswith(("  ✅", "  ⚠")):
+            self.lbl_total.config(
+                text=("  ✅ Dayの変わり目から測れています"
+                      if c.total_measured
+                      else "  ⏳ まだ測れていません（次の変わり目で自動で測ります）"),
+                fg=th.MINT if c.total_measured else th.INK_SUB)
         st = self.app.watcher.state.get(cs.current)
         msg = self.app.watch_msg.get(cs.current)
         head = self.lbl_watch.cget("text")

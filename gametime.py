@@ -262,6 +262,60 @@ class GameClock:
         self.day_real = DEFAULT_DAY_REAL
         self.night_real = DEFAULT_NIGHT_REAL
 
+    def set_total(self, seconds):
+        """1日の長さ（昼＋夜）を決める。昼と夜の比はそのまま。
+
+        Dayの変わり目から測れた合計を入れる所。比が分かっていない段階では
+        既定の比（昼15h10m/夜8h50m ぶん）のままなので、そのあと②で
+        どちらかを測れば正しい配分に直る。
+        """
+        seconds = float(seconds)
+        if seconds <= 0:
+            return False
+        before = self.full_day_real()
+        if before <= 0:
+            self.day_real = seconds * (DEFAULT_DAY_REAL
+                                       / (DEFAULT_DAY_REAL + DEFAULT_NIGHT_REAL))
+            self.night_real = seconds - self.day_real
+        else:
+            k = seconds / before
+            self.day_real *= k
+            self.night_real *= k
+        return True
+
+    def apply_measured_phase(self, phase_real, night=False):
+        """昼か夜のどちらかを実測した値から、両方を決める。
+
+        1日の長さは分かっている前提なので、逆側はただの引き算で出る
+        （昼＋夜＝1日）。測った側が1日ぶんを食い潰してしまう場合は
+        1日の長さのほうが間違っているので、測った側だけ入れて知らせる。
+        戻り値は (直せたか, 説明)。
+        """
+        phase_real = float(phase_real)
+        if phase_real <= 0:
+            return False, "まだ測れていません"
+        total = self.full_day_real()
+        other = total - phase_real
+        name = "夜" if night else "昼"
+        if total <= 0 or other < 60:
+            if night:
+                self.night_real = phase_real
+            else:
+                self.day_real = phase_real
+            return True, ("%s を %.1f分にしました。ただし1日の長さ(%.1f分)と"
+                          "つじつまが合わないので、逆側は逆算していません。"
+                          "①を測り直してください"
+                          % (name, phase_real / 60, total / 60))
+        if night:
+            self.night_real, self.day_real = phase_real, other
+        else:
+            self.day_real, self.night_real = phase_real, other
+        self.total_measured = True
+        return True, ("✅ 昼 %.1f分 ／ 夜 %.1f分 にしました"
+                      "（%sを実測して、1日 %.1f分の残りから逆算）"
+                      % (self.day_real / 60, self.night_real / 60,
+                         name, total / 60))
+
     def solve_split(self, prev_game, prev_real, new_game, new_real):
         """2回の同期から、昼と夜の配分を割り出す。
 
