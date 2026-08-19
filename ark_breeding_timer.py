@@ -39,7 +39,7 @@ from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.28.0"
+APP_VERSION = "1.28.1"
 
 
 def _res_dir():
@@ -1091,6 +1091,12 @@ class MiniWindow(tk.Toplevel):
                 continue
             g = c.game_at(now)
             night = gametime.is_night(g)
+            if c.paused:
+                sl["time"].config(text="⏸ %s" % gametime.fmt_game_time(g),
+                                  fg=th.INK_SUB)
+                sl["left"].config(text="止まっています")
+                sl["note"].config(text="⚠ サーバーが落ちています")
+                continue
             left = c.next_day(now) if night else c.next_night(now)
             sl["time"].config(text="%s %s" % ("🌙" if night else "☀",
                                               gametime.fmt_game_time(g)),
@@ -1842,9 +1848,17 @@ class App(tk.Tk):
         c = self.clocks.clocks.get(name)
         if c is None:
             return
-        if kind == "hold":
-            # 落ちている間はゲーム内時間も進まないので、その分だけ止める
-            c.hold(value)
+        if kind == "down":
+            # 落ちている間はゲーム内時間も進まないので、その場で止める
+            c.pause(value)
+            self.watch_msg[name] = "落ちたので時計を止めました"
+        elif kind == "up":
+            gap = c.resume(value)
+            self.watch_msg[name] = ("戻ったので時計を動かします（%d分ぶん止めました）"
+                                    % round(gap / 60)) if gap >= 60 else \
+                                   "戻ったので時計を動かします"
+        elif kind == "hold":
+            c.hold(value)          # 定期再起動ぶんの差し引き
         elif kind == "day":
             _old, _new, prev_at = value
             msg = c.on_day_changed(prev_at)

@@ -974,6 +974,11 @@ class GameTimePage(tk.Frame):
                 continue
             g = c.game_at(now)
             night = G.is_night(g)
+            if c.paused:
+                row["label"].config(
+                    text="⏸ %s ／ 止まっています（サーバーが落ちています）"
+                         % G.fmt_game_time(g), fg=th.PINK_DK)
+                continue
             left = c.next_day(now) if night else c.next_night(now)
             mark = ""
             st = self.app.watcher.state.get(name)

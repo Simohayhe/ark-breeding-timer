@@ -117,6 +117,10 @@ class GameClock:
                  night_real=DEFAULT_NIGHT_REAL, address="", restarts=None,
                  restart_minutes=3.0, restart_done=0.0, day_boundary=None,
                  total_measured=False, measuring=False, measure_since=0.0):
+        # サーバーが落ちている間、時計を止めておく時刻（0なら動いている）。
+        # 保存はしない。アプリを開き直したら見張りが数秒で入れ直すし、
+        # 閉じていた間ぶんを丸ごと引くと、かえって大きくずれてしまう。
+        self.paused_at = 0.0
         self.sync_real = float(sync_real)      # 合わせたときの実時刻(epoch)
         self.sync_game = int(sync_game)        # そのときのゲーム内秒
         self.day_real = max(1.0, float(day_real))      # 昼ぜんぶにかかる実秒
@@ -154,8 +158,10 @@ class GameClock:
         """いまのゲーム内秒。"""
         if not self.synced:
             return None
-        left = max(0.0, (real_now if real_now is not None else time.time())
-                   - self.sync_real)
+        now = real_now if real_now is not None else time.time()
+        if self.paused_at:
+            now = min(now, self.paused_at)   # 落ちている間は進めない
+        left = max(0.0, now - self.sync_real)
         g = float(self.sync_game)
         # 区間ごとに進める（1日ぶんで打ち切って、余りは丸ごと足す）
         guard = 0
@@ -202,6 +208,34 @@ class GameClock:
         return self.real_until(DAY_START, real_now)
 
     # ---- 合わせる・測る ----
+    @property
+    def paused(self):
+        return bool(self.paused_at)
+
+    def pause(self, at=None):
+        """サーバーが落ちた。その時刻で時計を止める。
+
+        止めた瞬間から game_at() が進まなくなるので、見張りの次の見回りを
+        待たずに画面が止まる。at は「最後に生きているのを見た時刻」。
+        """
+        if self.synced and not self.paused_at:
+            self.paused_at = float(at if at is not None else time.time())
+            return True
+        return False
+
+    def resume(self, now=None):
+        """サーバーが戻った。止めていたぶんを無かったことにする。
+
+        戻り値は止まっていた秒数。
+        """
+        if not self.paused_at:
+            return 0.0
+        now = float(now if now is not None else time.time())
+        gap = max(0.0, now - self.paused_at)
+        self.paused_at = 0.0
+        self.hold(gap)
+        return gap
+
     def hold(self, seconds):
         """その秒数ぶん、時計を止める。
 

@@ -23,7 +23,8 @@ class Watcher(threading.Thread):
 
     get_targets() は [(キー, "IP:ポート"), ...] を返す関数。
     生死やDayの変化は on_event(キー, 種類, 値) で知らせる。
-      種類 "hold" … 落ちていた秒数（時計を止める）
+      種類 "down" … 落ちた（値は最後に生きているのを見た時刻）
+      種類 "up"   … 戻った（値はその時刻）
       種類 "day"  … Dayが増えた（値は (前のDay, 新しいDay, 前回増えた時刻)）
     """
 
@@ -38,6 +39,7 @@ class Watcher(threading.Thread):
         self.state = {}        # キー -> 最後に見た結果
         self._last_seen = {}   # キー -> 最後に確認した時刻
         self._day_at = {}      # キー -> そのDayになった時刻
+        self._online_at = {}   # キー -> 最後に「起きている」のを見た時刻
 
     def stop(self):
         self._halt.set()
@@ -106,11 +108,18 @@ class Watcher(threading.Thread):
         prev = self.state.get(key)
         now = res.get("at") or time.time()
 
-        # 落ちている間は、前回見たときからの時間だけ時計を止める
-        if prev is not None and not res.get("online") and self.on_event:
-            gap = now - self._last_seen.get(key, now)
-            if gap > 0:
-                self._fire(key, "hold", gap)
+        # 生死が変わった瞬間だけ知らせる。落ちたら時計を止め、戻したら
+        # 止まっていたぶんを差し引く。毎回 hold を送る昔のやり方だと、
+        # 見回りと見回りの間（既定60秒）は時計が進みっぱなしになっていた。
+        online = bool(res.get("online"))
+        was = bool((prev or {}).get("online"))
+        if self.on_event:
+            if not online and (prev is None or was):
+                self._fire(key, "down", self._online_at.get(key) or now)
+            elif online and prev is not None and not was:
+                self._fire(key, "up", now)
+        if online:
+            self._online_at[key] = now
 
         # Day が増えたら知らせる（前に増えた時刻も一緒に）
         day = res.get("day")
