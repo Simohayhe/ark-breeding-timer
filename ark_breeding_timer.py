@@ -39,7 +39,7 @@ from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.24.1"
+APP_VERSION = "1.25.0"
 
 
 def _res_dir():
@@ -885,7 +885,8 @@ class MiniWindow(tk.Toplevel):
         th.RoundButton(bar, "戻る", self.back, kind="soft", bg=th.BG,
                        font=th.F["small"], padx=10).pack(side="right")
         self.tabs = {}
-        for key, label in (("timers", "⏰"), ("checklist", "🗒")):
+        for key, label in (("timers", "⏰"), ("checklist", "🗒"),
+                           ("clock", "🌙")):
             p = Pill(bar, label, lambda k=key: self.show_page(k), bg=th.BG,
                      padx=10, pady=4)
             p.pack(side="left", padx=(0, 4))
@@ -919,6 +920,27 @@ class MiniWindow(tk.Toplevel):
         # ---- チェックリストのページ（本体と同じ中身を映す）----
         self.page_check = ChecklistPage(self, app, compact=True)
 
+        # ---- ゲーム内時計のページ ----
+        # 狭いのでプルダウンひとつ。選んだマップの時刻だけ大きく出す。
+        self.page_clock = tk.Frame(self, bg=th.BG)
+        self.map_keys = []
+        self.v_map = tk.StringVar()
+        self.cb_map = ttk.Combobox(self.page_clock, textvariable=self.v_map,
+                                   state="readonly", style="Cute.TCombobox",
+                                   font=th.F["ui"])
+        self.cb_map.pack(fill="x", padx=10, pady=(2, 8))
+        self.cb_map.bind("<<ComboboxSelected>>", self._pick_map)
+        self.lbl_ctime = tk.Label(self.page_clock, text="", bg=th.BG,
+                                  fg=th.INK, font=th.F["num"])
+        self.lbl_ctime.pack()
+        self.lbl_cleft = tk.Label(self.page_clock, text="", bg=th.BG,
+                                  fg=th.PINK_DK, font=th.F["cute_b"])
+        self.lbl_cleft.pack(pady=(2, 0))
+        self.lbl_cnote = tk.Label(self.page_clock, text="", bg=th.BG,
+                                  fg=th.INK_SUB, font=th.F["small"],
+                                  wraplength=250, justify="center")
+        self.lbl_cnote.pack(pady=(6, 0))
+
         self.bind("<MouseWheel>", self._wheel)
         self.protocol("WM_DELETE_WINDOW", self.back)
         self.page = None
@@ -926,20 +948,92 @@ class MiniWindow(tk.Toplevel):
         self.rebuild()
 
     def show_page(self, name):
-        if name not in ("timers", "checklist"):
+        if name not in ("timers", "checklist", "clock"):
             name = "timers"
         self.page = name
         for key, pill in self.tabs.items():
             pill.update_view(key == name)
         self.page_timer.pack_forget()
         self.page_check.pack_forget()
-        if name == "checklist":
+        self.page_clock.pack_forget()
+        if name == "clock":
+            self.refresh_maps()
+            self.page_clock.pack(fill="both", expand=True, padx=8, pady=(0, 7))
+            self.lbl_head.configure(text="")
+            self.update_clock()
+        elif name == "checklist":
             self.page_check.pack(fill="both", expand=True, padx=8, pady=(0, 7))
             self.lbl_head.configure(text="")   # 🔊🖥 の凡例はタイマー側だけの話
         else:
             self.page_timer.pack(fill="both", expand=True)
             self.update_view()
         self.app.cfg["mini_page"] = name
+
+    # ---- ゲーム内時計 ----
+    @staticmethod
+    def _span(sec):
+        sec = max(0, int(sec))
+        h, m, s = sec // 3600, (sec % 3600) // 60, sec % 60
+        return ("%d:%02d:%02d" % (h, m, s)) if h else ("%d:%02d" % (m, s))
+
+    def refresh_maps(self):
+        """プルダウンの中身を作り直す。"""
+        cs = self.app.clocks
+        self.map_keys = list(cs.order)
+        self.cb_map["values"] = [gametime.map_label(n) for n in self.map_keys]
+        if cs.current in self.map_keys:
+            self.cb_map.current(self.map_keys.index(cs.current))
+        elif self.map_keys:
+            self.cb_map.current(0)
+        else:
+            self.v_map.set("")
+
+    def _pick_map(self, _e=None):
+        i = self.cb_map.current()
+        if 0 <= i < len(self.map_keys):
+            self.app.clocks.current = self.map_keys[i]
+            self.app.save_clocks()
+            self.update_clock()
+
+    def update_clock(self, now=None):
+        """選んでいるマップの、いまのゲーム内時刻。"""
+        if self.page != "clock":
+            return
+        cs = self.app.clocks
+        if self.map_keys != list(cs.order):
+            self.refresh_maps()      # 本体でマップが増減したら追いつく
+        c = cs.get()
+        if c is None:
+            self.lbl_ctime.config(text="—")
+            self.lbl_cleft.config(text="")
+            self.lbl_cnote.config(text="本体でマップを登録してください")
+            return
+        if not c.synced:
+            self.lbl_ctime.config(text="--:--")
+            self.lbl_cleft.config(text="")
+            self.lbl_cnote.config(text="本体で H キーの時刻を合わせてください")
+            return
+        g = c.game_at(now)
+        night = gametime.is_night(g)
+        left = c.next_day(now) if night else c.next_night(now)
+        self.lbl_ctime.config(text="%s %s" % ("🌙" if night else "☀",
+                                              gametime.fmt_game_time(g)),
+                              fg=th.LAV if night else th.INK)
+        self.lbl_cleft.config(text="%s まで %s" % ("朝" if night else "夜",
+                                                  self._span(left)))
+        st = self.app.watcher.state.get(cs.current)
+        if st is None:
+            note = "見張っていません（アドレス未設定）"
+        elif st.get("online"):
+            note = "✅ %s/%s人 ／ Day %s" % (st.get("players", "?"),
+                                            st.get("max_players", "?"),
+                                            st.get("day", "?"))
+        else:
+            note = "⚠ いま落ちています"
+        msg = self.app.watch_msg.get(cs.current)
+        if msg:
+            note += "\n" + msg
+        self.lbl_cnote.config(text=note)
 
     def new_timer(self):
         self.app.open_new_dialog(parent=self)
@@ -1054,6 +1148,9 @@ class MiniWindow(tk.Toplevel):
 
     def update_view(self, now=None):
         now = now or time.time()
+        if self.page == "clock":
+            self.update_clock(now)
+            return
         live = 0
         for r in self.rows.values():
             t = r["timer"]

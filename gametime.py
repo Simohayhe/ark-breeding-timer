@@ -29,6 +29,48 @@ DEFAULT_DAY_REAL = 2487.0
 DEFAULT_NIGHT_REAL = 1113.0
 
 
+# マップの日本語名。日本のARK Wiki（wikiwiki.jp/arksa）と神ゲー攻略の
+# 表記に合わせてある。直訳はしない（Scorched Earth を「焦げた大地」とは呼ばない）。
+# 表に無いマップは英語のまま出す。
+MAP_JP = {
+    "theisland": "ザ・アイランド",
+    "thecenter": "ザ・センター",
+    "scorchedearth": "スコーチドアース",
+    "aberration": "アベレーション",
+    "extinction": "エクスティンクション",
+    "ragnarok": "ラグナロク",
+    "valguero": "ヴァルゲロ",
+    "astraeos": "アストレオス",
+    "lostcolony": "ロストコロニー",
+    "genesis": "ジェネシス パート1",
+    "gen2": "ジェネシス パート2",
+    "genesis2": "ジェネシス パート2",
+    "atlantis": "アトランティス",
+    "dragontopia": "ドラゴントピア",
+    "svartalfheim": "スヴァルトアールヴヘイム",
+    "crystalisles": "クリスタルアイルズ",
+    "lostisland": "ロストアイランド",
+    "fjordur": "フィヨルド",
+    "bobsmissions": "クラブARK",
+    "clubark": "クラブARK",
+}
+
+
+def map_label(name):
+    """マップの表示名。日本語名が分かっていればそれ、無ければそのまま。
+
+    サーバーから来る名前は TheIsland / ScorchedEarth_P / BobsMissions_WP の
+    ような内部名なので、末尾の _P や _WP を落としてから引く。
+    """
+    raw = (name or "").strip()
+    key = raw
+    for suffix in ("_WP", "_P"):
+        if key.upper().endswith(suffix):
+            key = key[: -len(suffix)]
+    key = key.replace(" ", "").replace("_", "").replace("-", "").lower()
+    return MAP_JP.get(key, raw)
+
+
 def parse_game_time(text):
     """'17:30' / '17:30:00' / '1730' をゲーム内秒（0〜86399）に。"""
     t = (text or "").strip()

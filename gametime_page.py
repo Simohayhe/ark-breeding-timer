@@ -468,7 +468,8 @@ class GameTimePage(tk.Frame):
         F = self.app.F
         row = tk.Frame(self.rows_box, bg=th.CARD)
         row.pack(fill="x", pady=1)
-        pick = th.RoundButton(row, name, lambda n=name: self.select(n),
+        pick = th.RoundButton(row, G.map_label(name),
+                              lambda n=name: self.select(n),
                               kind="soft", bg=th.CARD, font=F["small"],
                               padx=12, pady=5)
         pick.pack(side="left")
@@ -496,7 +497,8 @@ class GameTimePage(tk.Frame):
         ok, why = c.start_measure()
         self.app.save_clocks()
         self.update_view()
-        self._say_total(("⏱ %s を%s" % (name, why)) if ok else "⚠ " + why,
+        self._say_total(("⏱ %s を%s" % (G.map_label(name), why)) if ok
+                        else "⚠ " + why,
                         th.MINT if ok else th.PINK_DK)
 
     def toggle_bulk_measure(self):
@@ -530,7 +532,7 @@ class GameTimePage(tk.Frame):
                 c.full_day_real() / 60)
             if c.measuring:
                 mark = "（測定中）"
-            tk.Checkbutton(row, text=n + mark, variable=v, bg=th.CARD,
+            tk.Checkbutton(row, text=G.map_label(n) + mark, variable=v, bg=th.CARD,
                            fg=th.INK, activebackground=th.CARD,
                            activeforeground=th.INK, selectcolor=th.FIELD,
                            font=F["small"], bd=0, highlightthickness=0,
@@ -557,8 +559,8 @@ class GameTimePage(tk.Frame):
         self.app.save_clocks()
         self.toggle_bulk_measure()
         self.update_view()
-        msg = "⏱ %d個のマップを測りはじめました（%s）" % (len(started),
-                                                       "、".join(started[:6]))
+        msg = "⏱ %d個のマップを測りはじめました（%s）" % (
+            len(started), "、".join(G.map_label(n) for n in started[:6]))
         if len(started) > 6:
             msg += " ほか"
         if skipped:
@@ -619,8 +621,9 @@ class GameTimePage(tk.Frame):
             self.maps_box.pack(fill="x", pady=(8, 0))
         else:
             self.maps_box.pack_forget()
-        self.btn_maps.set_text("🗺 %s %s" % (self.app.clocks.current or "マップ",
-                                             "▴" if self.maps_open else "▾"))
+        self.btn_maps.set_text("🗺 %s %s"
+                               % (G.map_label(self.app.clocks.current) or "マップ",
+                                  "▴" if self.maps_open else "▾"))
 
     def select(self, name):
         self.app.clocks.current = name
@@ -854,7 +857,8 @@ class GameTimePage(tk.Frame):
         self.v_addr.set("%s:%s" % (ip, srv["port"]))
         self.save_fields()
         self.lbl_watch.config(text="✅ %s を見張ります（%s）"
-                                   % (srv["map"], srv["name"][:36]), fg=th.MINT)
+                                   % (G.map_label(srv["map"]),
+                                      srv["name"][:36]), fg=th.MINT)
         for w in self.pick_box.winfo_children():
             w.destroy()
 
@@ -892,7 +896,7 @@ class GameTimePage(tk.Frame):
         cur = self.rows.get(cs.current)
         self.lbl_now.config(text=cur["label"].cget("text") if cur else "",
                             fg=cur["label"].cget("fg") if cur else th.INK_SUB)
-        self.btn_maps.set_text("🗺 %s %s" % (cs.current or "マップ",
+        self.btn_maps.set_text("🗺 %s %s" % (G.map_label(cs.current) or "マップ",
                                              "▴" if self.maps_open else "▾"))
 
         c = cs.get()
@@ -900,7 +904,7 @@ class GameTimePage(tk.Frame):
             self.lbl_sel.config(text="マップが登録されていません")
             self.lbl_total.config(text="")
             return
-        self.lbl_sel.config(text="⚙ %s の設定" % cs.current)
+        self.lbl_sel.config(text="⚙ %s の設定" % G.map_label(cs.current))
         if c.restarts and c.restart_minutes > 0:
             self.lbl_restart.config(
                 text="→ %s に %g分ずつ、自動で差し引きます"
