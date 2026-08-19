@@ -33,6 +33,7 @@ class Watcher(threading.Thread):
         self.on_event = on_event
         self.interval = float(interval)
         self._halt = threading.Event()
+        self._wake = threading.Event()   # 「いま見に行く」で叩く
         self.client = eos.Client()
         self.state = {}        # キー -> 最後に見た結果
         self._last_seen = {}   # キー -> 最後に確認した時刻
@@ -40,6 +41,11 @@ class Watcher(threading.Thread):
 
     def stop(self):
         self._halt.set()
+        self._wake.set()
+
+    def poke(self):
+        """待ちを打ち切って、次の見回りをすぐ始めさせる。"""
+        self._wake.set()
 
     # ---- 1件ぶんの問い合わせ ----
     def check_now(self, key, address):
@@ -92,7 +98,8 @@ class Watcher(threading.Thread):
                 if self._halt.is_set():
                     break
                 self._check_one(key, address)
-            self._halt.wait(max(20.0, self.interval))
+            self._wake.wait(max(20.0, self.interval))
+            self._wake.clear()
 
     def _check_one(self, key, address):
         res = self.check_now(key, address)

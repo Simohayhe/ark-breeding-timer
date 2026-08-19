@@ -53,6 +53,10 @@ class Fold(tk.Frame):
         else:
             self.body.pack_forget()
 
+    def set_title(self, title):
+        self.title = title
+        self._paint()
+
     def toggle(self):
         self.opened = not self.opened
         self._paint()
@@ -64,6 +68,7 @@ class GameTimePage(tk.Frame):
         self.app = app
         self._loading = False
         self._total_msg_until = 0.0   # ①の一言をいつまで出しておくか
+        self._poke_at = 0.0           # 「いま見に行く」を押した時刻
         self.meter = None
         self.meter_phase = None
         F = app.F
@@ -134,6 +139,25 @@ class GameTimePage(tk.Frame):
         th.RoundButton(nrow, "＋ 追加", self.add_map, kind="soft", bg=th.CARD,
                        font=F["small"], padx=12, pady=5).pack(side="left",
                                                               padx=6)
+
+        # ---- 中: サーバーの様子 ----
+        # 見張っているマップの生死・人数・Day をまとめて出す。
+        # 数が多いと画面がうるさいので、たたんでおいて見出しに要約を出す。
+        stat = th.Card(self.inner, bg=th.BG)
+        stat.pack(fill="x", pady=(8, 0))
+        self.fold_stat = Fold(stat.body, "サーバーの様子", F["cute_b"])
+        self.fold_stat.pack(fill="x")
+        srow = tk.Frame(self.fold_stat.body, bg=th.CARD)
+        srow.pack(fill="x", pady=(0, 4))
+        th.RoundButton(srow, "↻ いま見に行く", self.poke_watch, kind="soft",
+                       bg=th.CARD, font=F["small"], padx=12,
+                       pady=5).pack(side="left")
+        self.lbl_poke = tk.Label(srow, text="", bg=th.CARD, fg=th.INK_SUB,
+                                 font=F["small"])
+        self.lbl_poke.pack(side="left")
+        self.stat_box = tk.Frame(self.fold_stat.body, bg=th.CARD)
+        self.stat_box.pack(fill="x")
+        self.stat_rows = {}
 
         # ---- 下: 選んだマップの設定 ----
         conf = th.Card(self.inner, bg=th.BG)
@@ -480,6 +504,76 @@ class GameTimePage(tk.Frame):
                        anchor="w")
         lbl.pack(side="left", padx=10)
         return {"btn": pick, "label": lbl}
+
+    # ---------------- サーバーの様子 ----------------
+    def poke_watch(self):
+        """次の見回りを待たずに、いますぐ見に行かせる。"""
+        if not self.app._watch_targets():
+            self.lbl_poke.config(text="  ⚠ アドレスの入ったマップがありません",
+                                 fg=th.PINK_DK)
+            return
+        self.app.watcher.poke()
+        self._poke_at = time.time()
+        self.lbl_poke.config(text="  見に行っています…", fg=th.INK_SUB)
+
+    def _stat_row(self, name):
+        F = self.app.F
+        row = tk.Frame(self.stat_box, bg=th.CARD)
+        row.pack(fill="x", pady=1)
+        lamp = tk.Label(row, text="●", bg=th.CARD, fg=th.INK_SUB, font=F["ui"])
+        lamp.pack(side="left", padx=(0, 4))
+        nm = tk.Label(row, text=G.map_label(name), bg=th.CARD, fg=th.INK,
+                      font=F["ui"], anchor="w", width=18)
+        nm.pack(side="left")
+        info = tk.Label(row, text="", bg=th.CARD, fg=th.INK_SUB, font=F["small"],
+                        anchor="w")
+        info.pack(side="left", fill="x", expand=True)
+        return {"row": row, "lamp": lamp, "info": info}
+
+    def refresh_status(self, now=None):
+        """見張っているマップぶんの行を出し直す。"""
+        now = now if now is not None else time.time()
+        targets = [n for n, _a in self.app._watch_targets()]
+        if list(self.stat_rows) != targets:
+            for r in self.stat_rows.values():
+                r["row"].destroy()
+            self.stat_rows = {n: self._stat_row(n) for n in targets}
+        live = 0
+        for name, r in self.stat_rows.items():
+            st = self.app.watcher.state.get(name)
+            if st is None:
+                r["lamp"].config(fg=th.INK_SUB)
+                r["info"].config(text="まだ見ていません")
+                continue
+            seen = st.get("at") or now
+            ago = max(0, int(now - seen))
+            when = "%d秒前" % ago if ago < 60 else "%d分前" % (ago // 60)
+            if st.get("online"):
+                live += 1
+                r["lamp"].config(fg=th.MINT)
+                r["info"].config(
+                    text="%s/%s人　Day %s　%s"
+                         % (st.get("players", "?"), st.get("max_players", "?"),
+                            st.get("day", "?"), when),
+                    fg=th.INK_SUB)
+            else:
+                r["lamp"].config(fg=th.RED)
+                r["info"].config(text="%s　%s" % (st.get("why") or "落ちています",
+                                                 when), fg=th.PINK_DK)
+        if targets:
+            head = "サーバーの様子 — %d/%d 起動中" % (live, len(targets))
+        else:
+            head = "サーバーの様子（見張っているマップがありません）"
+        if self.fold_stat.title != head:
+            self.fold_stat.set_title(head)
+        # 見に行った結果が返ってきたら「見に行っています…」を消す。
+        # 全部落ちていても返事は返るので、生きている数ではなく時刻で見る。
+        if getattr(self, "_poke_at", 0):
+            got = [self.app.watcher.state.get(n, {}).get("at") or 0
+                   for n in targets]
+            if got and min(got) >= self._poke_at:
+                self._poke_at = 0
+                self.lbl_poke.config(text="  ✅ 見てきました", fg=th.MINT)
 
     def _say_total(self, text, fg, secs=12):
         """①の脇に一言。しばらくしたら進み具合の表示に戻る。"""
@@ -864,6 +958,7 @@ class GameTimePage(tk.Frame):
 
     # ---------------- 表示 ----------------
     def update_view(self, now=None):
+        self.refresh_status(now)
         cs = self.app.clocks
         for name, row in self.rows.items():
             c = cs.clocks.get(name)
