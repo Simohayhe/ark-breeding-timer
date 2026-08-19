@@ -39,7 +39,7 @@ from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.25.0"
+APP_VERSION = "1.26.0"
 
 
 def _res_dir():
@@ -129,6 +129,8 @@ DEFAULT_CONFIG = {
     "page": "timers",         # 最後に開いていたページ
     "mini_geometry": "300x320",
     "mini_page": "timers",
+    "mini_clock_count": 1,    # ミニ表示に並べる時計の数（1〜3）
+    "mini_clock_maps": [],    # その枠に入れたマップ名
 }
 
 
@@ -921,25 +923,44 @@ class MiniWindow(tk.Toplevel):
         self.page_check = ChecklistPage(self, app, compact=True)
 
         # ---- ゲーム内時計のページ ----
-        # 狭いのでプルダウンひとつ。選んだマップの時刻だけ大きく出す。
+        # 狭いので1枠につきプルダウン1つ。3つまで並べられる。
         self.page_clock = tk.Frame(self, bg=th.BG)
+        head = tk.Frame(self.page_clock, bg=th.BG)
+        head.pack(fill="x", pady=(0, 4))
+        tk.Label(head, text="いくつ出す", bg=th.BG, fg=th.INK_SUB,
+                 font=th.F["small"]).pack(side="left", padx=(2, 4))
+        self.count_pills = {}
+        for k in (1, 2, 3):
+            pl = Pill(head, str(k), lambda n=k: self.set_clock_count(n),
+                      bg=th.BG, font=th.F["small"], padx=9, pady=3)
+            pl.pack(side="left", padx=2)
+            self.count_pills[k] = pl
+
+        self.slots = []
+        for i in range(3):
+            box = tk.Frame(self.page_clock, bg=th.CARD, highlightthickness=1,
+                           highlightbackground=th.LINE, highlightcolor=th.LINE)
+            inner = tk.Frame(box, bg=th.CARD)
+            inner.pack(fill="x", padx=6, pady=5)
+            var = tk.StringVar()
+            cb = ttk.Combobox(inner, textvariable=var, state="readonly",
+                              style="Cute.TCombobox", font=th.F["small"])
+            cb.pack(fill="x")
+            cb.bind("<<ComboboxSelected>>", lambda e, n=i: self._pick_map(n))
+            t = tk.Label(inner, text="", bg=th.CARD, fg=th.INK, font=th.F["num"])
+            t.pack(pady=(2, 0))
+            lf = tk.Label(inner, text="", bg=th.CARD, fg=th.PINK_DK,
+                          font=th.F["cute_b"])
+            lf.pack()
+            nt = tk.Label(inner, text="", bg=th.CARD, fg=th.INK_SUB,
+                          font=th.F["small"], wraplength=250, justify="center")
+            nt.pack()
+            self.slots.append({"box": box, "cb": cb, "var": var,
+                               "time": t, "left": lf, "note": nt})
         self.map_keys = []
-        self.v_map = tk.StringVar()
-        self.cb_map = ttk.Combobox(self.page_clock, textvariable=self.v_map,
-                                   state="readonly", style="Cute.TCombobox",
-                                   font=th.F["ui"])
-        self.cb_map.pack(fill="x", padx=10, pady=(2, 8))
-        self.cb_map.bind("<<ComboboxSelected>>", self._pick_map)
-        self.lbl_ctime = tk.Label(self.page_clock, text="", bg=th.BG,
-                                  fg=th.INK, font=th.F["num"])
-        self.lbl_ctime.pack()
-        self.lbl_cleft = tk.Label(self.page_clock, text="", bg=th.BG,
-                                  fg=th.PINK_DK, font=th.F["cute_b"])
-        self.lbl_cleft.pack(pady=(2, 0))
-        self.lbl_cnote = tk.Label(self.page_clock, text="", bg=th.BG,
-                                  fg=th.INK_SUB, font=th.F["small"],
-                                  wraplength=250, justify="center")
-        self.lbl_cnote.pack(pady=(6, 0))
+        self.clock_count = 0
+        self.page = None      # 枠を並べるより先に要る（update_clock が見る）
+        self.set_clock_count(app.cfg.get("mini_clock_count", 1), save=False)
 
         self.bind("<MouseWheel>", self._wheel)
         self.protocol("WM_DELETE_WINDOW", self.back)
@@ -976,64 +997,115 @@ class MiniWindow(tk.Toplevel):
         h, m, s = sec // 3600, (sec % 3600) // 60, sec % 60
         return ("%d:%02d:%02d" % (h, m, s)) if h else ("%d:%02d" % (m, s))
 
+    def set_clock_count(self, n, save=True):
+        """並べる時計の数を1〜3で決める。"""
+        n = max(1, min(3, int(n)))
+        self.clock_count = n
+        for k, pl in self.count_pills.items():
+            pl.update_view(k == n)
+        for i, sl in enumerate(self.slots):
+            if i < n:
+                sl["box"].pack(fill="x", pady=2)
+                # 1つだけのときは大きく、並べるときは小さめに
+                sl["time"].config(font=th.F["num"] if n == 1 else th.F["num_s"])
+            else:
+                sl["box"].pack_forget()
+        if save:
+            self.app.cfg["mini_clock_count"] = n
+            self._save_slot_maps()
+        self.refresh_maps()
+        self.update_clock()
+        if save and self.page == "clock":
+            # 増やしたぶんが窓に収まらないので、足りなければ縦に伸ばす
+            self.update_idletasks()
+            need = self.page_clock.winfo_reqheight() + 56
+            if self.winfo_height() < need:
+                self.geometry("%dx%d" % (max(240, self.winfo_width()), need))
+
+    def _slot_names(self):
+        """いま各枠に入れているマップ名。足りない分は埋める。"""
+        want = list(self.app.cfg.get("mini_clock_maps") or [])
+        order = list(self.app.clocks.order)
+        out = []
+        for i in range(3):
+            n = want[i] if i < len(want) else None
+            if n not in order:
+                n = None
+            if n is None and order:
+                # まだ決めていない枠は、他の枠と重ならないものを順に入れる
+                spare = [x for x in order if x not in out] or order
+                n = spare[0]
+            out.append(n)
+        return out
+
+    def _save_slot_maps(self):
+        self.app.cfg["mini_clock_maps"] = [
+            (self.map_keys[sl["cb"].current()]
+             if 0 <= sl["cb"].current() < len(self.map_keys) else None)
+            for sl in self.slots]
+
     def refresh_maps(self):
         """プルダウンの中身を作り直す。"""
-        cs = self.app.clocks
-        self.map_keys = list(cs.order)
-        self.cb_map["values"] = [gametime.map_label(n) for n in self.map_keys]
-        if cs.current in self.map_keys:
-            self.cb_map.current(self.map_keys.index(cs.current))
-        elif self.map_keys:
-            self.cb_map.current(0)
-        else:
-            self.v_map.set("")
+        self.map_keys = list(self.app.clocks.order)
+        labels = [gametime.map_label(n) for n in self.map_keys]
+        names = self._slot_names()
+        for i, sl in enumerate(self.slots):
+            sl["cb"]["values"] = labels
+            if names[i] in self.map_keys:
+                sl["cb"].current(self.map_keys.index(names[i]))
+            else:
+                sl["var"].set("")
 
-    def _pick_map(self, _e=None):
-        i = self.cb_map.current()
-        if 0 <= i < len(self.map_keys):
-            self.app.clocks.current = self.map_keys[i]
-            self.app.save_clocks()
-            self.update_clock()
+    def _pick_map(self, slot):
+        self._save_slot_maps()
+        self.app.save_cfg()
+        self.update_clock()
 
     def update_clock(self, now=None):
-        """選んでいるマップの、いまのゲーム内時刻。"""
+        """並べている枠ぶん、いまのゲーム内時刻を出す。"""
         if self.page != "clock":
             return
         cs = self.app.clocks
         if self.map_keys != list(cs.order):
             self.refresh_maps()      # 本体でマップが増減したら追いつく
-        c = cs.get()
-        if c is None:
-            self.lbl_ctime.config(text="—")
-            self.lbl_cleft.config(text="")
-            self.lbl_cnote.config(text="本体でマップを登録してください")
-            return
-        if not c.synced:
-            self.lbl_ctime.config(text="--:--")
-            self.lbl_cleft.config(text="")
-            self.lbl_cnote.config(text="本体で H キーの時刻を合わせてください")
-            return
-        g = c.game_at(now)
-        night = gametime.is_night(g)
-        left = c.next_day(now) if night else c.next_night(now)
-        self.lbl_ctime.config(text="%s %s" % ("🌙" if night else "☀",
+        one = self.clock_count == 1
+        for i, sl in enumerate(self.slots):
+            if i >= self.clock_count:
+                continue
+            k = sl["cb"].current()
+            name = self.map_keys[k] if 0 <= k < len(self.map_keys) else None
+            c = cs.clocks.get(name) if name else None
+            if c is None:
+                sl["time"].config(text="—", fg=th.INK)
+                sl["left"].config(text="")
+                sl["note"].config(text="本体でマップを登録してください")
+                continue
+            if not c.synced:
+                sl["time"].config(text="--:--", fg=th.INK)
+                sl["left"].config(text="")
+                sl["note"].config(text="本体で H キーの時刻を合わせてください")
+                continue
+            g = c.game_at(now)
+            night = gametime.is_night(g)
+            left = c.next_day(now) if night else c.next_night(now)
+            sl["time"].config(text="%s %s" % ("🌙" if night else "☀",
                                               gametime.fmt_game_time(g)),
                               fg=th.LAV if night else th.INK)
-        self.lbl_cleft.config(text="%s まで %s" % ("朝" if night else "夜",
+            sl["left"].config(text="%s まで %s" % ("朝" if night else "夜",
                                                   self._span(left)))
-        st = self.app.watcher.state.get(cs.current)
-        if st is None:
-            note = "見張っていません（アドレス未設定）"
-        elif st.get("online"):
-            note = "✅ %s/%s人 ／ Day %s" % (st.get("players", "?"),
-                                            st.get("max_players", "?"),
-                                            st.get("day", "?"))
-        else:
-            note = "⚠ いま落ちています"
-        msg = self.app.watch_msg.get(cs.current)
-        if msg:
-            note += "\n" + msg
-        self.lbl_cnote.config(text=note)
+            st = self.app.watcher.state.get(name)
+            if st is None:
+                note = "見張っていません" if one else ""
+            elif st.get("online"):
+                note = ("✅ %s/%s人 ／ Day %s"
+                        % (st.get("players", "?"), st.get("max_players", "?"),
+                           st.get("day", "?")))
+            else:
+                note = "⚠ いま落ちています"
+            msg = self.app.watch_msg.get(name)
+            if msg and one:
+                note += "\n" + msg
+            sl["note"].config(text=note)
 
     def new_timer(self):
         self.app.open_new_dialog(parent=self)
