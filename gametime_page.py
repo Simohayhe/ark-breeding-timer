@@ -873,7 +873,7 @@ class GameTimePage(tk.Frame):
             row["btn"].fill = th.PINK if on else th.BG_SOFT
             row["btn"].itemconfigure(row["btn"].shape, fill=row["btn"].fill)
             row["btn"].itemconfigure(row["btn"].label,
-                                     fill="#FFFFFF" if on else th.INK)
+                                     fill=th.ON_ACCENT if on else th.INK)
             if not c.synced:
                 row["label"].config(text="まだ合わせていません", fg=th.INK_SUB)
                 continue

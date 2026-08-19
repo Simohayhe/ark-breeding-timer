@@ -10,34 +10,116 @@ import tkinter as tk
 import tkinter.font as tkfont
 
 # ---------------------------------------------------------------- パレット
-BG = "#FBF7FA"        # ほんのり桜色の生成り
-BG_SOFT = "#F4ECF4"
-CARD = "#FFFFFF"
-SHADOW = "#F1E5EF"
-LINE = "#EFE6EF"
-FIELD = "#F8F3F8"
-
-INK = "#4C4457"       # 文字
-INK_SUB = "#A99CB4"   # 補助文字
-
-PINK = "#FF9BBB"
-PINK_DK = "#F4749E"
-LAV = "#B79CF0"
-MINT = "#68D2B0"
-SKY = "#88C6F7"
-LEMON = "#FFD275"
-PEACH = "#FFAD8E"
-RED = "#FF7B7B"
-
-# 種類ごとの見た目 (絵文字, 色, 表示名)
-KIND_STYLE = {
-    "custom": ("⏰", PEACH, "タイマー"),
-    "hatch": ("🥚", LEMON, "孵化"),
-    "gestation": ("🌸", PINK, "妊娠"),
-    "mature": ("🌱", MINT, "成長"),
-    "imprint": ("💗", SKY, "刷り込み"),
-    "matingcd": ("💞", LAV, "再交配"),
+# 2種類ある。かわいい＝パステルの明るいほう、かっこいい＝暗いほう。
+# 色は全部モジュール変数なので、部品を作る前に use() を呼んでおくこと。
+PALETTES = {
+    "cute": {
+        "NAME": "かわいい",
+        "DARK": False,
+        "BG": "#FBF7FA",       # ほんのり桜色の生成り
+        "BG_SOFT": "#F4ECF4",
+        "CARD": "#FFFFFF",
+        "SHADOW": "#F1E5EF",
+        "LINE": "#EFE6EF",
+        "FIELD": "#F8F3F8",
+        "INK": "#4C4457",
+        "INK_SUB": "#A99CB4",
+        "PINK": "#FF9BBB",     # 主役の色（かっこいい側では青になる）
+        "PINK_DK": "#F4749E",
+        "LAV": "#B79CF0",
+        "MINT": "#68D2B0",
+        "SKY": "#88C6F7",
+        "LEMON": "#FFD275",
+        "PEACH": "#FFAD8E",
+        "RED": "#FF7B7B",
+        "HOVER_SOFT": "#E8DCEA",
+        "HOVER_LAV": "#9F7DE8",
+        "HOVER_MINT": "#4FC3A0",
+        "DANGER_BG": "#FFEDED",
+        "DANGER_HOVER": "#FFD9D9",
+        "ON_ACCENT": "#FFFFFF",
+    },
+    "cool": {
+        "NAME": "かっこいい",
+        "DARK": True,
+        "BG": "#12141A",       # 夜のコックピットみたいな暗い紺
+        "BG_SOFT": "#1A1D25",
+        "CARD": "#1D212B",
+        "SHADOW": "#0C0E13",
+        "LINE": "#2C3240",
+        "FIELD": "#232936",
+        "INK": "#E8ECF4",
+        "INK_SUB": "#8892A6",
+        "PINK": "#4C9BFF",     # 主役は青
+        "PINK_DK": "#2F7FE8",
+        "LAV": "#9B7BFF",
+        "MINT": "#2FD6A0",
+        "SKY": "#4FC8F5",
+        "LEMON": "#FFC857",
+        "PEACH": "#FF8F6B",
+        "RED": "#FF6B6B",
+        "HOVER_SOFT": "#2B3140",
+        "HOVER_LAV": "#8663F0",
+        "HOVER_MINT": "#22BE8C",
+        "DANGER_BG": "#3A2129",
+        "DANGER_HOVER": "#4A2932",
+        "ON_ACCENT": "#0E1117",
+    },
 }
+THEME = "cute"
+
+# use() が実際の値を入れる。ここは既定（かわいい）を置いておくだけ。
+BG = BG_SOFT = CARD = SHADOW = LINE = FIELD = ""
+INK = INK_SUB = PINK = PINK_DK = LAV = MINT = SKY = LEMON = PEACH = RED = ""
+HOVER_SOFT = HOVER_LAV = HOVER_MINT = DANGER_BG = DANGER_HOVER = ON_ACCENT = ""
+
+# 種類ごとの見た目 (絵文字, 色, 表示名)。use() で色を入れ直す
+KIND_STYLE = {}
+KIND_BASE = (
+    ("custom", "⏰", "PEACH", "タイマー"),
+    ("hatch", "🥚", "LEMON", "孵化"),
+    ("gestation", "🌸", "PINK", "妊娠"),
+    ("mature", "🌱", "MINT", "成長"),
+    ("imprint", "💗", "SKY", "刷り込み"),
+    ("matingcd", "💞", "LAV", "再交配"),
+)
+
+
+def use(name):
+    """パレットを切り替える。**部品を1つでも作る前に呼ぶこと。**
+
+    tkinter のウィジェットは作ったときの色をそのまま抱えるので、
+    あとから呼んでも画面は変わらない（アプリを起動し直す前提）。
+    """
+    global THEME
+    pal = PALETTES.get(name) or PALETTES["cute"]
+    THEME = name if name in PALETTES else "cute"
+    g = globals()
+    for k, v in pal.items():
+        if k not in ("NAME", "DARK"):
+            g[k] = v
+    KIND_STYLE.clear()
+    for key, icon, color, jp in KIND_BASE:
+        KIND_STYLE[key] = (icon, g[color], jp)
+    if "RoundButton" in g:
+        g["RoundButton"].SCHEME = _scheme()
+    return THEME
+
+
+def _scheme():
+    return {
+        "primary": (PINK, PINK_DK, ON_ACCENT),
+        "accent": (LAV, HOVER_LAV, ON_ACCENT),
+        "mint": (MINT, HOVER_MINT, ON_ACCENT),
+        "soft": (BG_SOFT, HOVER_SOFT, INK),
+        "ghost": (CARD, BG_SOFT, INK_SUB),
+        "danger": (DANGER_BG, DANGER_HOVER, RED),
+    }
+
+
+def dark():
+    return bool((PALETTES.get(THEME) or {}).get("DARK"))
+
 
 JP = "Yu Gothic UI"
 CUTE = "UD デジタル 教科書体 NP"
@@ -46,7 +128,7 @@ CUTE = "UD デジタル 教科書体 NP"
 def fonts():
     """使えるフォントを見て決める（無ければ Yu Gothic UI に落とす）。"""
     fams = set(tkfont.families())
-    cute = CUTE if CUTE in fams else JP
+    cute = CUTE if (CUTE in fams and not dark()) else JP
     return {
         "ui": (JP, 10),
         "ui_b": (JP, 10, "bold"),
@@ -92,6 +174,7 @@ def make_icon(size=64):
 
 
 F = {}
+use("cute")      # import しただけでも色が入っている状態にしておく
 
 
 def init(root):
@@ -109,6 +192,11 @@ def init(root):
                  bordercolor=BG, arrowcolor=INK_SUB, borderwidth=0, relief="flat",
                  gripcount=0, arrowsize=12)
     st.map("Cute.Vertical.TScrollbar", background=[("active", PINK)])
+    st.configure("TCombobox", arrowcolor=INK_SUB)
+    root.option_add("*TCombobox*Listbox.background", FIELD)
+    root.option_add("*TCombobox*Listbox.foreground", INK)
+    root.option_add("*TCombobox*Listbox.selectBackground", PINK)
+    root.option_add("*TCombobox*Listbox.selectForeground", ON_ACCENT)
     st.configure("Cute.Horizontal.TScale", background=CARD, troughcolor=BG_SOFT,
                  bordercolor=CARD, darkcolor=PINK, lightcolor=PINK, borderwidth=0)
     st.configure("Cute.TCombobox", fieldbackground=FIELD, background=FIELD,
@@ -132,17 +220,11 @@ def round_rect(cv, x1, y1, x2, y2, r, **kw):
 class RoundButton(tk.Canvas):
     """角丸ボタン。kind: primary / soft / ghost / danger"""
 
-    SCHEME = {
-        "primary": (PINK, PINK_DK, "#FFFFFF"),
-        "accent": (LAV, "#9F7DE8", "#FFFFFF"),
-        "mint": (MINT, "#4FC3A0", "#FFFFFF"),
-        "soft": (BG_SOFT, "#E8DCEA", INK),
-        "ghost": (CARD, BG_SOFT, INK_SUB),
-        "danger": ("#FFEDED", "#FFD9D9", RED),
-    }
+    SCHEME = {}      # use() が入れる
 
-    def __init__(self, master, text, command=None, kind="soft", bg=BG,
+    def __init__(self, master, text, command=None, kind="soft", bg=None,
                  font=None, padx=16, pady=8, radius=None, width=None):
+        bg = BG if bg is None else bg
         self.font = font or F.get("cute", (JP, 11))
         fo = tkfont.Font(font=self.font)
         w = width or (fo.measure(text) + padx * 2)
@@ -172,20 +254,25 @@ class RoundButton(tk.Canvas):
 class PillBadge(tk.Canvas):
     """種類バッジ（絵文字＋名前の角丸ピル）"""
 
-    def __init__(self, master, text, color, bg=CARD, font=None, padx=12, pady=4):
+    def __init__(self, master, text, color, bg=None, font=None, padx=12, pady=4):
+        bg = CARD if bg is None else bg
         self.font = font or F.get("small", (JP, 9))
         fo = tkfont.Font(font=self.font)
         w = fo.measure(text) + padx * 2
         h = fo.metrics("linespace") + pady * 2
         super().__init__(master, width=w, height=h, bg=bg, highlightthickness=0, bd=0)
         round_rect(self, 0, 0, w, h, h / 2, fill=color, outline="")
-        self.create_text(w / 2, h / 2 + 1, text=text, fill="#FFFFFF", font=self.font)
+        self.create_text(w / 2, h / 2 + 1, text=text, fill=ON_ACCENT,
+                         font=self.font)
 
 
 class RoundProgress(tk.Canvas):
     """角丸の進捗バー"""
 
-    def __init__(self, master, bg=CARD, color=PINK, height=10, track=BG_SOFT):
+    def __init__(self, master, bg=None, color=None, height=10, track=None):
+        bg, color, track = (CARD if bg is None else bg,
+                            PINK if color is None else color,
+                            BG_SOFT if track is None else track)
         super().__init__(master, height=height, bg=bg, highlightthickness=0, bd=0)
         self.color = color
         self.track = track
@@ -214,7 +301,7 @@ class RoundProgress(tk.Canvas):
 class RoundSlider(tk.Canvas):
     """まるいつまみのスライダー（0.0〜1.0）"""
 
-    def __init__(self, master, value=0.7, command=None, bg=CARD, color=PINK,
+    def __init__(self, master, value=0.7, command=None, bg=None, color=None,
                  height=26, track_h=8, knob_r=9):
         super().__init__(master, height=height, bg=bg, highlightthickness=0, bd=0)
         self.value = max(0.0, min(1.0, value))
@@ -253,7 +340,7 @@ class RoundSlider(tk.Canvas):
         if x > r + 1:
             round_rect(self, r, cy - th_ / 2, x, cy + th_ / 2, th_ / 2,
                        fill=self.color, outline="")
-        self.create_oval(x - r, cy - r, x + r, cy + r, fill="#FFFFFF",
+        self.create_oval(x - r, cy - r, x + r, cy + r, fill=CARD,
                          outline=self.color, width=3)
 
 
@@ -262,7 +349,8 @@ class Card(tk.Canvas):
 
     PAD = 14
 
-    def __init__(self, master, bg=BG, card=CARD, radius=20, pad=None):
+    def __init__(self, master, bg=None, card=None, radius=20, pad=None):
+        bg, card = BG if bg is None else bg, CARD if card is None else card
         super().__init__(master, bg=bg, highlightthickness=0, bd=0, height=60)
         self.card_color = card
         self.radius = radius
@@ -288,7 +376,8 @@ class Card(tk.Canvas):
         self.itemconfigure(self._item, width=max(1, w - self.pad * 2))
 
 
-def soft_entry(master, textvariable=None, width=None, font=None, bg=CARD, **kw):
+def soft_entry(master, textvariable=None, width=None, font=None, bg=None, **kw):
+    bg = CARD if bg is None else bg
     """やわらかい見た目の入力欄"""
     e = tk.Entry(master, textvariable=textvariable, relief="flat", bd=0,
                  bg=FIELD, fg=INK, insertbackground=PINK_DK,
@@ -298,7 +387,8 @@ def soft_entry(master, textvariable=None, width=None, font=None, bg=CARD, **kw):
     return e
 
 
-def label(master, text, bg=CARD, fg=None, font=None, **kw):
+def label(master, text, bg=None, fg=None, font=None, **kw):
+    bg = CARD if bg is None else bg
     return tk.Label(master, text=text, bg=bg, fg=fg or INK,
                     font=font or F.get("ui", (JP, 10)), **kw)
 
@@ -306,8 +396,11 @@ def label(master, text, bg=CARD, fg=None, font=None, **kw):
 class Chip(tk.Canvas):
     """小さな丸いショートカット（5分 / 10分 …）"""
 
-    def __init__(self, master, text, command, bg=BG, fill=CARD, fg=INK, font=None,
+    def __init__(self, master, text, command, bg=None, fill=None, fg=None, font=None,
                  padx=13, pady=6):
+        bg = BG if bg is None else bg
+        fill = CARD if fill is None else fill
+        fg = INK if fg is None else fg
         self.font = font or F.get("small", (JP, 9))
         fo = tkfont.Font(font=self.font)
         w = fo.measure(text) + padx * 2
@@ -318,7 +411,8 @@ class Chip(tk.Canvas):
         self.shape = round_rect(self, 1, 1, w - 1, h - 1, h / 2, fill=fill,
                                 outline=LINE, width=1)
         self.create_text(w / 2, h / 2 + 1, text=text, fill=fg, font=self.font)
-        self.bind("<Enter>", lambda e: self.itemconfigure(self.shape, fill="#FFF0F6"))
+        self.bind("<Enter>", lambda e: self.itemconfigure(self.shape,
+                                                           fill=HOVER_SOFT))
         self.bind("<Leave>", lambda e: self.itemconfigure(self.shape, fill=self.fill))
         self.bind("<ButtonRelease-1>", lambda e: command())
         self.configure(cursor="hand2")

@@ -39,7 +39,7 @@ from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.26.0"
+APP_VERSION = "1.27.0"
 
 
 def _res_dir():
@@ -129,6 +129,7 @@ DEFAULT_CONFIG = {
     "page": "timers",         # 最後に開いていたページ
     "mini_geometry": "300x320",
     "mini_page": "timers",
+    "theme": "cute",          # 見た目（cute=かわいい / cool=かっこいい）
     "mini_clock_count": 1,    # ミニ表示に並べる時計の数（1〜3）
     "mini_clock_maps": [],    # その枠に入れたマップ名
 }
@@ -468,7 +469,8 @@ class FlowFrame(tk.Frame):
     子は add() で渡す（place で配置するので pack/grid は使わない）。
     """
 
-    def __init__(self, master, bg=th.BG, gap_x=5, gap_y=5, **kw):
+    def __init__(self, master, bg=None, gap_x=5, gap_y=5, **kw):
+        bg = th.BG if bg is None else bg
         super().__init__(master, bg=bg, **kw)
         self._kids = []
         self._gap_x, self._gap_y = gap_x, gap_y
@@ -526,8 +528,9 @@ class FlowFrame(tk.Frame):
 class Pill(tk.Canvas):
     """角丸のトグル。ページ切替タブと絞り込みチップの両方に使う。"""
 
-    def __init__(self, master, text, command, bg=th.BG, font=None,
+    def __init__(self, master, text, command, bg=None, font=None,
                  counted=False, padx=14, pady=7):
+        bg = th.BG if bg is None else bg
         self.font = font or th.F.get("small", (th.JP, 9))
         fo = tkfont.Font(font=self.font)
         self.base_text = text
@@ -548,7 +551,7 @@ class Pill(tk.Canvas):
 
     def _hover(self, on):
         if not self.active:
-            self.itemconfigure(self.shape, fill="#FFF0F6" if on else th.CARD)
+            self.itemconfigure(self.shape, fill=th.HOVER_SOFT if on else th.CARD)
 
     def update_view(self, active, count=None):
         self.active = active
@@ -556,7 +559,7 @@ class Pill(tk.Canvas):
         self.itemconfigure(self.label, text=txt)
         if active:
             self.itemconfigure(self.shape, fill=th.PINK, outline=th.PINK)
-            self.itemconfigure(self.label, fill="#FFFFFF")
+            self.itemconfigure(self.label, fill=th.ON_ACCENT)
         else:
             self.itemconfigure(self.shape, fill=th.CARD, outline=th.LINE)
             self.itemconfigure(self.label, fill=th.INK_SUB)
@@ -567,7 +570,8 @@ class MarkButton(tk.Canvas):
 
     SIZE = 30
 
-    def __init__(self, master, state, command, bg=th.CARD):
+    def __init__(self, master, state, command, bg=None):
+        bg = th.CARD if bg is None else bg
         super().__init__(master, width=self.SIZE, height=self.SIZE,
                          bg=bg, highlightthickness=0, bd=0)
         self.state_key = state
@@ -592,7 +596,7 @@ class MarkButton(tk.Canvas):
         self.active = on
         if on:
             self.itemconfigure(self.shape, fill=self.color, outline=self.color)
-            self.itemconfigure(self.text, fill="#FFFFFF")
+            self.itemconfigure(self.text, fill=th.ON_ACCENT)
         else:
             self.itemconfigure(self.shape, fill=th.CARD, outline=th.LINE)
             self.itemconfigure(self.text, fill=th.INK_SUB)
@@ -1270,6 +1274,7 @@ class App(tk.Tk):
         self._hotkey_err = ""
         # 起動前に終わっていたタイマーを開いた瞬間に消さないための基準時刻
         self.start_ts = time.time()
+        th.use(self.cfg.get("theme", "cute"))   # 部品を作る前に色を決める
         self.clocks = gametime.ClockSet.migrate(self.cfg.get("game_clock"),
                                                 self.cfg.get("game_clocks"))
         self.watcher = serverwatch.Watcher(
@@ -2004,6 +2009,29 @@ class App(tk.Tk):
             pass
         save_json(CONFIG_PATH, self.cfg)
 
+    def restart(self):
+        """設定を保存して、自分を起動し直す。
+
+        tkinter は作ったときの色を抱えたままなので、見た目を変えるには
+        作り直すしかない。タイマーは終わる時刻で保存してあるので消えない。
+        """
+        self.cfg["geometry"] = self.geometry()
+        if self.mini is not None and self.mini.winfo_exists():
+            self.cfg["mini_geometry"] = self.mini.geometry()
+        self.save_cfg()
+        self.save_timers()
+        if getattr(sys, "frozen", False):
+            args = [sys.executable]
+        else:
+            args = [sys.executable, os.path.abspath(sys.argv[0])]
+        try:
+            subprocess.Popen(args, cwd=os.path.dirname(args[-1]) or None,
+                             close_fds=True)
+        except OSError:
+            return False
+        self.on_close()
+        return True
+
     def on_close(self):
         if self.mini is not None and self.mini.winfo_exists():
             self.cfg["mini_geometry"] = self.mini.geometry()
@@ -2170,7 +2198,7 @@ class TimerCard(th.Card):
 class RepeatPanel(tk.Frame):
     """くり返しの設定（入／回数／間隔）。作成画面とカードの両方で使う。"""
 
-    def __init__(self, master, app, bg=th.CARD, repeat=False, count=0, every=0.0,
+    def __init__(self, master, app, bg=None, repeat=False, count=0, every=0.0,
                  on_change=None):
         super().__init__(master, bg=bg)
         self.app = app
@@ -2310,7 +2338,7 @@ class RepeatDialog(tk.Toplevel):
 class SoundPicker(tk.Frame):
     """内蔵音＋自分のファイルを選ぶコンボボックス（試聴つき）"""
 
-    def __init__(self, master, app: App, value="", bg=th.CARD, allow_default=False,
+    def __init__(self, master, app: App, value="", bg=None, allow_default=False,
                  on_change=None):
         super().__init__(master, bg=bg)
         self.app = app
@@ -2429,7 +2457,7 @@ class NewTimerDialog(tk.Toplevel):
             on = key == which
             b.fill = th.PINK if on else th.BG_SOFT
             b.itemconfigure(b.shape, fill=b.fill)
-            b.itemconfigure(b.label, fill="#FFFFFF" if on else th.INK)
+            b.itemconfigure(b.label, fill=th.ON_ACCENT if on else th.INK)
         if which == "ark":
             self.refresh_list()
         elif which == "tame":
@@ -2602,7 +2630,7 @@ class NewTimerDialog(tk.Toplevel):
         ent.pack(fill="x", ipady=5, pady=(2, 8))
         ent.bind("<KeyRelease>", lambda e: self.refresh_list())
         self.lst = tk.Listbox(left, bg=th.FIELD, fg=th.INK, selectbackground=th.PINK,
-                              selectforeground="#FFFFFF", borderwidth=0,
+                              selectforeground=th.ON_ACCENT, borderwidth=0,
                               highlightthickness=0, font=F["ui"], activestyle="none")
         self.lst.pack(fill="both", expand=True)
         self.lst.bind("<<ListboxSelect>>", lambda e: self.on_select())
@@ -2776,7 +2804,7 @@ class NewTimerDialog(tk.Toplevel):
         ent.bind("<KeyRelease>", lambda e: self.tame_refresh_list())
         self.tm_list = tk.Listbox(left, bg=th.FIELD, fg=th.INK,
                                   selectbackground=th.PINK,
-                                  selectforeground="#FFFFFF", borderwidth=0,
+                                  selectforeground=th.ON_ACCENT, borderwidth=0,
                                   highlightthickness=0, font=F["ui"],
                                   activestyle="none")
         self.tm_list.pack(fill="both", expand=True)
@@ -3235,7 +3263,7 @@ class SettingsDialog(tk.Toplevel):
         self.holder.pack(fill="both", expand=True, padx=12, pady=(0, 8))
 
         self.btns, self.pages = {}, {}
-        for key, label in (("snd", "🔔 音と通知"), ("timer", "⏰ タイマー"),
+        for key, label in (("snd", "🎨 見た目と音"), ("timer", "⏰ タイマー"),
                            ("ark", "🦖 ARK倍率")):
             self.btns[key] = sw.add(th.RoundButton(
                 sw, label, lambda k=key: self.switch(k), kind="soft", bg=th.BG,
@@ -3262,7 +3290,7 @@ class SettingsDialog(tk.Toplevel):
             on = key == which
             b.fill = th.PINK if on else th.BG_SOFT
             b.itemconfigure(b.shape, fill=b.fill)
-            b.itemconfigure(b.label, fill="#FFFFFF" if on else th.INK)
+            b.itemconfigure(b.label, fill=th.ON_ACCENT if on else th.INK)
 
     def _check(self, parent, text, var):
         return tk.Checkbutton(parent, text=text, variable=var, bg=th.CARD, fg=th.INK,
@@ -3270,9 +3298,37 @@ class SettingsDialog(tk.Toplevel):
                               selectcolor=th.FIELD, font=self.F["cute"], bd=0,
                               highlightthickness=0, anchor="w")
 
+    def _radio(self, parent, text, var, value):
+        return tk.Radiobutton(parent, text=text, variable=var, value=value,
+                              bg=th.CARD, fg=th.INK, activebackground=th.CARD,
+                              activeforeground=th.INK, selectcolor=th.FIELD,
+                              font=self.F["cute"], bd=0, highlightthickness=0,
+                              anchor="w")
+
     def _build_sound(self, f):
         F = self.F
         cfg = self.app.cfg
+        tk.Label(f, text="見た目", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w")
+        trow = tk.Frame(f, bg=th.CARD)
+        trow.pack(fill="x", pady=(4, 2))
+        self.v_theme = tk.StringVar(value=cfg.get("theme", "cute"))
+        for key in ("cute", "cool"):
+            pal = th.PALETTES[key]
+            self._radio(trow, pal["NAME"], self.v_theme, key).pack(side="left",
+                                                                   padx=(0, 10))
+            # どんな色か分かるように、その配色の丸を3つ並べる
+            sw = tk.Canvas(trow, width=54, height=16, bg=th.CARD,
+                           highlightthickness=0, bd=0)
+            sw.pack(side="left", padx=(0, 18))
+            for i, ck in enumerate(("BG", "PINK", "MINT")):
+                sw.create_oval(i * 18 + 1, 1, i * 18 + 15, 15, fill=pal[ck],
+                               outline=pal["LINE"])
+        tk.Label(f, text="変えると、いったん閉じて開き直します"
+                        "（タイマーは消えません）",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
+                                                                  pady=(0, 14))
+
         tk.Label(f, text="音量", bg=th.CARD, fg=th.INK,
                  font=F["cute_b"]).pack(anchor="w")
         row = tk.Frame(f, bg=th.CARD)
@@ -3527,9 +3583,13 @@ class SettingsDialog(tk.Toplevel):
         c["volume"] = self.vol
         c["sound_done"] = self.pick_done.get() or snd.DEFAULT_DONE
         c["sound_prewarn"] = self.pick_pre.get() or snd.DEFAULT_PREWARN
+        changed = self.v_theme.get() != c.get("theme", "cute")
+        c["theme"] = self.v_theme.get()
         self.app.save_cfg()
         self.app.refresh_quick()
         self.destroy()
+        if changed and not self.app.restart():
+            self.app.lbl_next.config(text="見た目は次に開いたときから変わります")
 
 
 def main():
