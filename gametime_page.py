@@ -1016,7 +1016,9 @@ class GameTimePage(tk.Frame):
             if prog:
                 txt, col = "⏱ 測定中 — " + prog, th.MINT
             elif c.total_measured:
-                txt, col = "✅ 1日の長さは測れています", th.MINT
+                txt, col = ("✅ 1日 %.1f分 ／ 昼 %.1f分・夜 %.1f分（%s）"
+                            % (c.full_day_real() / 60, c.day_real / 60,
+                               c.night_real / 60, c.fit_note())), th.MINT
             else:
                 txt, col = ("⏳ まだ測れていません。「⏱ 自動で測る」を押すと、"
                             "日の変わり目を2回つかまえて勝手に測ります"), th.INK_SUB

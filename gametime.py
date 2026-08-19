@@ -121,6 +121,14 @@ class GameClock:
         # 保存はしない。アプリを開き直したら見張りが数秒で入れ直すし、
         # 閉じていた間ぶんを丸ごと引くと、かえって大きくずれてしまう。
         self.paused_at = 0.0
+        # 止めた合計（実秒）。日の変わり目どうしの間隔から落ちていた分を
+        # 引くのに使う。sync_real は hold() で後ろへずれるので、
+        # 「合わせてからの経過」はすでに補正済みになっている。
+        self.held_total = 0.0
+        self._day_mark = None      # (前の変わり目の実時刻, そのときの held_total)
+        # 観測のため置き場。1本 = (昼を何本ぶん, 夜を何本ぶん, かかった実秒)。
+        # 「昼D + 夜N = ぜんぶ」も「昼だけ0.4本ぶん進んだ」も同じ形で入る。
+        self.samples = []
         self.sync_real = float(sync_real)      # 合わせたときの実時刻(epoch)
         self.sync_game = int(sync_game)        # そのときのゲーム内秒
         self.day_real = max(1.0, float(day_real))      # 昼ぜんぶにかかる実秒
@@ -208,6 +216,85 @@ class GameClock:
         return self.real_until(DAY_START, real_now)
 
     # ---- 合わせる・測る ----
+    MAX_SAMPLES = 16
+
+    def add_sample(self, a, b, elapsed):
+        """観測を1本ためる。a・b は「昼／夜を何本ぶん進んだか」。
+
+        昼をまるごと1本ぶん進むのに day_real 秒かかる、という決め方なので、
+        どの観測も  a×昼 + b×夜 = かかった実秒  という同じ形になる。
+        """
+        a, b, elapsed = float(a), float(b), float(elapsed)
+        if elapsed < 30 or a < 0 or b < 0 or (a + b) <= 1e-6:
+            return False
+        if elapsed > 6 * 3600:
+            return False               # 長すぎ（取りこぼし・アプリ停止）
+        self.samples.append([a, b, elapsed])
+        del self.samples[:-self.MAX_SAMPLES]
+        return True
+
+    @staticmethod
+    def _fit(samples):
+        """最小二乗で (昼, 夜) を出す。分けられない並びなら None。"""
+        if len(samples) < 2:
+            return None
+        saa = sab = sbb = sat = sbt = 0.0
+        for a, b, t in samples:
+            saa += a * a
+            sab += a * b
+            sbb += b * b
+            sat += a * t
+            sbt += b * t
+        det = saa * sbb - sab * sab
+        if abs(det) < 1e-6 * max(1.0, saa * sbb):
+            return None                # 昼と夜を分けられない並び
+        day = (sbb * sat - sab * sbt) / det
+        night = (saa * sbt - sab * sat) / det
+        if not (60.0 <= day <= 12 * 3600 and 60.0 <= night <= 12 * 3600):
+            return None                # ありえない値
+        return day, night
+
+    def solve(self):
+        """ためた観測から、昼と夜の長さを最小二乗で出す。
+
+        観測が1種類しか無い（昼夜の混ざり方が同じものばかり）ときは
+        分けられないので None を返す。そのときは呼んだ側で従来の直し方をする。
+
+        時刻を打ち間違えた1本がずっと残ると、以後ずっと歪んだままになる。
+        3本以上あるときは、いちばん合わない1本を捨ててやり直す。
+        """
+        got = self._fit(self.samples)
+        if got is None:
+            return None
+        for _ in range(3):
+            if len(self.samples) < 3:
+                break
+            day, night = got
+            worst, worst_err = None, 0.0
+            for i, (a, b, t) in enumerate(self.samples):
+                err = abs(a * day + b * night - t) / max(60.0, t)
+                if err > worst_err:
+                    worst, worst_err = i, err
+            if worst is None or worst_err <= 0.15:
+                break                  # みんな15%以内なら十分
+            again = self._fit(self.samples[:worst] + self.samples[worst + 1:])
+            if again is None:
+                break
+            del self.samples[worst]
+            got = again
+        self.day_real, self.night_real = got
+        self.total_measured = True
+        return got
+
+    def fit_note(self):
+        """いま何本の観測で決まっているか。"""
+        n = len(self.samples)
+        if n == 0:
+            return "まだ測っていません"
+        if n == 1:
+            return "観測1本（もう1回ちがう時間帯で合わせると配分が出ます）"
+        return "観測%d本から出しています" % n
+
     @property
     def paused(self):
         return bool(self.paused_at)
@@ -244,6 +331,7 @@ class GameClock:
         """
         if self.synced and seconds > 0:
             self.sync_real += float(seconds)
+            self.held_total += float(seconds)
 
     def sync(self, game_sec, real_now=None):
         self.sync_real = real_now if real_now is not None else time.time()
@@ -317,8 +405,23 @@ class GameClock:
             tail = "時刻だけ合わせました（学習するには1分以上・1日以内であけて）"
             return True, (note + "／" + tail) if note else tail
 
-        learned = None
+        # 観測を1本ためて、まとめて解き直せるなら解く。
+        # elapsed は sync_real 起点なので、落ちていた分はすでに引かれている。
         gd, gn = crossed(prev_game, g)
+        # crossed() は1日ぶんで折り返すので、間があきすぎた回は観測にしない。
+        # いまの速さが倍ずれていても巻き戻らないよう、半日ぶんまでに絞る。
+        short = elapsed <= 0.5 * self.full_day_real()
+        if short and self.add_sample(gd / float(DAY_SPAN),
+                                     gn / float(NIGHT_SPAN), elapsed):
+            got = self.solve()
+            if got:
+                self.sync(g, now)
+                tail = ("✅ 昼 %.1f分 ／ 夜 %.1f分 にしました（%s）"
+                        % (self.day_real / 60, self.night_real / 60,
+                           self.fit_note()))
+                return True, (note + "／" + tail) if note else tail
+
+        learned = None
         if self.total_measured and (gd == 0 or gn == 0):
             # 片側だけで収まった。その時間帯の長さが直接出る
             night = gd == 0
@@ -401,27 +504,39 @@ class GameClock:
         戻り値は何をしたかの説明。
         """
         now = now if now is not None else time.time()
-        if not prev_at:
+        if not prev_at and not self._day_mark:
             # 1回目は起点が無い。「見張りを始めてから」の時間は1日ではないので
             # 何も測らない。次の変化から本物の1日ぶんが測れる。
+            self._day_mark = (now, self.held_total)
             return "日付が変わりました（次の変わり目で速さを測ります）"
         done = []
-        # 1) 前回の変わり目からの実時間 = ゲーム内1日ぶん
-        full = now - prev_at
+        # 1) 前回の変わり目からの実時間 = ゲーム内1日ぶん。
+        #    落ちていた分は進んでいないので差し引く。
+        ref_at = self._day_mark[0] if self._day_mark else prev_at
+        if self._day_mark:
+            full = (now - self._day_mark[0]) - (self.held_total
+                                                - self._day_mark[1])
+        else:
+            full = now - prev_at
+        self._day_mark = (now, self.held_total)
         if full >= 300:                      # 5分未満は短すぎる（取りこぼし等）
             before = self.full_day_real()
             if before > 0 and 0.2 <= full / before <= 5.0:
-                ratio = full / before
-                self.day_real *= ratio
-                self.night_real *= ratio
+                self.add_sample(1.0, 1.0, full)
+                got = self.solve()
+                if got is None:              # まだ分けられないので合計だけ合わせる
+                    ratio = full / before
+                    self.day_real *= ratio
+                    self.night_real *= ratio
                 self.total_measured = True
                 self.measuring = False       # 測り終わり
-                done.append("速さを測り直しました（1日 %.1f分）" % (full / 60))
+                done.append("速さを測り直しました（1日 %.1f分・%s）"
+                            % (self.full_day_real() / 60, self.fit_note()))
         # 2) 日の変わり目のゲーム内時刻を覚える／そこへ合わせ直す
         if self.day_boundary is None:
             # 合わせ直したのが前の変わり目より後（＝ズレが小さい）ときだけ覚える。
             # 速さが分かっていない状態で覚えると、まるで違う時刻を掴んでしまう。
-            if self.synced and self.total_measured and self.sync_real >= prev_at:
+            if self.synced and self.total_measured and self.sync_real >= ref_at:
                 self.day_boundary = self.game_at(now)
                 done.append("日の変わり目を %s と覚えました"
                             % fmt_game_time(self.day_boundary))
@@ -436,6 +551,8 @@ class GameClock:
         self.total_measured = False
         self.day_real = DEFAULT_DAY_REAL
         self.night_real = DEFAULT_NIGHT_REAL
+        self.samples = []
+        self._day_mark = None
 
     def set_total(self, seconds):
         """1日の長さ（昼＋夜）を決める。昼と夜の比はそのまま。
@@ -469,6 +586,7 @@ class GameClock:
         phase_real = float(phase_real)
         if phase_real <= 0:
             return False, "まだ測れていません"
+        self.add_sample(0.0 if night else 1.0, 1.0 if night else 0.0, phase_real)
         total = self.full_day_real()
         other = total - phase_real
         name = "夜" if night else "昼"
