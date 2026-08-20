@@ -155,6 +155,10 @@ class GameTimePage(tk.Frame):
         self.lbl_poke = tk.Label(srow, text="", bg=th.CARD, fg=th.INK_SUB,
                                  font=F["small"])
         self.lbl_poke.pack(side="left")
+        tk.Label(self.fold_stat.body, text="🔔 を押したマップだけ、落ちたときと"
+                                           "戻ったときにタイマーと同じように知らせます",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=740,
+                 justify="left").pack(anchor="w", pady=(0, 2))
         self.stat_box = tk.Frame(self.fold_stat.body, bg=th.CARD)
         self.stat_box.pack(fill="x")
         self.stat_rows = {}
@@ -522,13 +526,31 @@ class GameTimePage(tk.Frame):
         row.pack(fill="x", pady=1)
         lamp = tk.Label(row, text="●", bg=th.CARD, fg=th.INK_SUB, font=F["ui"])
         lamp.pack(side="left", padx=(0, 4))
+        bell = tk.Label(row, text="", bg=th.CARD, font=F["small"], cursor="hand2",
+                        width=2)
+        bell.pack(side="left")
+        bell.bind("<Button-1>", lambda e, n=name: self.toggle_notify(n))
         nm = tk.Label(row, text=G.map_label(name), bg=th.CARD, fg=th.INK,
                       font=F["ui"], anchor="w", width=18)
         nm.pack(side="left")
         info = tk.Label(row, text="", bg=th.CARD, fg=th.INK_SUB, font=F["small"],
                         anchor="w")
         info.pack(side="left", fill="x", expand=True)
-        return {"row": row, "lamp": lamp, "info": info}
+        return {"row": row, "lamp": lamp, "bell": bell, "info": info}
+
+    def toggle_notify(self, name):
+        """そのマップの「落ちた／戻った」の知らせを入切する。"""
+        c = self.app.clocks.clocks.get(name)
+        if c is None:
+            return
+        c.notify = not c.notify
+        self.app.save_clocks()
+        self.refresh_status()
+        self.lbl_poke.config(
+            text="  %s %s の知らせを%s" % ("🔔" if c.notify else "🔕",
+                                           G.map_label(name),
+                                           "出します" if c.notify else "止めました"),
+            fg=th.MINT if c.notify else th.INK_SUB)
 
     def refresh_status(self, now=None):
         """見張っているマップぶんの行を出し直す。"""
@@ -540,6 +562,10 @@ class GameTimePage(tk.Frame):
             self.stat_rows = {n: self._stat_row(n) for n in targets}
         live = 0
         for name, r in self.stat_rows.items():
+            c = self.app.clocks.clocks.get(name)
+            on = bool(c is not None and c.notify)
+            r["bell"].config(text="🔔" if on else "🔕",
+                             fg=th.INK if on else th.LINE)
             st = self.app.watcher.state.get(name)
             if st is None:
                 r["lamp"].config(fg=th.INK_SUB)

@@ -116,10 +116,12 @@ class GameClock:
     def __init__(self, sync_real=0.0, sync_game=0, day_real=DEFAULT_DAY_REAL,
                  night_real=DEFAULT_NIGHT_REAL, address="", restarts=None,
                  restart_minutes=3.0, restart_done=0.0, day_boundary=None,
-                 total_measured=False, measuring=False, measure_since=0.0):
+                 total_measured=False, measuring=False, measure_since=0.0,
+                 notify=False):
         # サーバーが落ちている間、時計を止めておく時刻（0なら動いている）。
         # 保存はしない。アプリを開き直したら見張りが数秒で入れ直すし、
         # 閉じていた間ぶんを丸ごと引くと、かえって大きくずれてしまう。
+        self.notify = bool(notify)   # 落ちた／戻ったを知らせるか
         self.paused_at = 0.0
         # 止めた合計（実秒）。日の変わり目どうしの間隔から落ちていた分を
         # 引くのに使う。sync_real は hold() で後ろへずれるので、
@@ -666,6 +668,7 @@ class GameClock:
                 "total_measured": self.total_measured,
                 "measuring": self.measuring,
                 "measure_since": self.measure_since,
+                "notify": self.notify,
                 "model": 2}
 
     @classmethod
@@ -685,7 +688,8 @@ class GameClock:
                    d.get("address", ""), d.get("restarts"),
                    d.get("restart_minutes", 3.0), d.get("restart_done", 0.0),
                    d.get("day_boundary"), d.get("total_measured", False),
-                   d.get("measuring", False), d.get("measure_since", 0.0))
+                   d.get("measuring", False), d.get("measure_since", 0.0),
+                   d.get("notify", False))
 
 
 class ClockSet:

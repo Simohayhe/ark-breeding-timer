@@ -39,7 +39,7 @@ from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.29.0"
+APP_VERSION = "1.30.0"
 
 
 def _res_dir():
@@ -1287,6 +1287,8 @@ class App(tk.Tk):
             self._watch_targets, self._watch_event,
             self.cfg.get("watch_interval", 60))
         self.watch_msg = {}
+        # 見張りスレッドからの知らせ置き場。Tk は本体の周期処理から触る
+        self.watch_notices = []
         self.watcher.start()
         # チェックリストは本体とミニ表示で同じものを見せるので App が持つ
         self.checklist_items = load_checklist()
@@ -1616,6 +1618,10 @@ class App(tk.Tk):
 
     def _tick(self):
         now = time.time()
+        # 見張りスレッドが積んだ知らせを、ここ（本体側）で鳴らす
+        while self.watch_notices:
+            title, body, urgent = self.watch_notices.pop(0)
+            self.notifier.fire(title, body, urgent=urgent)
         changed = False
         for t in list(self.timers):
             if t.paused:
@@ -1852,11 +1858,20 @@ class App(tk.Tk):
             # 落ちている間はゲーム内時間も進まないので、その場で止める
             c.pause(value)
             self.watch_msg[name] = "落ちたので時計を止めました"
+            if c.notify:
+                self.watch_notices.append(
+                    ("⚠ %s が落ちました" % gametime.map_label(name),
+                     "時計を止めました", True))
         elif kind == "up":
             gap = c.resume(value)
             self.watch_msg[name] = ("戻ったので時計を動かします（%d分ぶん止めました）"
                                     % round(gap / 60)) if gap >= 60 else \
                                    "戻ったので時計を動かします"
+            if c.notify:
+                self.watch_notices.append(
+                    ("✅ %s が戻りました" % gametime.map_label(name),
+                     ("%d分ほど落ちていました" % round(gap / 60)) if gap >= 60
+                     else "また動いています", False))
         elif kind == "hold":
             c.hold(value)          # 定期再起動ぶんの差し引き
         elif kind == "day":
