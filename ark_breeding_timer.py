@@ -39,7 +39,7 @@ from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.31.0"
+APP_VERSION = "1.32.0"
 
 
 def _res_dir():
@@ -114,6 +114,7 @@ DEFAULT_CONFIG = {
     "macro_interval_ms": 100,
     "macro_hold_ms": 20,
     "macro_limit": 0,                  # 0 = ずっと
+    "macro_send_mode": macro.DEFAULT_SEND_MODE,  # input / post / swap
     "macro_target": "ArkAscended.exe",
     "macro_only_target": True,
     "macro_hotkey_on": True,
@@ -1678,6 +1679,7 @@ class App(tk.Tk):
             "limit": c.get("macro_limit", 0),
             "target": c.get("macro_target") or "",
             "only_target": c.get("macro_only_target", True),
+            "send_mode": c.get("macro_send_mode") or macro.DEFAULT_SEND_MODE,
         }
 
     def toggle_macro(self):

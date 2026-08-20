@@ -103,6 +103,121 @@ def _sleep(sec):
 
 
 # ---------------------------------------------------------------- 連射スレッド
+# ------------------------------------------------------- ウィンドウ直送り
+# 最前面でなくても届くが、生入力(RawInput/DirectInput)しか見ないゲームには
+# 効かない。ARK のような UE 系は効かないことが多いので、UIの「ためす」で
+# 確かめてから使うこと。効かなければ swap（一瞬だけ前に出す）を使う。
+WM_LBUTTONDOWN, WM_LBUTTONUP = 0x0201, 0x0202
+WM_RBUTTONDOWN, WM_RBUTTONUP = 0x0204, 0x0205
+WM_MBUTTONDOWN, WM_MBUTTONUP = 0x0207, 0x0208
+WM_MOUSEMOVE = 0x0200
+MK_LBUTTON, MK_RBUTTON, MK_MBUTTON = 0x0001, 0x0002, 0x0010
+
+POST_BUTTON = {
+    "left": (WM_LBUTTONDOWN, WM_LBUTTONUP, MK_LBUTTON),
+    "right": (WM_RBUTTONDOWN, WM_RBUTTONUP, MK_RBUTTON),
+    "middle": (WM_MBUTTONDOWN, WM_MBUTTONUP, MK_MBUTTON),
+}
+
+SEND_MODES = (
+    ("input", "ふつうに送る（最前面のアプリに届きます）"),
+    ("post", "ウィンドウに直接送る（裏でもOK・効かないゲームもある）"),
+    ("swap", "一瞬だけ前に出して送り、すぐ戻す（たいてい効く・ちらつく）"),
+)
+DEFAULT_SEND_MODE = "input"
+
+
+def send_mode_label(mode):
+    for k, lbl in SEND_MODES:
+        if k == mode:
+            return lbl
+    return mode
+
+
+def _cursor_in_client(hwnd):
+    """いまのマウス位置を、そのウィンドウの中の座標に直す。
+
+    座標を渡さないとゲームが左上(0,0)を押したと解釈することがあるので、
+    実際にカーソルがある所を渡す。窓の外なら真ん中にしておく。
+    """
+    pt = wintypes.POINT()
+    if not user32.GetCursorPos(ctypes.byref(pt)):
+        return 0, 0
+    if not user32.ScreenToClient(hwnd, ctypes.byref(pt)):
+        return 0, 0
+    rect = wintypes.RECT()
+    if user32.GetClientRect(hwnd, ctypes.byref(rect)):
+        if not (0 <= pt.x <= rect.right and 0 <= pt.y <= rect.bottom):
+            return rect.right // 2, rect.bottom // 2
+    return pt.x, pt.y
+
+
+def post_click(hwnd, button="left", hold_ms=20):
+    """ウィンドウにマウスのメッセージを直接投げる。"""
+    got = POST_BUTTON.get(button)
+    if not got or not hwnd:
+        return False
+    down_msg, up_msg, mk = got
+    x, y = _cursor_in_client(hwnd)
+    lp = (int(y) & 0xFFFF) << 16 | (int(x) & 0xFFFF)
+    user32.PostMessageW(hwnd, WM_MOUSEMOVE, 0, lp)
+    if not user32.PostMessageW(hwnd, down_msg, mk, lp):
+        return False
+    _sleep(max(0.0, hold_ms / 1000.0))
+    user32.PostMessageW(hwnd, up_msg, 0, lp)
+    return True
+
+
+def post_vk(hwnd, vk, scan=None, hold_ms=20):
+    """ウィンドウにキーのメッセージを直接投げる。"""
+    if not hwnd or not vk:
+        return False
+    if not scan:
+        scan = scancode_of(vk)
+    down = 1 | ((scan or 0) << 16)
+    up = down | (1 << 30) | (1 << 31)
+    if not user32.PostMessageW(hwnd, afk.WM_KEYDOWN, int(vk), down):
+        return False
+    _sleep(max(0.0, hold_ms / 1000.0))
+    user32.PostMessageW(hwnd, afk.WM_KEYUP, int(vk), up)
+    return True
+
+
+def send_once(cfg, hwnd=None):
+    """設定どおりに1回送る。(送れたか, 説明) を返す。"""
+    mode = cfg.get("send_mode") or DEFAULT_SEND_MODE
+    act = cfg.get("action") or DEFAULT_ACTION
+    vk, scan = cfg.get("key_vk") or 0, cfg.get("key_scan") or 0
+    hold = cfg.get("hold_ms", 20)
+    if act == "key" and not vk:
+        return False, "さきに送るキーを決めてください"
+
+    if mode == "input":
+        ok = press_vk(vk, scan, hold) if act == "key" else click(act, hold)
+        return bool(ok), ""
+
+    if hwnd is None:
+        hwnd = afk.find_window(cfg.get("target") or "")
+    if not hwnd:
+        return False, "%s のウィンドウが見つかりません" % (cfg.get("target")
+                                                          or "対象")
+    if mode == "post":
+        ok = (post_vk(hwnd, vk, scan, hold) if act == "key"
+              else post_click(hwnd, act, hold))
+        return bool(ok), ""
+    if mode == "swap":
+        prev = user32.GetForegroundWindow()
+        if not afk._force_foreground(hwnd):
+            return False, "前に出せませんでした"
+        _sleep(0.12)
+        ok = press_vk(vk, scan, hold) if act == "key" else click(act, hold)
+        _sleep(0.04)
+        if prev and prev != hwnd:
+            afk._force_foreground(prev)
+        return bool(ok), ""
+    return False, "知らない送り方です: %s" % mode
+
+
 class Runner(threading.Thread):
     """止めるまでアクションを送りつづけるスレッド。
 
@@ -129,12 +244,14 @@ class Runner(threading.Thread):
                 self._halt.wait(0.15)
                 continue
             self.waiting = False
-            act = c.get("action") or DEFAULT_ACTION
-            if act == "key":
-                ok = press_vk(c.get("key_vk") or 0, c.get("key_scan") or 0,
-                              c.get("hold_ms", 20))
-            else:
-                ok = click(act, c.get("hold_ms", 20))
+            hwnd = None
+            if (c.get("send_mode") or DEFAULT_SEND_MODE) != "input":
+                hwnd = afk.find_window_cached(c.get("target") or "")
+                if not hwnd:
+                    self.waiting = True     # 窓が出るまで待つ
+                    self._halt.wait(0.5)
+                    continue
+            ok, _why = send_once(c, hwnd)
             if ok:
                 self.count += 1
             limit = int(c.get("limit") or 0)

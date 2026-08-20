@@ -106,12 +106,30 @@ class MacroPage(tk.Frame):
         self.lbl_found = tk.Label(t1, text="", bg=th.CARD, fg=th.INK_SUB,
                                   font=F["small"])
         self.lbl_found.pack(side="left")
+        tk.Label(c, text="送り方", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w", pady=(8, 0))
+        self.v_send = tk.StringVar(value=cfg.get("macro_send_mode")
+                                   or macro.DEFAULT_SEND_MODE)
+        for key, lbl in macro.SEND_MODES:
+            tk.Radiobutton(c, text=lbl, variable=self.v_send, value=key,
+                           command=self.save_send, bg=th.CARD, fg=th.INK,
+                           activebackground=th.CARD, activeforeground=th.INK,
+                           selectcolor=th.FIELD, font=F["cute"], bd=0,
+                           highlightthickness=0, anchor="w").pack(anchor="w")
+        tk.Label(c, text="⚠ ARKのようなゲームは「ウィンドウに直接送る」が効かない"
+                         "ことがあります。「ためす」で確かめて、駄目なら"
+                         "「一瞬だけ前に出して送る」を使ってください",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
+                 justify="left").pack(anchor="w", pady=(0, 8))
+
         self.v_only = tk.BooleanVar(value=bool(cfg.get("macro_only_target", True)))
-        tk.Checkbutton(c, text="このアプリが最前面のときだけ動かす（おすすめ）",
+        self.chk_only = tk.Checkbutton(
+                       c, text="このアプリが最前面のときだけ動かす（おすすめ）",
                        variable=self.v_only, command=self.save, bg=th.CARD,
                        fg=th.INK, activebackground=th.CARD, activeforeground=th.INK,
                        selectcolor=th.FIELD, font=F["cute"], bd=0,
-                       highlightthickness=0, anchor="w").pack(anchor="w")
+                       highlightthickness=0, anchor="w")
+        self.chk_only.pack(anchor="w")
         tk.Label(c, text="⚠ 外すと、どの画面にいても連打します。"
                          "デスクトップやエクスプローラーを触っていると危ないので、"
                          "基本は入れたままで",
@@ -166,6 +184,17 @@ class MacroPage(tk.Frame):
         c["macro_limit"] = self._int(self.v_limit, 0, 0, 1000000)
         c["macro_target"] = self.v_target.get().strip()
         c["macro_only_target"] = bool(self.v_only.get())
+        c["macro_send_mode"] = self.v_send.get()
+        self.update_view()
+
+    def save_send(self):
+        """送り方を変える。裏へ送るときは「最前面のときだけ」は要らない。"""
+        self.save()
+        direct = self.v_send.get() != "input"
+        if direct and self.v_only.get():
+            self.v_only.set(False)      # 裏へ送るのに前面待ちしたら意味がない
+            self.save()
+        self.chk_only.config(state="disabled" if direct else "normal")
         self.update_view()
 
     def save_hotkey(self):
@@ -233,16 +262,17 @@ class MacroPage(tk.Frame):
         self.save()
         c = self.app.cfg
         act = self.action_name()
-        if act == "key":
-            vk = c.get("macro_key_vk") or 0
-            if not vk:
-                self.lbl_sub.config(text="⚠ さきに送るキーを決めてください")
-                return
-            ok = macro.press_vk(vk, c.get("macro_key_scan"), c.get("macro_hold_ms", 20))
-            what = macro.vk_name(vk)
-        else:
-            ok = macro.click(act, c.get("macro_hold_ms", 20))
-            what = macro.action_label(act)
+        ok, why = macro.send_once({
+            "send_mode": c.get("macro_send_mode") or macro.DEFAULT_SEND_MODE,
+            "action": act, "key_vk": c.get("macro_key_vk") or 0,
+            "key_scan": c.get("macro_key_scan") or 0,
+            "hold_ms": c.get("macro_hold_ms", 20),
+            "target": c.get("macro_target") or ""})
+        if why:
+            self.lbl_sub.config(text="⚠ " + why)
+            return
+        what = (macro.vk_name(c.get("macro_key_vk") or 0) if act == "key"
+                else macro.action_label(act))
         self.lbl_sub.config(
             text=("✅ %s を1回送りました" % what) if ok else "⚠ 送れませんでした")
 
@@ -289,7 +319,10 @@ class MacroPage(tk.Frame):
             return
         r = self.app.macro
         if r is not None and r.waiting:
-            self.lbl_state.config(text="待機中（%s が前に出るまで）" % target,
+            # 直送りのときは前面待ちではなく「窓が見つからない」で止まっている
+            why = ("が見つかるまで" if cfg.get("macro_send_mode", "input") != "input"
+                   else "が前に出るまで")
+            self.lbl_state.config(text="待機中（%s %s）" % (target, why),
                                   fg=th.INK_SUB)
         else:
             self.lbl_state.config(text="連打中！", fg=th.MINT)
