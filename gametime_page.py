@@ -112,21 +112,24 @@ class GameTimePage(tk.Frame):
 
         addb = tk.Frame(self.maps_box, bg=th.CARD)
         addb.pack(fill="x", pady=(10, 0))
-        tk.Label(addb, text="サーバーのIPを入れると、そのマップを全部登録して"
-                            "自動で測りはじめます", bg=th.CARD, fg=th.INK_SUB,
-                 font=F["small"]).pack(anchor="w")
+        tk.Label(addb, text="サーバーの名前かIPで探して、一覧に追加できます"
+                            "（例: GorillaARK ／ 111.237.115.78）",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w")
         brow = tk.Frame(addb, bg=th.CARD)
         brow.pack(fill="x", pady=(2, 0))
         self.v_bulk = tk.StringVar()
-        be = th.soft_entry(brow, self.v_bulk, width=20)
+        be = th.soft_entry(brow, self.v_bulk, width=22)
         be.pack(side="left", ipady=3)
-        be.bind("<Return>", lambda e: self.add_from_ip())
-        th.RoundButton(brow, "🔍 このIPのマップを全部追加", self.add_from_ip,
-                       kind="accent", bg=th.CARD, font=F["small"], padx=14,
+        be.bind("<Return>", lambda e: self.search_servers())
+        th.RoundButton(brow, "🔍 さがす", self.search_servers, kind="accent",
+                       bg=th.CARD, font=F["small"], padx=14,
                        pady=6).pack(side="left", padx=6)
         self.lbl_bulk = tk.Label(brow, text="", bg=th.CARD, fg=th.INK_SUB,
                                  font=F["small"])
         self.lbl_bulk.pack(side="left")
+        self.found_box = tk.Frame(addb, bg=th.CARD)
+        self.found_box.pack(fill="x")
+        self.found = []
 
         nrow = tk.Frame(addb, bg=th.CARD)
         nrow.pack(fill="x", pady=(4, 0))
@@ -484,7 +487,7 @@ class GameTimePage(tk.Frame):
         self.rows.clear()
         cs = self.app.clocks
         if not cs.order:
-            tk.Label(self.rows_box, text="サーバーのIPを入れてマップを登録してください",
+            tk.Label(self.rows_box, text="下の欄でサーバーを探して追加してください",
                      bg=th.CARD, fg=th.INK_SUB, font=self.app.F["small"]).pack(
                 anchor="w", pady=6)
         for name in cs.order:
@@ -766,42 +769,96 @@ class GameTimePage(tk.Frame):
         self.rebuild()
         self.toggle_maps(True)
 
-    def add_from_ip(self):
-        """IPを1つ入れるだけで、そのサーバーのマップを全部登録する。
+    def search_servers(self):
+        """名前かIPでサーバーを探して、結果を並べる。
 
-        1つずつ名前を打って、IPを入れて、マップを選んで…をやらずに済む。
-        登録した時点で見張りが始まるので、あとは放っておけば速さも測れる。
+        名前検索は**いま起動しているサーバーしか出ない**（落ちていると
+        Epicへの登録が消えるため）。落ちているマップも登録したいときは
+        IPで探すか、起動しているうちに追加しておく。
         """
         text = self.v_bulk.get().strip()
         if not text:
-            self.lbl_bulk.config(text="  ⚠ IPを入れてください", fg=th.PINK_DK)
+            self.lbl_bulk.config(text="  ⚠ 名前かIPを入れてください",
+                                 fg=th.PINK_DK)
             return
         self.lbl_bulk.config(text="  探しています…", fg=th.INK_SUB)
         self.update_idletasks()
-        found = self.app.watcher.list_servers(text)
-        if not found:
-            self.lbl_bulk.config(text="  ⚠ そのIPにサーバーが見つかりません",
+        self.found = sorted(self.app.watcher.search(text),
+                            key=lambda x: (x.get("name") or "",
+                                           x.get("port") or 0))
+        self.show_found()
+        if not self.found:
+            self.lbl_bulk.config(text="  ⚠ 見つかりません"
+                                      "（落ちているサーバーは出ません）",
                                  fg=th.PINK_DK)
+        else:
+            self.lbl_bulk.config(text="  %d件みつかりました" % len(self.found),
+                                 fg=th.MINT)
+
+    def show_found(self):
+        F = self.app.F
+        for w in self.found_box.winfo_children():
+            w.destroy()
+        if not self.found:
             return
-        ip = text.replace(":", " ").split()[0]
-        added = skipped = 0
-        for srv in sorted(found, key=lambda x: x.get("port") or 0):
-            name = (srv.get("map") or "").replace("_WP", "") or "?"
-            if not self.app.clocks.add(name):
+        head = tk.Frame(self.found_box, bg=th.CARD)
+        head.pack(fill="x", pady=(4, 2))
+        th.RoundButton(head, "＋ ぜんぶ追加", lambda: self.add_found(None),
+                       kind="primary", bg=th.CARD, font=F["small"], padx=12,
+                       pady=5).pack(side="left")
+        tk.Label(head, text="  追加したマップは、その場から見張りはじめます",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(side="left")
+        for i, srv in enumerate(self.found[:40]):
+            row = tk.Frame(self.found_box, bg=th.CARD)
+            row.pack(fill="x", pady=1)
+            th.RoundButton(row, "＋", lambda k=i: self.add_found(k), kind="soft",
+                           bg=th.CARD, font=F["small"], padx=10,
+                           pady=4).pack(side="left")
+            tk.Label(row, text=G.map_label(srv.get("map")), bg=th.CARD,
+                     fg=th.INK, font=F["ui"], anchor="w",
+                     width=16).pack(side="left", padx=6)
+            tk.Label(row, text="%s／%s人／%s:%s"
+                              % ((srv.get("name") or "")[:34],
+                                 srv.get("players", "?"), srv.get("ip", "?"),
+                                 srv.get("port", "?")),
+                     bg=th.CARD, fg=th.INK_SUB, font=F["small"],
+                     anchor="w").pack(side="left", fill="x", expand=True)
+
+    def _unique_name(self, base):
+        """同じマップ名がもうあるときは、後ろに数字を足して分ける。"""
+        base = base or "?"
+        if base not in self.app.clocks.clocks:
+            return base
+        for k in range(2, 30):
+            cand = "%s %d" % (base, k)
+            if cand not in self.app.clocks.clocks:
+                return cand
+        return None
+
+    def add_found(self, index):
+        """検索結果を一覧に追加する。index が None なら全部。"""
+        picks = self.found if index is None else [self.found[index]]
+        added, skipped = [], 0
+        for srv in picks:
+            addr = "%s:%s" % (srv.get("ip"), srv.get("port"))
+            if any(c.address == addr for c in self.app.clocks.clocks.values()):
+                skipped += 1              # そのサーバーはもう登録済み
+                continue
+            name = self._unique_name((srv.get("map") or "").replace("_WP", ""))
+            if not name or not self.app.clocks.add(name):
                 skipped += 1
                 continue
             c = self.app.clocks.get(name)
             if c is not None:
-                c.address = "%s:%s" % (ip, srv.get("port"))
-            added += 1
+                c.address = addr
+            added.append(name)
         self.app.save_clocks()
-        self.v_bulk.set("")
         self.rebuild()
         self.toggle_maps(True)
-        msg = "✅ %d個を登録しました" % added
+        msg = "  ✅ %d個を追加しました" % len(added)
         if skipped:
             msg += "（%d個は登録済み）" % skipped
-        self.lbl_bulk.config(text=msg, fg=th.MINT)
+        self.lbl_bulk.config(text=msg, fg=th.MINT if added else th.INK_SUB)
 
     def del_map(self, name):
         if not self.app.ask_delete(name, parent=self.winfo_toplevel()):

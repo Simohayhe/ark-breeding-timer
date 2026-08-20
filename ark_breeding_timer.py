@@ -39,7 +39,7 @@ from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.30.0"
+APP_VERSION = "1.31.0"
 
 
 def _res_dir():

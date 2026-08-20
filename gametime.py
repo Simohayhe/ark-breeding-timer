@@ -64,11 +64,18 @@ def map_label(name):
     """
     raw = (name or "").strip()
     key = raw
+    # 別のサーバーの同じマップは「Ragnarok 2」のように後ろに数字が付く。
+    # 数字は残したまま、名前の部分だけ日本語にする。
+    tail = ""
+    parts = key.rsplit(" ", 1)
+    if len(parts) == 2 and parts[1].isdigit():
+        key, tail = parts[0], " " + parts[1]
     for suffix in ("_WP", "_P"):
         if key.upper().endswith(suffix):
             key = key[: -len(suffix)]
+    bare = key                    # 日本語名が無いときはこれを出す（_WPは落とす）
     key = key.replace(" ", "").replace("_", "").replace("-", "").lower()
-    return MAP_JP.get(key, raw)
+    return (MAP_JP.get(key) or bare) + tail
 
 
 def parse_game_time(text):

@@ -91,8 +91,23 @@ class Client:
 
     def sessions_by_address(self, address):
         """そのIPにあるサーバーを全部返す。見つからなければ空リスト。"""
-        body = {"criteria": [{"key": "attributes.ADDRESS_s", "op": "EQUAL",
-                              "value": address}]}
+        return self._filter({"criteria": [
+            {"key": "attributes.ADDRESS_s", "op": "EQUAL", "value": address}]})
+
+    def sessions_by_name(self, text, limit=60):
+        """名前の一部で探す。ゲーム内のサーバー検索と同じ引き方。
+
+        SESSIONNAMEUPPER_s は大文字だけの控え。CONTAINS で部分一致する。
+        **いま起動しているサーバーしか出てこない**（落ちていると登録が消える）。
+        """
+        word = (text or "").strip().upper()
+        if not word:
+            return []
+        return self._filter({"criteria": [
+            {"key": "attributes.SESSIONNAMEUPPER_s", "op": "CONTAINS",
+             "value": word}], "maxResults": int(limit)})
+
+    def _filter(self, body):
         url = "%s/wildcard/matchmaking/v1/%s/filter" % (API, self.deployment)
         for attempt in (0, 1):
             try:
@@ -124,6 +139,7 @@ def _summarize(session):
     except (TypeError, ValueError):
         day = None
     return {
+        "ip": a.get("ADDRESS_s") or "",
         "name": a.get("CUSTOMSERVERNAME_s") or a.get("SESSIONNAME_s") or "",
         "map": a.get("MAPNAME_s") or "",
         "players": session.get("totalPlayers"),

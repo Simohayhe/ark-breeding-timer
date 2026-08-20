@@ -93,6 +93,26 @@ class Watcher(threading.Thread):
         except eos.EosError:
             return []
 
+    def search(self, text):
+        """名前かIPで探す。数字とドットだけならIPとみなす。
+
+        戻り値は [{name, map, players, ip, port, ...}, ...]。
+        """
+        t = (text or "").strip()
+        if not t:
+            return []
+        head = t.replace(":", " ").split()[0]
+        looks_ip = head.replace(".", "").isdigit() and head.count(".") == 3
+        try:
+            if looks_ip:
+                found = self.client.sessions_by_address(head)
+                for s in found:
+                    s["ip"] = head
+                return found
+            return self.client.sessions_by_name(t)
+        except eos.EosError:
+            return []
+
     # ---- 見張る ----
     def run(self):
         while not self._halt.is_set():
