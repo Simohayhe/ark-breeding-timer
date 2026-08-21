@@ -39,6 +39,37 @@ PALETTES = {
         "DANGER_HOVER": "#FFD9D9",
         "ON_ACCENT": "#FFFFFF",
     },
+    "modern": {
+        # 海外のSaaSっぽい、色を使わない落ち着いた組み方。
+        # 角は丸めすぎず、字は Segoe UI Variable（Windows 11 の顔）で。
+        "NAME": "モダン",
+        "DARK": False,
+        "FONT": "segoe",
+        "RADIUS": 8,          # ボタンの角（丸ピルにしない）
+        "CARD_RADIUS": 10,
+        "BG": "#FAFAFA",
+        "BG_SOFT": "#F1F1F3",
+        "CARD": "#FFFFFF",
+        "SHADOW": "#EDEDF0",
+        "LINE": "#E4E4E7",
+        "FIELD": "#F6F6F7",
+        "INK": "#18181B",
+        "INK_SUB": "#71717A",
+        "PINK": "#4F46E5",     # 主役はインディゴ
+        "PINK_DK": "#4338CA",
+        "LAV": "#7C3AED",
+        "MINT": "#059669",
+        "SKY": "#0284C7",
+        "LEMON": "#D97706",
+        "PEACH": "#EA580C",
+        "RED": "#DC2626",
+        "HOVER_SOFT": "#E4E4E7",
+        "HOVER_LAV": "#6D28D9",
+        "HOVER_MINT": "#047857",
+        "DANGER_BG": "#FEF2F2",
+        "DANGER_HOVER": "#FEE2E2",
+        "ON_ACCENT": "#FFFFFF",
+    },
     "cool": {
         "NAME": "かっこいい",
         "DARK": True,
@@ -72,6 +103,8 @@ THEME = "cute"
 BG = BG_SOFT = CARD = SHADOW = LINE = FIELD = ""
 INK = INK_SUB = PINK = PINK_DK = LAV = MINT = SKY = LEMON = PEACH = RED = ""
 HOVER_SOFT = HOVER_LAV = HOVER_MINT = DANGER_BG = DANGER_HOVER = ON_ACCENT = ""
+RADIUS = 999          # ボタンの角の最大。999 なら高さの半分＝丸ピル
+CARD_RADIUS = 20
 
 # 種類ごとの見た目 (絵文字, 色, 表示名)。use() で色を入れ直す
 KIND_STYLE = {}
@@ -95,8 +128,9 @@ def use(name):
     pal = PALETTES.get(name) or PALETTES["cute"]
     THEME = name if name in PALETTES else "cute"
     g = globals()
+    g["RADIUS"], g["CARD_RADIUS"] = 999, 20      # 指定が無ければ丸ピル
     for k, v in pal.items():
-        if k not in ("NAME", "DARK"):
+        if k not in ("NAME", "DARK", "FONT"):
             g[k] = v
     KIND_STYLE.clear()
     for key, icon, color, jp in KIND_BASE:
@@ -121,6 +155,10 @@ def dark():
     return bool((PALETTES.get(THEME) or {}).get("DARK"))
 
 
+def font_kind():
+    return (PALETTES.get(THEME) or {}).get("FONT") or "jp"
+
+
 JP = "Yu Gothic UI"
 CUTE = "UD デジタル 教科書体 NP"
 
@@ -128,6 +166,20 @@ CUTE = "UD デジタル 教科書体 NP"
 def fonts():
     """使えるフォントを見て決める（無ければ Yu Gothic UI に落とす）。"""
     fams = set(tkfont.families())
+    if font_kind() == "segoe":
+        # 本文は Noto Sans JP。欧文と日本語が同じ設計で揃うので、混ざっても
+        # 崩れない。Segoe UI Variable は日本語を持っておらず、混ぜると
+        # Windows が明朝に繋いでしまって不格好になる。
+        # 数字だけの所（カウントダウン）は Segoe UI Variable Display が綺麗。
+        body = "Noto Sans JP" if "Noto Sans JP" in fams else JP
+        disp = ("Segoe UI Variable Display" if "Segoe UI Variable Display" in fams
+                else body)
+        return {
+            "ui": (body, 10), "ui_b": (body, 10, "bold"), "small": (body, 9),
+            "cute": (body, 10), "cute_b": (body, 11, "bold"),
+            "head": (body, 16, "bold"),
+            "num": (disp, 26), "num_s": (disp, 15),
+        }
     cute = CUTE if (CUTE in fams and not dark()) else JP
     return {
         "ui": (JP, 10),
@@ -232,7 +284,7 @@ class RoundButton(tk.Canvas):
         super().__init__(master, width=w, height=h, bg=bg, highlightthickness=0, bd=0)
         self.command = command
         self.fill, self.hover, self.fg = self.SCHEME.get(kind, self.SCHEME["soft"])
-        r = radius if radius is not None else h / 2
+        r = radius if radius is not None else min(h / 2, RADIUS)
         self.shape = round_rect(self, 1, 1, w - 1, h - 1, r, fill=self.fill, outline="")
         self.label = self.create_text(w / 2, h / 2 + 1, text=text, fill=self.fg,
                                       font=self.font)
@@ -261,7 +313,7 @@ class PillBadge(tk.Canvas):
         w = fo.measure(text) + padx * 2
         h = fo.metrics("linespace") + pady * 2
         super().__init__(master, width=w, height=h, bg=bg, highlightthickness=0, bd=0)
-        round_rect(self, 0, 0, w, h, h / 2, fill=color, outline="")
+        round_rect(self, 0, 0, w, h, min(h / 2, RADIUS), fill=color, outline="")
         self.create_text(w / 2, h / 2 + 1, text=text, fill=ON_ACCENT,
                          font=self.font)
 
@@ -349,8 +401,9 @@ class Card(tk.Canvas):
 
     PAD = 14
 
-    def __init__(self, master, bg=None, card=None, radius=20, pad=None):
+    def __init__(self, master, bg=None, card=None, radius=None, pad=None):
         bg, card = BG if bg is None else bg, CARD if card is None else card
+        radius = CARD_RADIUS if radius is None else radius
         super().__init__(master, bg=bg, highlightthickness=0, bd=0, height=60)
         self.card_color = card
         self.radius = radius
@@ -408,7 +461,7 @@ class Chip(tk.Canvas):
         super().__init__(master, width=w, height=h, bg=bg, highlightthickness=0, bd=0)
         self.command = command
         self.fill = fill
-        self.shape = round_rect(self, 1, 1, w - 1, h - 1, h / 2, fill=fill,
+        self.shape = round_rect(self, 1, 1, w - 1, h - 1, min(h / 2, RADIUS), fill=fill,
                                 outline=LINE, width=1)
         self.create_text(w / 2, h / 2 + 1, text=text, fill=fg, font=self.font)
         self.bind("<Enter>", lambda e: self.itemconfigure(self.shape,

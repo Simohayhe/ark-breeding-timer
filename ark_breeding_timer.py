@@ -39,7 +39,7 @@ from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.33.0"
+APP_VERSION = "1.34.0"
 
 
 def _res_dir():
@@ -541,7 +541,7 @@ class Pill(tk.Canvas):
                          highlightthickness=0, bd=0)
         self.command = command
         self.active = False
-        self.shape = th.round_rect(self, 1, 1, w - 1, h - 1, h / 2,
+        self.shape = th.round_rect(self, 1, 1, w - 1, h - 1, min(h / 2, th.RADIUS),
                                    fill=th.CARD, outline=th.LINE, width=1)
         self.label = self.create_text(w / 2, h / 2 + 1, text=text,
                                       fill=th.INK_SUB, font=self.font)
