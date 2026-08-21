@@ -193,35 +193,39 @@ def fonts():
     }
 
 
+def _shade(color, k):
+    """色を k 倍の明るさにする（k<1 で暗く）。"""
+    c = color.lstrip("#")
+    rgb = [int(c[i:i + 2], 16) for i in (0, 2, 4)]
+    return "#%02X%02X%02X" % tuple(max(0, min(255, int(v * k))) for v in rgb)
+
+
 def make_icon(size=64):
-    """ピンクの時計アイコンを生成（外部ファイル不要）"""
+    """子午線のしるし。円を縦に割って、左が昼・右が夜。
+
+    子午線（真ん中の線）は塗らずに抜く。小さくしても「丸が縦に割れている」
+    という形が残るので、16px のタスクバーでも何のアイコンか分かる。
+    色はテーマの主役色から作るので、見た目を変えると一緒に変わる。
+    """
     img = tk.PhotoImage(width=size, height=size)
     c = (size - 1) / 2.0
-    r = c - 1
-    rows = []
+    r = c - 0.5
+    gap = max(1.0, size / 14.0) / 2.0        # 真ん中の抜きの半幅
+    day, night = PINK, _shade(PINK, 0.42)
+    rows, holes = [], []
     for y in range(size):
         row = []
         for x in range(size):
             dx, dy = x - c, y - c
-            d = (dx * dx + dy * dy) ** 0.5
-            if d > r:
+            if (dx * dx + dy * dy) ** 0.5 > r or abs(dx) <= gap:
                 row.append(BG)
-            elif d > r - max(1, size // 16):
-                row.append(PINK_DK)
+                holes.append((x, y))
             else:
-                row.append(PINK)
-            # 針（12時方向と3時方向）
-            if abs(dx) <= size / 32 and -r * 0.62 <= dy <= 0:
-                row[-1] = "#FFFFFF"
-            if abs(dy) <= size / 32 and 0 <= dx <= r * 0.45:
-                row[-1] = "#FFFFFF"
+                row.append(day if dx < 0 else night)
         rows.append("{" + " ".join(row) + "}")
     img.put(" ".join(rows))
-    for y in range(size):
-        for x in range(size):
-            dx, dy = x - c, y - c
-            if (dx * dx + dy * dy) ** 0.5 > r:
-                img.transparency_set(x, y, True)
+    for x, y in holes:
+        img.transparency_set(x, y, True)
     return img
 
 
