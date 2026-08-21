@@ -1,10 +1,10 @@
 ﻿<div align="center">
 
-# ⏰ ふわふわタイマー / ARK Breeding Timer
+# Meridian — for ARK: Survival Ascended
 
-**かわいい見た目の Windows デスクトップタイマー。**
-ふつうのタイマーとしても、ARK: Survival Ascended のブリーディング用としても使えます。
-ゲームの横に置いておける**ミニ表示**と、やることを書き留めておける**チェックリスト**つき。
+**ARK: Survival Ascended のための Windows デスクトップツール。**
+ブリーディングとテイムのタイマー、ゲーム内時計、サーバー監視、AFK防止、マクロ。
+ゲームの横に置いておける**ミニ表示**つき。見た目は かわいい / モダン / かっこいい から選べます。
 
 Python 標準ライブラリだけで動きます（追加パッケージなし）。
 

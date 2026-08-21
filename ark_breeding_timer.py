@@ -38,8 +38,11 @@ from afk_page import AfkPage
 from gametime_page import GameTimePage
 from macro_page import MacroPage
 
-APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.34.1"
+# 画面に出す名前。exe 名とリポジトリは変えていない（更新の宛先が変わると
+# 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
+APP_NAME = "Meridian"
+APP_TAGLINE = "for ARK: Survival Ascended"
+APP_VERSION = "1.35.0"
 
 
 def _res_dir():
@@ -877,7 +880,7 @@ class MiniWindow(tk.Toplevel):
         super().__init__(app)
         self.app = app
         self.rows = {}
-        self.title("ふわふわタイマー（ミニ）")
+        self.title("%s — Mini" % APP_NAME)
         self.configure(bg=th.BG)
         self.attributes("-topmost", True)
         self.minsize(240, 130)
@@ -1323,10 +1326,13 @@ class App(tk.Tk):
         self.head = head
         self.head_top = top = tk.Frame(head, bg=th.BG)
         top.pack(fill="x")
-        tk.Label(top, text="⏰ ふわふわタイマー", bg=th.BG, fg=th.INK,
+        # ロゴは「名前＋小さく副題」。絵文字は入れずに字だけで見せる
+        tk.Label(top, text=APP_NAME.upper(), bg=th.BG, fg=th.INK,
                  font=F["head"]).pack(side="left")
+        tk.Label(top, text="  " + APP_TAGLINE, bg=th.BG, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", anchor="s", pady=(0, 4))
         # 更新できたかが一目で分かるように、版を出しておく
-        tk.Label(top, text=" v%s" % APP_VERSION, bg=th.BG, fg=th.INK_SUB,
+        tk.Label(top, text="  v%s" % APP_VERSION, bg=th.BG, fg=th.INK_SUB,
                  font=F["small"]).pack(side="left", anchor="s", pady=(0, 4))
         # 窓が狭いときはこのまとまりごと下の行へ移す（_on_resize）。
         # 移動先が head なので、マスターは top ではなく head にしておく

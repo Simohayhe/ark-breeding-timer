@@ -136,7 +136,7 @@ def download(asset, on_progress=None, timeout=60):
 # ---------------------------------------------------------------- 入れ替え
 BAT_TEMPLATE = """@echo off
 chcp 65001 >nul
-rem ふわふわタイマーの更新用。終わったら自分を消す。
+rem Meridian の更新用。終わったら自分を消す。
 :wait
 tasklist /FI "PID eq {pid}" 2>nul | find "{pid}" >nul
 if not errorlevel 1 (

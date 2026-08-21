@@ -1,4 +1,4 @@
-; ふわふわタイマー のインストーラ (Inno Setup 6)
+; Meridian のインストーラ (Inno Setup 6)
 ;
 ; tools/build_installer.py から呼ばれる。直接コンパイルするなら:
 ;   ISCC.exe /DMyVersion=1.12.1 installer\ArkBreedingTimer.iss
@@ -14,7 +14,7 @@
   #define MyVersion "0.0.0"
 #endif
 
-#define MyName "ふわふわタイマー"
+#define MyName "Meridian"
 #define MyNameEn "ArkBreedingTimer"
 #define MyPublisher "Simohaya"
 #define MyUrl "https://github.com/Simohayhe/ark-breeding-timer"
