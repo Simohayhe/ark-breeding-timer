@@ -39,7 +39,7 @@ from gametime_page import GameTimePage
 from macro_page import MacroPage
 
 APP_NAME = "ARK Breeding Timer"
-APP_VERSION = "1.34.0"
+APP_VERSION = "1.34.1"
 
 
 def _res_dir():
@@ -3344,14 +3344,14 @@ class SettingsDialog(tk.Toplevel):
         trow = tk.Frame(f, bg=th.CARD)
         trow.pack(fill="x", pady=(4, 2))
         self.v_theme = tk.StringVar(value=cfg.get("theme", "cute"))
-        for key in ("cute", "cool"):
-            pal = th.PALETTES[key]
+        # 決め打ちにすると、見た目を足したときに出し忘れる（実際やらかした）
+        for key, pal in th.PALETTES.items():
             self._radio(trow, pal["NAME"], self.v_theme, key).pack(side="left",
-                                                                   padx=(0, 10))
+                                                                   padx=(0, 4))
             # どんな色か分かるように、その配色の丸を3つ並べる
             sw = tk.Canvas(trow, width=54, height=16, bg=th.CARD,
                            highlightthickness=0, bd=0)
-            sw.pack(side="left", padx=(0, 18))
+            sw.pack(side="left", padx=(0, 14))
             for i, ck in enumerate(("BG", "PINK", "MINT")):
                 sw.create_oval(i * 18 + 1, 1, i * 18 + 15, 15, fill=pal[ck],
                                outline=pal["LINE"])
