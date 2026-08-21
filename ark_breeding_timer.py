@@ -12,6 +12,7 @@
 """
 from __future__ import annotations
 
+import ctypes
 import io
 import json
 import os
@@ -42,7 +43,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.36.0"
+APP_VERSION = "1.36.1"
 
 
 def _res_dir():
@@ -886,7 +887,7 @@ class MiniWindow(tk.Toplevel):
         self.minsize(240, 130)
         self.geometry(app.cfg.get("mini_geometry") or "300x320")
         try:
-            self.iconphoto(False, app._icon)
+            self.iconphoto(False, *(app._icons or [app._icon]))
         except (tk.TclError, AttributeError):
             pass
 
@@ -1304,8 +1305,18 @@ class App(tk.Tk):
         self.configure(bg=th.BG)
         self.F = th.init(self)
         try:
-            self._icon = th.make_icon(48)
-            self.iconphoto(True, self._icon)
+            # タスクバーは16px、ウィンドウの角は32px を使う。48px だけ渡すと
+            # Windows が縮めるので潰れる。要る大きさをそれぞれ作って渡す。
+            self._icons = [th.make_icon(n) for n in (16, 24, 32, 48, 64)]
+            self._icon = self._icons[3]          # ミニ表示が使う
+            self.iconphoto(True, *self._icons)
+        except Exception:
+            self._icons = []
+        try:
+            # これを立てておかないと、タスクバーが python/pythonw の
+            # まとまりに吸われて、そちらのアイコンで出ることがある
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                "Simohaya.Meridian")
         except Exception:
             pass
         threading.Thread(target=snd.prebuild, args=(SOUND_CACHE,), daemon=True).start()
