@@ -112,6 +112,21 @@ def fmt_span(sec):
     return "%d分%02d秒" % (sec // 60, sec % 60)
 
 
+def _circ_diff(a, b):
+    """ゲーム内時刻 a と b の差（-12h〜+12h）。"""
+    d = (int(a) - int(b)) % DAY_SECONDS
+    return d - DAY_SECONDS if d > DAY_SECONDS / 2 else d
+
+
+def _circ_mean(values):
+    """時刻の平均。輪っかなので、いちばん最後の値を基準に寄せてから均す。"""
+    if not values:
+        return None
+    base = values[-1]
+    off = sum(_circ_diff(v, base) for v in values) / float(len(values))
+    return int(base + off) % DAY_SECONDS
+
+
 def is_night(game_sec):
     g = int(game_sec) % DAY_SECONDS
     return g >= NIGHT_START or g < DAY_START
@@ -124,7 +139,7 @@ class GameClock:
                  night_real=DEFAULT_NIGHT_REAL, address="", restarts=None,
                  restart_minutes=3.0, restart_done=0.0, day_boundary=None,
                  total_measured=False, measuring=False, measure_since=0.0,
-                 notify=False):
+                 notify=False, boundary_votes=None, samples=None):
         # サーバーが落ちている間、時計を止めておく時刻（0なら動いている）。
         # 保存はしない。アプリを開き直したら見張りが数秒で入れ直すし、
         # 閉じていた間ぶんを丸ごと引くと、かえって大きくずれてしまう。
@@ -137,7 +152,10 @@ class GameClock:
         self._day_mark = None      # (前の変わり目の実時刻, そのときの held_total)
         # 観測のため置き場。1本 = (昼を何本ぶん, 夜を何本ぶん, かかった実秒)。
         # 「昼D + 夜N = ぜんぶ」も「昼だけ0.4本ぶん進んだ」も同じ形で入る。
-        self.samples = []
+        self.samples = [list(x) for x in (samples or [])][-16:]
+        # 日の変わり目のゲーム内時刻の推定。合わせ直すたびに見直すので、
+        # 最初の1回が外れていても後から直る（前は決め打ちで直らなかった）。
+        self.boundary_votes = [int(x) for x in (boundary_votes or [])][-8:]
         self.sync_real = float(sync_real)      # 合わせたときの実時刻(epoch)
         self.sync_game = int(sync_game)        # そのときのゲーム内秒
         self.day_real = max(1.0, float(day_real))      # 昼ぜんぶにかかる実秒
@@ -171,6 +189,17 @@ class GameClock:
         end = DAY_START + DAY_SECONDS if g >= NIGHT_START else DAY_START
         return end, self.night_real / NIGHT_SPAN
 
+    def _segment_back(self, game_sec):
+        """(この区間の始まりのゲーム内秒, ゲーム内1秒あたりの実秒)
+
+        さかのぼる用。境目ちょうどのときは「手前の区間」を返す。
+        """
+        g = int(game_sec) % DAY_SECONDS
+        if DAY_START < g <= NIGHT_START:
+            return DAY_START, self.day_real / DAY_SPAN
+        return (NIGHT_START if g <= DAY_START else NIGHT_START), \
+               self.night_real / NIGHT_SPAN
+
     def game_at(self, real_now=None):
         """いまのゲーム内秒。"""
         if not self.synced:
@@ -178,21 +207,38 @@ class GameClock:
         now = real_now if real_now is not None else time.time()
         if self.paused_at:
             now = min(now, self.paused_at)   # 落ちている間は進めない
-        left = max(0.0, now - self.sync_real)
+        delta = now - self.sync_real
         g = float(self.sync_game)
-        # 区間ごとに進める（1日ぶんで打ち切って、余りは丸ごと足す）
-        guard = 0
-        while left > 0 and guard < 2000:
-            guard += 1
-            end, rate = self._segment(g)
-            need = end - g if end > g else end + DAY_SECONDS - g
-            cost = need * rate
-            if cost > left:
-                g += left / rate
-                left = 0
-            else:
-                g = end
-                left -= cost
+        if delta >= 0:
+            left = delta
+            guard = 0
+            while left > 0 and guard < 2000:
+                guard += 1
+                end, rate = self._segment(g)
+                need = end - g if end > g else end + DAY_SECONDS - g
+                cost = need * rate
+                if cost > left:
+                    g += left / rate
+                    left = 0
+                else:
+                    g = end
+                    left -= cost
+        else:
+            # 過去にさかのぼる。日の変わり目のゲーム内時刻を出すのに要る
+            # （変わり目は「合わせた時刻」より前に起きているため）。
+            left = -delta
+            guard = 0
+            while left > 0 and guard < 2000:
+                guard += 1
+                start, rate = self._segment_back(g)
+                need = g - start if g > start else g + DAY_SECONDS - start
+                cost = need * rate
+                if cost > left:
+                    g -= left / rate
+                    left = 0
+                else:
+                    g = start
+                    left -= cost
         return int(g) % DAY_SECONDS
 
     def real_until(self, target_game, real_now=None):
@@ -328,9 +374,48 @@ class GameClock:
             return 0.0
         now = float(now if now is not None else time.time())
         gap = max(0.0, now - self.paused_at)
+        down_at = self.paused_at
         self.paused_at = 0.0
         self.hold(gap)
+        self.note_restart(down_at, gap)
+        # いま見て引いたぶんを、定期再起動としてもう一度引かないようにする
+        self.restart_done = now
         return gap
+
+    def note_restart(self, down_at, seconds):
+        """見た停止を「毎日この時刻に落ちる」として覚える。
+
+        アプリを閉じている間の停止は見張れないので、時刻さえ覚えておけば
+        次に開いたときに apply_restarts() でまとめて差し引ける。
+        毎日ほぼ同じ時刻に落ちる（定期再起動）ことを当てにしている。
+        """
+        mins = float(seconds) / 60.0
+        if not (0.5 <= mins <= 60.0):
+            return None          # 短すぎ・長すぎは定期再起動ではなさそう
+        lt = time.localtime(down_at)
+        got = lt.tm_hour * 60 + lt.tm_min
+        for i, t in enumerate(list(self.restarts)):
+            sec = parse_game_time(t)
+            if sec is None:
+                continue
+            have = sec // 60
+            diff = (got - have + 720) % 1440 - 720
+            if abs(diff) <= 15:          # ほぼ同じ時刻なら同じ再起動とみなす
+                self.restarts[i] = "%02d:%02d" % ((have + diff // 2) // 60 % 24,
+                                                  (have + diff // 2) % 60)
+                break
+        else:
+            if len(self.restarts) >= 8:
+                return None              # 増えすぎ。たぶん定期ではない
+            self.restarts.append("%02d:%02d" % (got // 60, got % 60))
+            self.restarts.sort()
+        # 止まる長さは、見たものへ少しずつ寄せる
+        if self.restart_minutes <= 0:
+            self.restart_minutes = round(mins, 1)
+        else:
+            self.restart_minutes = round(self.restart_minutes * 0.7
+                                         + mins * 0.3, 1)
+        return "%02d:%02d" % (got // 60, got % 60)
 
     def hold(self, seconds):
         """その秒数ぶん、時計を止める。
@@ -398,6 +483,7 @@ class GameClock:
             return True, "1回目なので、いまの時刻を覚えました"
 
         drift = self.drift_at(g, now)
+        mark_at = self._day_mark[0] if self._day_mark else None
         note = ""
         if drift is not None:
             if abs(drift) < 30:
@@ -425,6 +511,7 @@ class GameClock:
             got = self.solve()
             if got:
                 self.sync(g, now)
+                self._revote_boundary(mark_at)
                 tail = ("✅ 昼 %.1f分 ／ 夜 %.1f分 にしました（%s）"
                         % (self.day_real / 60, self.night_real / 60,
                            self.fit_note()))
@@ -446,9 +533,23 @@ class GameClock:
 
         if learned is None:
             _, why = self.calibrate(g, now)      # calibrate が自分で合わせ直す
+            self._revote_boundary(mark_at)
             return True, (note + "／" + why) if note else why
         self.sync(g, now)
+        self._revote_boundary(mark_at)
         return True, (note + "／" + learned) if note else learned
+
+    def _revote_boundary(self, mark_at):
+        """入れ直した時計から見て、前の変わり目はゲーム内で何時だったか。
+
+        変わり目は「合わせた時刻」より前に起きているので、さかのぼって出す。
+        こうしておくと、最初の推定が外れていても入れ直すたびに直っていく。
+        """
+        if not mark_at or not self.synced:
+            return None
+        if not (0 < self.sync_real - mark_at <= self.full_day_real() * 1.1):
+            return None                    # 遠すぎて当てにならない
+        return self.vote_boundary(self.game_at(mark_at))
 
     def calibrate(self, game_sec, real_now=None):
         """2回目以降の同期。ズレから速さを測り直す。
@@ -541,18 +642,41 @@ class GameClock:
                 self.measuring = False       # 測り終わり
                 done.append("速さを測り直しました（1日 %.1f分・%s）"
                             % (self.full_day_real() / 60, self.fit_note()))
-        # 2) 日の変わり目のゲーム内時刻を覚える／そこへ合わせ直す
+        # 2) 日の変わり目はいつも同じゲーム内時刻。そこへ錨を下ろす。
+        #    まだ分かっていなければ、いまの時計から1票入れて覚えていく。
         if self.day_boundary is None:
-            # 合わせ直したのが前の変わり目より後（＝ズレが小さい）ときだけ覚える。
-            # 速さが分かっていない状態で覚えると、まるで違う時刻を掴んでしまう。
-            if self.synced and self.total_measured and self.sync_real >= ref_at:
-                self.day_boundary = self.game_at(now)
-                done.append("日の変わり目を %s と覚えました"
-                            % fmt_game_time(self.day_boundary))
+            if self.synced and self.total_measured:
+                self.vote_boundary(self.game_at(now))
+                done.append("日の変わり目を %s と覚えました（合わせ直すたびに"
+                            "見直します）" % fmt_game_time(self.day_boundary))
         else:
+            was = self.game_at(now)
             self.sync(self.day_boundary, now)
-            done.append("%s に合わせ直しました" % fmt_game_time(self.day_boundary))
+            gap = _circ_diff(was, self.day_boundary) if was is not None else 0
+            done.append("%s に合わせ直しました（%s のズレ）"
+                        % (fmt_game_time(self.day_boundary), fmt_span(gap)))
         return "／".join(done)
+
+    def vote_boundary(self, est):
+        """日の変わり目のゲーム内時刻の推定を1票入れて、平均を取り直す。
+
+        時刻は輪っかなので、ふつうに平均すると 23:50 と 00:10 の真ん中が
+        12:00 になってしまう。角度に直してから平均する。
+        """
+        if est is None:
+            return None
+        self.boundary_votes.append(int(est) % DAY_SECONDS)
+        del self.boundary_votes[:-8]
+        self.day_boundary = _circ_mean(self.boundary_votes)
+        return self.day_boundary
+
+    def boundary_spread(self):
+        """推定のばらつき（秒）。小さいほど信用できる。"""
+        v = self.boundary_votes
+        if len(v) < 2:
+            return None
+        mid = _circ_mean(v)
+        return max(abs(_circ_diff(x, mid)) for x in v)
 
     def forget_learned(self):
         """覚えた速さと変わり目を捨てて、測り直しからやり直す。"""
@@ -562,6 +686,7 @@ class GameClock:
         self.night_real = DEFAULT_NIGHT_REAL
         self.samples = []
         self._day_mark = None
+        self.boundary_votes = []
 
     def set_total(self, seconds):
         """1日の長さ（昼＋夜）を決める。昼と夜の比はそのまま。
@@ -676,6 +801,8 @@ class GameClock:
                 "measuring": self.measuring,
                 "measure_since": self.measure_since,
                 "notify": self.notify,
+                "boundary_votes": self.boundary_votes,
+                "samples": self.samples,
                 "model": 2}
 
     @classmethod
@@ -696,7 +823,8 @@ class GameClock:
                    d.get("restart_minutes", 3.0), d.get("restart_done", 0.0),
                    d.get("day_boundary"), d.get("total_measured", False),
                    d.get("measuring", False), d.get("measure_since", 0.0),
-                   d.get("notify", False))
+                   d.get("notify", False), d.get("boundary_votes"),
+                   d.get("samples"))
 
 
 class ClockSet:

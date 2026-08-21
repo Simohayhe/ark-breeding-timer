@@ -322,7 +322,10 @@ class GameTimePage(tk.Frame):
         self.fold_restart = Fold(c, "定期再起動（ズレの自動補正）", F["cute_b"])
         self.fold_restart.pack(fill="x", pady=(6, 0))
         cr_ = self.fold_restart.body
-        tk.Label(cr_, text="サーバーが落ちている間はゲーム内時間も止まります。"
+        tk.Label(cr_, text="落ちて戻るのを見るたびに、その時刻を自動で覚えます"
+                           "（アプリを閉じている間ぶんを次回まとめて差し引くため）。"
+                           "手で足しても構いません。"
+                           "サーバーが落ちている間はゲーム内時間も止まります。"
                          "再起動の時刻を入れておくと、その分を自動で差し引きます",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=740,
                  justify="left").pack(anchor="w")
