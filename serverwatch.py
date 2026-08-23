@@ -28,9 +28,12 @@ class Watcher(threading.Thread):
       種類 "day"  … Dayが増えた（値は (前のDay, 新しいDay, 前回増えた時刻)）
     """
 
-    def __init__(self, get_targets, on_event=None, interval=60.0):
+    def __init__(self, get_targets, on_event=None, interval=60.0,
+                 get_interval=None):
         super().__init__(daemon=True)
         self.get_targets = get_targets
+        # 次まで何秒待つかを毎回決める関数（再起動の前後だけ短くする用）
+        self.get_interval = get_interval
         self.on_event = on_event
         self.interval = float(interval)
         self._halt = threading.Event()
@@ -120,8 +123,17 @@ class Watcher(threading.Thread):
                 if self._halt.is_set():
                     break
                 self._check_one(key, address)
-            self._wake.wait(max(20.0, self.interval))
+            self._wake.wait(self.next_wait())
             self._wake.clear()
+
+    def next_wait(self):
+        """次の見回りまで何秒待つか。"""
+        if self.get_interval is not None:
+            try:
+                return max(5.0, float(self.get_interval()))
+            except Exception:
+                pass
+        return max(20.0, self.interval)
 
     def _check_one(self, key, address):
         res = self.check_now(key, address)

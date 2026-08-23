@@ -897,6 +897,25 @@ class ClockSet:
         return cs
 
 
+def near_clock_time(times, now, window):
+    """"HH:MM" の並びのどれかに、いまが前後 window 秒以内で近いか。
+
+    定期再起動の前後だけ、サーバーを見に行く間隔を短くするのに使う。
+    """
+    lt = time.localtime(int(now))
+    since = lt.tm_hour * 3600 + lt.tm_min * 60 + lt.tm_sec
+    for t in times or ():
+        sec = parse_game_time(t)
+        if sec is None:
+            continue
+        d = (since - sec) % DAY_SECONDS
+        if d > DAY_SECONDS / 2:
+            d -= DAY_SECONDS
+        if abs(d) <= window:
+            return True
+    return False
+
+
 def _restart_occurrences(times, now, back_days=2):
     """"HH:MM" の並びから、直近 back_days 日ぶんの実時刻(epoch)を古い順に返す。"""
     # 秒未満を残すと、呼ぶたびに候補の時刻が微妙にズレて

@@ -43,7 +43,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.36.1"
+APP_VERSION = "1.37.0"
 
 
 def _res_dir():
@@ -89,6 +89,7 @@ DEFAULT_CONFIG = {
     # ポップアップが自分で消えるまでの秒数（0 = 「とめる」を押すまで消えない）
     "popup_close_prewarn": 8,
     "popup_close_done": 0,
+    "watch_popup_close": 10,   # サーバーの知らせが自分で消えるまで（秒）
     "prewarn_sec": 60,
     "auto_chain": True,
     # 操作
@@ -127,7 +128,9 @@ DEFAULT_CONFIG = {
     # ゲーム内時計（マップごとに、合わせた時刻・進む速さ・見張るサーバー）
     "game_clock": {},        # 昔の1つだけの形（引き継ぎ用）
     "game_clocks": {},
-    "watch_interval": 60,    # 死活を見に行く間隔（秒）
+    "watch_interval": 60,      # 死活を見に行く間隔（秒）
+    "watch_rush_min": 5,       # 定期再起動の前後 何分を「集中して見る」か
+    "watch_rush_interval": 10, # そのあいだの間隔（秒）
     # 画面
     "always_on_top": True,
     "geometry": "980x700",
@@ -405,7 +408,8 @@ class Notifier:
     def __init__(self, app):
         self.app = app
 
-    def fire(self, title, body, urgent=True, sound_spec=None, timer=None):
+    def fire(self, title, body, urgent=True, sound_spec=None, timer=None,
+             auto_close=None, repeat=None):
         """timer を渡すと、そのタイマー個別の音量・音の有無・中央表示に従う。"""
         cfg = self.app.cfg
         vol = cfg.get("volume", 0.7)
@@ -423,7 +427,8 @@ class Notifier:
             threading.Thread(target=self._toast, args=(title, body), daemon=True).start()
         if cfg.get("popup"):
             self.app.show_popup(title, body, urgent, sound_spec,
-                                center=center, volume=vol, sound_on=sound_on)
+                                center=center, volume=vol, sound_on=sound_on,
+                                auto_close=auto_close, repeat=repeat)
         self.app.flash_taskbar()
 
     def _toast(self, title, body):
@@ -1290,7 +1295,8 @@ class App(tk.Tk):
                                                 self.cfg.get("game_clocks"))
         self.watcher = serverwatch.Watcher(
             self._watch_targets, self._watch_event,
-            self.cfg.get("watch_interval", 60))
+            self.cfg.get("watch_interval", 60),
+            get_interval=self._watch_interval)
         self.watch_msg = {}
         # 見張りスレッドからの知らせ置き場。Tk は本体の周期処理から触る
         self.watch_notices = []
@@ -1639,7 +1645,10 @@ class App(tk.Tk):
         # 見張りスレッドが積んだ知らせを、ここ（本体側）で鳴らす
         while self.watch_notices:
             title, body, urgent = self.watch_notices.pop(0)
-            self.notifier.fire(title, body, urgent=urgent)
+            # サーバーの知らせは放っておくと溜まるので、自分から消えるようにする。
+            # 鳴らし続けるのも（落ちるたびに止めに行くことになるので）しない。
+            self.notifier.fire(title, body, urgent=urgent, repeat=False,
+                               auto_close=self.cfg.get("watch_popup_close", 10))
         changed = False
         for t in list(self.timers):
             if t.paused:
@@ -1868,6 +1877,26 @@ class App(tk.Tk):
                 out.append((name, c.address))
         return out
 
+    def _watch_interval(self):
+        """次まで何秒待つか。覚えている再起動の前後だけ短くする。
+
+        落ちた瞬間・戻った瞬間を細かく掴めると、時計を止める時刻が正確に
+        なるし、知らせも早く出せる。ふだんは間隔を空けて問い合わせを減らす。
+        """
+        base = float(self.cfg.get("watch_interval", 60) or 60)
+        try:
+            window = float(self.cfg.get("watch_rush_min", 5)) * 60
+            rush = float(self.cfg.get("watch_rush_interval", 10))
+        except (TypeError, ValueError):
+            return max(20.0, base)
+        if window > 0 and rush > 0:
+            now = time.time()
+            for c in self.clocks.clocks.values():
+                if c.address and gametime.near_clock_time(c.restarts, now,
+                                                          window):
+                    return max(5.0, rush)
+        return max(20.0, base)
+
     def _watch_event(self, name, kind, value):
         """見張りスレッドからの知らせ。Tkは触らず、時計だけ動かす。"""
         c = self.clocks.clocks.get(name)
@@ -1940,7 +1969,10 @@ class App(tk.Tk):
         snd.play_async(self.cfg["sound_done"], self.cfg.get("volume", 0.7), SOUND_CACHE)
 
     def show_popup(self, title, body, urgent=True, sound_spec=None,
-                   center=False, volume=None, sound_on=True):
+                   center=False, volume=None, sound_on=True,
+                   auto_close=None, repeat=None):
+        """auto_close に秒を渡すと、設定より優先してその秒数で自分から消える。
+        repeat=False なら「とめる」を押すまで鳴らし続けるのをやめる。"""
         if self.popup is not None and self.popup.winfo_exists():
             self.popup.destroy()
         p = tk.Toplevel(self)
@@ -1972,13 +2004,16 @@ class App(tk.Tk):
                        bg=th.CARD, font=self.F["cute"]).pack()
 
         # 自分から消えるまでの残りを細いバーで見せる（0秒設定なら出さない）
-        auto = self.cfg.get("popup_close_done" if urgent else "popup_close_prewarn")
+        if auto_close is None:
+            auto_close = self.cfg.get("popup_close_done" if urgent
+                                      else "popup_close_prewarn")
         try:
-            auto = float(auto or 0)
+            auto = float(auto_close or 0)
         except (TypeError, ValueError):
             auto = 0.0
         p.protocol("WM_DELETE_WINDOW", lambda: self._close_popup(p))
-        if urgent and self.cfg.get("repeat_alarm") and sound_on:
+        rep_on = self.cfg.get("repeat_alarm") if repeat is None else repeat
+        if urgent and rep_on and sound_on:
             self.alarm_on = True
             self._repeat_alarm(p, sound_spec, 0, volume)
         if auto > 0:
@@ -3432,7 +3467,10 @@ class SettingsDialog(tk.Toplevel):
         row3.pack(anchor="w", pady=(4, 0))
         self.v_pc_pre = tk.StringVar(value=str(int(cfg.get("popup_close_prewarn") or 0)))
         self.v_pc_done = tk.StringVar(value=str(int(cfg.get("popup_close_done") or 0)))
-        for text, var in (("予告", self.v_pc_pre), ("鳴ったとき", self.v_pc_done)):
+        self.v_pc_watch = tk.StringVar(
+            value=str(int(cfg.get("watch_popup_close") or 0)))
+        for text, var in (("予告", self.v_pc_pre), ("鳴ったとき", self.v_pc_done),
+                          ("サーバーの知らせ", self.v_pc_watch)):
             tk.Label(row3, text=text, bg=th.CARD, fg=th.INK_SUB,
                      font=F["small"]).pack(side="left", padx=(0, 4))
             th.soft_entry(row3, var, width=5).pack(side="left", padx=(0, 14), ipady=3)
@@ -3607,6 +3645,7 @@ class SettingsDialog(tk.Toplevel):
             self.app.cfg["prewarn_sec"] = max(0, int(float(self.v_pre.get())))
             self.app.cfg["popup_close_prewarn"] = max(0, int(float(self.v_pc_pre.get())))
             self.app.cfg["popup_close_done"] = max(0, int(float(self.v_pc_done.get())))
+            self.app.cfg["watch_popup_close"] = max(0, int(float(self.v_pc_watch.get())))
             self.app.cfg["auto_clear_sec"] = max(
                 10, int(float(self.v_clear_min.get()) * 60))
         except ValueError:

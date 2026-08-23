@@ -367,8 +367,27 @@ class GameTimePage(tk.Frame):
         self.lbl_ival = tk.Label(iv, text="", bg=th.CARD, fg=th.INK_SUB,
                                  font=F["small"])
         self.lbl_ival.pack(side="left")
-        tk.Label(cw_, text="短くすると日の変わり目をつかまえる精度が上がりますが、"
-                          "Epicへの問い合わせが増えます（20秒以上・既定60秒）",
+        iv2 = tk.Frame(cw_, bg=th.CARD)
+        iv2.pack(fill="x", pady=(0, 2))
+        tk.Label(iv2, text="ただし定期再起動の前後", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+        self.v_rush_min = tk.StringVar(
+            value="%g" % self.app.cfg.get("watch_rush_min", 5))
+        e3 = th.soft_entry(iv2, self.v_rush_min, width=4)
+        e3.pack(side="left", padx=4, ipady=3)
+        e3.bind("<Return>", lambda ev: self.save_interval())
+        tk.Label(iv2, text="分は", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+        self.v_rush_iv = tk.StringVar(
+            value="%g" % self.app.cfg.get("watch_rush_interval", 10))
+        e4 = th.soft_entry(iv2, self.v_rush_iv, width=4)
+        e4.pack(side="left", padx=4, ipady=3)
+        e4.bind("<Return>", lambda ev: self.save_interval())
+        tk.Label(iv2, text="秒ごとに、集中して見に行きます", bg=th.CARD,
+                 fg=th.INK, font=F["cute"]).pack(side="left")
+        tk.Label(cw_, text="短くすると日の変わり目や落ちた瞬間をつかまえる精度が"
+                          "上がりますが、Epicへの問い合わせが増えます"
+                          "（ふだんは20秒以上・集中中は5秒以上）",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=740,
                  justify="left").pack(anchor="w", pady=(0, 4))
         tk.Label(cw_, text="IPを入れて「🔍 マップを探す」を押すと、そのサーバーの"
@@ -736,10 +755,21 @@ class GameTimePage(tk.Frame):
         if sec < 20:
             self.lbl_ival.config(text="  ⚠ 20秒以上にしてください", fg=th.PINK_DK)
             return
+        try:
+            rmin = max(0.0, float(self.v_rush_min.get().strip() or 0))
+            riv = max(5.0, float(self.v_rush_iv.get().strip() or 10))
+        except ValueError:
+            self.lbl_ival.config(text="  ⚠ 集中する所も数字で入れてください",
+                                 fg=th.PINK_DK)
+            return
         self.app.cfg["watch_interval"] = sec
+        self.app.cfg["watch_rush_min"] = rmin
+        self.app.cfg["watch_rush_interval"] = riv
         self.app.watcher.interval = sec
+        self.app.watcher.poke()          # 新しい間隔ですぐ回り直す
         self.app.save_cfg()
-        self.lbl_ival.config(text="  ✅ %g秒ごとにしました" % sec, fg=th.MINT)
+        self.lbl_ival.config(text="  ✅ ふだん%g秒／再起動前後は%g秒にしました"
+                                  % (sec, riv), fg=th.MINT)
 
     def toggle_maps(self, show=None):
         self.maps_open = (not self.maps_open) if show is None else bool(show)
