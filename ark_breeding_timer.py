@@ -43,7 +43,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.38.0"
+APP_VERSION = "1.39.0"
 
 
 def _res_dir():
@@ -134,6 +134,7 @@ DEFAULT_CONFIG = {
     "egg_hotkey_on": True,
     "egg_hotkey_mods": macro.MOD_CONTROL,
     "egg_hotkey_vk": 0x45,             # E
+    "macro_cancel_rclick": True,       # 右クリックでマクロを止める
     # ゲーム内時計（マップごとに、合わせた時刻・進む速さ・見張るサーバー）
     "game_clock": {},        # 昔の1つだけの形（引き継ぎ用）
     "game_clocks": {},
@@ -1301,6 +1302,8 @@ class App(tk.Tk):
         self.egg_rec = None            # 位置を覚えているところ
         self.egg_hotkey = None
         self._egg_hotkey_err = ""
+        self.cancel_watch = None       # 右クリック見張り
+        self.cancelled_at = 0.0        # 止めた時刻（画面のお知らせ用）
         # 起動前に終わっていたタイマーを開いた瞬間に消さないための基準時刻
         self.start_ts = time.time()
         th.use(self.cfg.get("theme", "cute"))   # 部品を作る前に色を決める
@@ -1758,6 +1761,31 @@ class App(tk.Tk):
         else:
             self.hotkey = hk
 
+    # ---------------- 右クリックで止める ----------------
+    def _on_right_cancel(self):
+        """フックの中から呼ばれる。旗を立てて止めるだけにする。"""
+        if not (self.macro_running() or self.egg_running()):
+            return
+        self.cancelled_at = time.time()
+        self.stop_macro()
+        self.stop_egg()
+
+    def sync_cancel_watch(self):
+        """マクロが動いているあいだだけ、右クリックを見張る。
+
+        ずっと仕掛けておく必要はないので、動いていないときは外す。
+        """
+        want = (self.cfg.get("macro_cancel_rclick", True)
+                and (self.macro_running() or self.egg_running()))
+        if want and self.cancel_watch is None:
+            w = macro.CancelWatch(self._on_right_cancel)
+            w.start()
+            w.ready.wait(0.5)
+            self.cancel_watch = w if w.ok else None
+        elif not want and self.cancel_watch is not None:
+            self.cancel_watch.stop()
+            self.cancel_watch = None
+
     # ---------------- たまごマクロ ----------------
     def _egg_cfg(self):
         c = self.cfg
@@ -1822,6 +1850,7 @@ class App(tk.Tk):
     def _macro_tick(self):
         # 撃ち終わったスレッドは残しておく（回数の表示に使うため）。
         # macro_running() が is_alive() を見ているので、止まった扱いになる。
+        self.sync_cancel_watch()
         if getattr(self, "page", "") == "macro":
             self.page_macro.update_view()
 
@@ -2187,6 +2216,8 @@ class App(tk.Tk):
         snd.stop()
         self.stop_macro()          # 連射を止め忘れて暴走させない
         self.stop_egg()
+        if self.cancel_watch is not None:
+            self.cancel_watch.stop()
         if self.egg_rec is not None:
             self.egg_rec.stop()
         if self.egg_hotkey is not None:

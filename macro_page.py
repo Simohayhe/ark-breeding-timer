@@ -2,6 +2,7 @@
 """🖱 マクロのページ。連射の設定と入切。実際の送信は macro.py。"""
 from __future__ import annotations
 
+import time
 import tkinter as tk
 from tkinter import ttk
 
@@ -136,6 +137,19 @@ class MacroPage(tk.Frame):
         tk.Label(c, text="⚠ ARKのようなゲームは「ウィンドウに直接送る」が効かない"
                          "ことがあります。「ためす」で確かめて、駄目なら"
                          "「一瞬だけ前に出して送る」を使ってください",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
+                 justify="left").pack(anchor="w", pady=(0, 8))
+
+        self.v_rcancel = tk.BooleanVar(
+            value=bool(cfg.get("macro_cancel_rclick", True)))
+        tk.Checkbutton(c, text="右クリックでとめる（連射・たまごの両方）",
+                       variable=self.v_rcancel, command=self.save_rcancel,
+                       bg=th.CARD, fg=th.INK, activebackground=th.CARD,
+                       activeforeground=th.INK, selectcolor=th.FIELD,
+                       font=F["cute"], bd=0, highlightthickness=0,
+                       anchor="w").pack(anchor="w", pady=(6, 0))
+        tk.Label(c, text="動かしているあいだだけ見張ります。右クリックそのものは"
+                         "ゲームに届きますし、マクロが送った右クリックでは止まりません",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
                  justify="left").pack(anchor="w", pady=(0, 8))
 
@@ -305,25 +319,49 @@ class MacroPage(tk.Frame):
 
     def _capture(self, what):
         if self._capturing:
+            self._end_capture()        # もう一度押したらやめる
             return
         self._capturing = what
-        btn = self.btn_key if what == "key" else self.btn_hotkey
-        btn.set_text("キーを押してください…")
+        btn = {"key": self.btn_key, "hotkey": self.btn_hotkey,
+               "egg_hotkey": self.btn_ehk}[what]
+        btn.set_text("キーを押してください…（Escでやめる）")
         top = self.winfo_toplevel()
-        self._bind_id = top.bind("<KeyPress>", self._on_capture_key, add="+")
+        # Alt の組み合わせは Windows がシステムキー扱いにするので、
+        # ふつうの <KeyPress> には来ない。<Alt-KeyPress> も一緒に押さえる。
+        self._bind_ids = [
+            ("<KeyPress>", top.bind("<KeyPress>", self._on_capture_key,
+                                    add="+")),
+            ("<Alt-KeyPress>", top.bind("<Alt-KeyPress>", self._on_capture_key,
+                                        add="+")),
+        ]
         top.focus_force()
+
+    def _end_capture(self):
+        self._capturing = False
+        top = self.winfo_toplevel()
+        for seq, bid in getattr(self, "_bind_ids", []):
+            try:
+                top.unbind(seq, bid)
+            except tk.TclError:
+                pass
+        self._bind_ids = []
+        self.update_view()
 
     def _on_capture_key(self, e):
         if not self._capturing:
-            return
+            return None
         vk = e.keycode        # Windows では仮想キーコードがそのまま入る
         if vk in (0x10, 0x11, 0x12, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0x5B):
             return "break"    # 修飾キー単体は無視して、本命のキーを待つ
-        what, self._capturing = self._capturing, False
-        self.winfo_toplevel().unbind("<KeyPress>", self._bind_id)
+        if vk == 0x1B:        # Esc
+            self._end_capture()
+            return "break"
+        what = self._capturing
+        self._end_capture()
         if what == "key":
             self.app.cfg["macro_key_vk"] = vk
             self.app.cfg["macro_key_scan"] = macro.scancode_of(vk)
+            self.app.save_cfg()
         else:
             mods = 0
             if e.state & 0x0004:
@@ -334,9 +372,16 @@ class MacroPage(tk.Frame):
                 mods |= macro.MOD_ALT
             if not mods:
                 mods = macro.MOD_CONTROL   # 修飾なしは事故のもとなので Ctrl を足す
-            self.app.cfg["macro_hotkey_mods"] = mods
-            self.app.cfg["macro_hotkey_vk"] = vk
-            self.app.apply_hotkey()
+            if what == "egg_hotkey":
+                self.app.cfg["egg_hotkey_mods"] = mods
+                self.app.cfg["egg_hotkey_vk"] = vk
+                self.app.save_cfg()
+                self.app.apply_egg_hotkey()
+            else:
+                self.app.cfg["macro_hotkey_mods"] = mods
+                self.app.cfg["macro_hotkey_vk"] = vk
+                self.app.save_cfg()
+                self.app.apply_hotkey()
         self.update_view()
         return "break"
 
@@ -388,6 +433,12 @@ class MacroPage(tk.Frame):
             self.lbl_egg.config(text="%d個ぶん、%s で入切できます"
                                      "（送り方は上の設定と同じです）"
                                      % (slots, name), fg=th.INK_SUB)
+
+    def save_rcancel(self):
+        self.app.cfg["macro_cancel_rclick"] = bool(self.v_rcancel.get())
+        self.app.save_cfg()
+        self.app.sync_cancel_watch()
+        self.update_view()
 
     def save_egg(self):
         c = self.app.cfg
@@ -458,31 +509,7 @@ class MacroPage(tk.Frame):
         self.update_view()
 
     def capture_egg_hotkey(self):
-        self._capturing_egg = True
-        self.btn_ehk.set_text("キーを押して…")
-        self.focus_set()
-        self.bind("<Key>", self._on_egg_key)
-
-    def _on_egg_key(self, ev):
-        if not getattr(self, "_capturing_egg", False):
-            return None
-        self.unbind("<Key>")
-        self._capturing_egg = False
-        vk = ev.keycode
-        mods = 0
-        if ev.state & 0x0004:
-            mods |= macro.MOD_CONTROL
-        if ev.state & 0x0001:
-            mods |= macro.MOD_SHIFT
-        if ev.state & 0x20000 or ev.state & 0x0008:
-            mods |= macro.MOD_ALT
-        if vk and mods:
-            self.app.cfg["egg_hotkey_mods"] = mods
-            self.app.cfg["egg_hotkey_vk"] = vk
-            self.app.save_cfg()
-            self.app.apply_egg_hotkey()
-        self.update_view()
-        return "break"
+        self._capture("egg_hotkey")
 
     def test_once(self):
         """設定どおりに1回だけ送る（対象チェックはしない）。"""
@@ -541,7 +568,11 @@ class MacroPage(tk.Frame):
             self.lbl_found.config(text="  ⚠ 見つかりません", fg=th.PINK_DK)
 
         if not running:
-            self.lbl_state.config(text="とまっています", fg=th.INK_SUB)
+            just = (self.app.cancelled_at
+                    and time.time() - self.app.cancelled_at < 6)
+            self.lbl_state.config(
+                text="右クリックでとめました" if just else "とまっています",
+                fg=th.PINK_DK if just else th.INK_SUB)
             self.lbl_sub.config(text="%s を %dミリ秒ごとに送ります" % (
                 what, cfg.get("macro_interval_ms", 100)))
             return

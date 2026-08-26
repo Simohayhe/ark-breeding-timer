@@ -372,6 +372,73 @@ class EggRunner(threading.Thread):
         self.finished = True
 
 
+# ------------------------------------------------- 右クリックで止める
+# 押されたら止めたいだけなので、フックは**覗くだけ**にして必ず次へ流す
+# （右クリックそのものはゲームにちゃんと届く）。
+#
+# 大事なのは「自分が送った右クリックでは止まらない」こと。
+# 右クリック連射をしているときに自分で自分を止めてしまうと使い物にならない。
+# 低レベルフックなら注入された入力に印(LLMHF_INJECTED)が付くので、それで分ける。
+WH_MOUSE_LL = 14
+WM_RBUTTONDOWN_LL = 0x0204
+LLMHF_INJECTED = 0x00000001
+ULONG_PTR = wintypes.WPARAM
+
+
+class MSLLHOOKSTRUCT(ctypes.Structure):
+    _fields_ = (("pt", wintypes.POINT), ("mouseData", wintypes.DWORD),
+                ("flags", wintypes.DWORD), ("time", wintypes.DWORD),
+                ("dwExtraInfo", ULONG_PTR))
+
+
+HOOKPROC = ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_int, wintypes.WPARAM,
+                              ctypes.POINTER(MSLLHOOKSTRUCT))
+
+
+class CancelWatch(threading.Thread):
+    """本物の右クリックを見張って、押されたら callback を呼ぶ。
+
+    callback はフックの中から呼ばれるので、**すぐ返ること**。
+    （旗を立てるだけにして、画面はあとから見に行く）
+    """
+
+    def __init__(self, callback):
+        super().__init__(daemon=True)
+        self.callback = callback
+        self._tid = 0
+        self._hook = None
+        self._proc = None          # GCで消えると落ちるので持っておく
+        self.ready = threading.Event()
+        self.ok = False
+
+    def _on_event(self, code, wparam, lparam):
+        try:
+            if (code >= 0 and wparam == WM_RBUTTONDOWN_LL
+                    and not (lparam.contents.flags & LLMHF_INJECTED)):
+                self.callback()
+        except Exception:
+            pass
+        return user32.CallNextHookEx(None, code, wparam, lparam)
+
+    def run(self):
+        self._tid = kernel32.GetCurrentThreadId()
+        self._proc = HOOKPROC(self._on_event)
+        self._hook = user32.SetWindowsHookExW(WH_MOUSE_LL, self._proc, None, 0)
+        self.ok = bool(self._hook)
+        self.ready.set()
+        if not self.ok:
+            return
+        msg = MSG()
+        while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
+            pass
+        user32.UnhookWindowsHookEx(self._hook)
+        self._hook = None
+
+    def stop(self):
+        if self._tid:
+            user32.PostThreadMessageW(self._tid, WM_QUIT, 0, 0)
+
+
 # ---------------------------------------------------------------- ホットキー
 WM_HOTKEY = 0x0312
 WM_QUIT = 0x0012
