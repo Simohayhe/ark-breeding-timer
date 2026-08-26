@@ -43,7 +43,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.40.0"
+APP_VERSION = "1.41.0"
 
 
 def _res_dir():
@@ -107,6 +107,7 @@ DEFAULT_CONFIG = {
     ],
     # AFK防止（放置キック対策のキー送信）
     "afk_key": afk.DEFAULT_KEY,
+    "afk_key2": "",               # そのあと押して戻すキー（W→S など）
     "afk_interval": 120,          # 何秒ごとに送るか
     "afk_times": 2,               # 1回あたり何連打
     "afk_gap_ms": 60,             # 連打の間隔
@@ -1876,7 +1877,8 @@ class App(tk.Tk):
                                  self.cfg.get("afk_target") or "",
                                  self.cfg.get("afk_key") or afk.DEFAULT_KEY,
                                  self.cfg.get("afk_times", 1),
-                                 self.cfg.get("afk_gap_ms", 60))
+                                 self.cfg.get("afk_gap_ms", 60),
+                                 name2=self.cfg.get("afk_key2") or None)
             self.afk_why = why
             if sent:
                 self.afk_count += 1

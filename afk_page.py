@@ -53,14 +53,25 @@ class AfkPage(tk.Frame):
         self.cb_key["values"] = [lbl for _k, lbl in afk.key_choices()]
         self.cb_key.pack(side="left")
         self.cb_key.bind("<<ComboboxSelected>>", lambda e: self.save())
+        tk.Label(krow, text="  そのあと", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+        self.v_key2 = tk.StringVar(value=afk.key_label(cfg.get("afk_key2"))
+                                   if cfg.get("afk_key2") else "（なし）")
+        self.cb_key2 = ttk.Combobox(krow, textvariable=self.v_key2,
+                                    state="readonly", width=22,
+                                    style="Cute.TCombobox", font=F["ui"])
+        self.cb_key2["values"] = ["（なし）"] + [lbl for _k, lbl
+                                                 in afk.key_choices()]
+        self.cb_key2.pack(side="left", padx=4)
+        self.cb_key2.bind("<<ComboboxSelected>>", lambda e: self.save())
         th.RoundButton(krow, "▶ ためす", self.test_once, kind="soft", bg=th.CARD,
                        font=F["small"], padx=12, pady=5).pack(side="left", padx=6)
-        tk.Label(c, text="Ctrl（しゃがみ）がいちばん安全です。足が動かないので"
-                         "崖ぎわでも落ちませんし、スタミナも減りません。"
-                         "回数を偶数（2回など）にしておけば、しゃがむ→立つ で"
-                         "元の姿勢に戻ります。"
-                         "スペース（ジャンプ）は落下する所だと危ないので、"
-                         "足場が怪しいときは避けてください",
+        tk.Label(c, text="ARKの離席判定は「動いたかどうか」を見ているようで、"
+                         "しゃがみだけだと蹴られることがあります。"
+                         "確実にしたいときは W → S のように「そのあと」も指定して、"
+                         "一歩出て戻る形にしてください（位置はほぼ元のまま）。　"
+                         "Ctrl（しゃがみ）は落ちる心配がないぶん、いちばん安全です。"
+                         "スペース（ジャンプ）は落下する所では避けてください",
                  justify="left", wraplength=760,
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
                                                                   pady=(0, 10))
@@ -124,12 +135,14 @@ class AfkPage(tk.Frame):
         self.update_view()
 
     MODE_HELP = {
-        "foreground": "いちばん確実ですが、ARKを見ていないあいだは送られません。",
+        "foreground": "⚠ ARKを見ていないあいだは1回も送りません。"
+                      "別の画面を触っていてキックされたなら、これが原因です。",
         "swap": "ARKを一瞬だけ前に出して送り、すぐ元の窓に戻します。裏で作業していても"
                 "効きますが、そのあいだ画面が一瞬ちらつきます。"
                 "文字を打っている最中に来ると、そのキーがARKに入ることがあります。",
-        "post": "ARKのウィンドウにキーの信号を直接投げます。ちらつかず裏のままですが、"
-                "ゲームによっては完全に無視されます。「▶ ためす」で効くか確かめてください。",
+        "post": "ARKのウィンドウにキーの信号を直接投げます。ちらつかず裏のまま"
+                "送れて、ARKにも届きます。ゲームによっては無視されるので、"
+                "はじめて使うときは「▶ ためす」で効くか確かめてください。",
         "always": "⚠ 前面が何であろうと送ります。メモ帳やブラウザに文字が入ります。",
     }
 
@@ -139,6 +152,14 @@ class AfkPage(tk.Frame):
             return max(lo, min(hi, int(float(var.get()))))
         except ValueError:
             return default
+
+    def key_name2(self):
+        """「そのあと」に選んだキー。なしなら空。"""
+        want = self.v_key2.get()
+        for k, lbl in afk.key_choices():
+            if lbl == want:
+                return k
+        return ""
 
     def key_name(self):
         label = self.v_key.get()
@@ -150,6 +171,7 @@ class AfkPage(tk.Frame):
     def save(self):
         c = self.app.cfg
         c["afk_key"] = self.key_name()
+        c["afk_key2"] = self.key_name2()
         c["afk_interval"] = self._int(self.v_interval, 120, 5, 3600)
         c["afk_times"] = self._int(self.v_times, 1, 1, 20)
         c["afk_gap_ms"] = self._int(self.v_gap, 60, 10, 2000)
@@ -209,8 +231,9 @@ class AfkPage(tk.Frame):
         mode = cfg.get("afk_mode") or afk.DEFAULT_MODE
         target = cfg.get("afk_target") or ""
         self.btn.set_text("■ とめる" if on else "▶ はじめる")
+        risky = mode in ("always", "foreground")
         self.lbl_mode.config(text=self.MODE_HELP.get(mode, ""),
-                             fg=th.PINK_DK if mode == "always" else th.INK_SUB)
+                             fg=th.PINK_DK if risky else th.INK_SUB)
 
         # 対象のウィンドウが見つかっているか（swap / post のときだけ意味がある）
         if mode in ("swap", "post") and target:

@@ -80,12 +80,16 @@ KEYS = {
 DEFAULT_KEY = "ctrl"
 
 MODES = (
-    ("foreground", "ARKが最前面のときだけ送る（安全・確実）"),
-    ("swap", "一瞬だけ前に出して、すぐ元に戻す（裏でもOK・ちらつく）"),
-    ("post", "ウィンドウに直接送る（裏でもOK・効かないゲームもある）"),
+    ("swap", "一瞬だけ前に出して、すぐ元に戻す（裏でもOK・これが確実）"),
+    ("foreground", "ARKが最前面のときだけ送る（裏にあると送りません）"),
+    ("post", "ウィンドウに直接送る（裏でもOK・ちらつかない）"),
     ("always", "前面が何でも送る（他のアプリに文字が入ります）"),
 )
-DEFAULT_MODE = "foreground"
+# 離席中に効かないと意味がないので swap を既定にする。
+# foreground は「裏にいるあいだ1回も送らない」ので、AFK防止には向かない。
+# post も ARK に届くことを実機で確認した（2026-08-27）。ちらつかないので
+# 本当はこれが一番おとなしいが、ゲームによっては無視されるので「ためす」で確認を。
+DEFAULT_MODE = "swap"
 
 
 def mode_label(mode):
@@ -289,7 +293,22 @@ def _force_foreground(hwnd):
     return ok
 
 
-def send_via_swap(hwnd, name, times=1, gap_ms=60, hold_ms=40, settle_ms=140):
+def burst_pair(name, name2, times=1, gap_ms=60, hold_ms=40):
+    """name を押してから name2 を押す。W→S なら「一歩出て、戻る」。
+
+    ARKの離席判定は「動いたか・何かしたか」を見ているらしく、しゃがみの
+    ようにその場から動かない操作だと蹴られることがある。行って戻れば
+    位置はほぼ元のままで、ちゃんと動いたことになる。
+    """
+    n = burst(name, times, gap_ms, hold_ms)
+    if name2:
+        time.sleep(max(0.06, gap_ms / 1000.0))
+        n += burst(name2, times, gap_ms, hold_ms)
+    return n
+
+
+def send_via_swap(hwnd, name, times=1, gap_ms=60, hold_ms=40, settle_ms=140,
+                  name2=None):
     """一瞬だけ対象を前に出してキーを送り、元の窓に戻す。"""
     if not hwnd:
         return 0
@@ -297,7 +316,7 @@ def send_via_swap(hwnd, name, times=1, gap_ms=60, hold_ms=40, settle_ms=140):
     if not _force_foreground(hwnd):
         return 0
     time.sleep(settle_ms / 1000.0)   # 前面が切り替わるのを待つ
-    sent = burst(name, times, gap_ms, hold_ms)
+    sent = burst_pair(name, name2, times, gap_ms, hold_ms)
     time.sleep(0.05)
     if prev and prev != hwnd:
         _force_foreground(prev)
@@ -305,26 +324,30 @@ def send_via_swap(hwnd, name, times=1, gap_ms=60, hold_ms=40, settle_ms=140):
 
 
 # ------------------------------------------------------------ まとめ役
-def send(mode, target, name, times=1, gap_ms=60, hold_ms=40):
-    """モードに応じて送る。(送れた回数, 状況の説明) を返す。"""
+def send(mode, target, name, times=1, gap_ms=60, hold_ms=40, name2=None):
+    """モードに応じて送る。(送れた回数, 状況の説明) を返す。
+
+    name2 を渡すと、name のあとに name2 も押す（W→S で行って戻る用）。
+    """
     if mode == "always":
-        return burst(name, times, gap_ms, hold_ms), ""
+        return burst_pair(name, name2, times, gap_ms, hold_ms), ""
     if mode == "foreground":
         if not matches(target):
             return 0, "%s が最前面ではありません" % (target or "対象")
-        return burst(name, times, gap_ms, hold_ms), ""
+        return burst_pair(name, name2, times, gap_ms, hold_ms), ""
     hwnd = find_window(target)
     if not hwnd:
         return 0, "%s のウィンドウが見つかりません" % (target or "対象")
     if mode == "post":
         sent = 0
-        for i in range(max(1, int(times))):
-            if not post_key(hwnd, name, hold_ms):
-                break
-            sent += 1
-            if i + 1 < times:
+        for nm in ([name, name2] if name2 else [name]):
+            for i in range(max(1, int(times))):
+                if not post_key(hwnd, nm, hold_ms):
+                    break
+                sent += 1
                 time.sleep(max(0.0, gap_ms / 1000.0))
         return sent, ""
     if mode == "swap":
-        return send_via_swap(hwnd, name, times, gap_ms, hold_ms), ""
+        return send_via_swap(hwnd, name, times, gap_ms, hold_ms,
+                             name2=name2), ""
     return 0, "知らないモードです: %s" % mode
