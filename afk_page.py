@@ -55,8 +55,13 @@ class AfkPage(tk.Frame):
         self.cb_key.bind("<<ComboboxSelected>>", lambda e: self.save())
         th.RoundButton(krow, "▶ ためす", self.test_once, kind="soft", bg=th.CARD,
                        font=F["small"], padx=12, pady=5).pack(side="left", padx=6)
-        tk.Label(c, text="ARKで押しても困らないキーを選んでください。"
-                         "スペース（その場でジャンプ）が無難です",
+        tk.Label(c, text="Ctrl（しゃがみ）がいちばん安全です。足が動かないので"
+                         "崖ぎわでも落ちませんし、スタミナも減りません。"
+                         "回数を偶数（2回など）にしておけば、しゃがむ→立つ で"
+                         "元の姿勢に戻ります。"
+                         "スペース（ジャンプ）は落下する所だと危ないので、"
+                         "足場が怪しいときは避けてください",
+                 justify="left", wraplength=760,
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
                                                                   pady=(0, 10))
 

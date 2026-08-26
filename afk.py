@@ -61,20 +61,23 @@ class INPUT(ctypes.Structure):
 # 表示名 -> (表示名, スキャンコード, 拡張キーか, 仮想キーコード)
 #   スキャンコードは PS/2 セット1。拡張キー(矢印など)は E0 が付くので True。
 #   仮想キーコードは post モード（WM_KEYDOWN）で使う。
+# 安全なものから順に並べる。キャラが動かないキーほど上。
 KEYS = {
-    "space": ("スペース（ジャンプ）", 0x39, False, 0x20),
-    "w": ("W（前に少し）", 0x11, False, 0x57),
-    "a": ("A（左に少し）", 0x1E, False, 0x41),
-    "s": ("S（後ろに少し）", 0x1F, False, 0x53),
-    "d": ("D（右に少し）", 0x20, False, 0x44),
-    "left": ("← 左を向く", 0x4B, True, 0x25),
-    "right": ("→ 右を向く", 0x4D, True, 0x27),
-    "shift": ("左Shift", 0x2A, False, 0xA0),
-    "ctrl": ("左Ctrl（しゃがみ）", 0x1D, False, 0xA2),
+    "ctrl": ("Ctrl（しゃがみ・いちばん安全）", 0x1D, False, 0xA2),
+    "left": ("← 左を向く（その場で回るだけ）", 0x4B, True, 0x25),
+    "right": ("→ 右を向く（その場で回るだけ）", 0x4D, True, 0x27),
+    "shift": ("左Shift（走る・その場では動かない）", 0x2A, False, 0xA0),
+    "space": ("スペース（ジャンプ・落ちる所では危ない）", 0x39, False, 0x20),
+    "w": ("W（前に少し動きます）", 0x11, False, 0x57),
+    "a": ("A（左に少し動きます）", 0x1E, False, 0x41),
+    "s": ("S（後ろに少し動きます）", 0x1F, False, 0x53),
+    "d": ("D（右に少し動きます）", 0x20, False, 0x44),
     "tab": ("Tab", 0x0F, False, 0x09),
     "1": ("1（ホットバー1）", 0x02, False, 0x31),
 }
-DEFAULT_KEY = "space"
+# しゃがみが既定。押しても足が動かないので、崖ぎわでも落ちない。
+# 偶数回にしておけば、しゃがむ→立つ で元の姿勢に戻る。
+DEFAULT_KEY = "ctrl"
 
 MODES = (
     ("foreground", "ARKが最前面のときだけ送る（安全・確実）"),
