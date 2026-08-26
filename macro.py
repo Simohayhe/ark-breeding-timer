@@ -261,6 +261,117 @@ class Runner(threading.Thread):
             self._halt.wait(max(0.001, int(c.get("interval_ms") or 100) / 1000.0))
 
 
+# ------------------------------------------------- たまごマクロ（孵化器）
+# 「たまごを押す → 壊す/孵す を押す」の2回だけ。壊すと次のたまごが
+# 同じ場所へ繰り上がるので、同じ2か所を押しつづければ全部さばける。
+# 押す場所は画面の大きさやUIの倍率で人それぞれなので、
+# **1回やって見せてもらって覚える**（ClickRecorder）。
+MAX_EGGS = 10        # 孵化器のたまご枠はこれだけ
+VK_LBUTTON = 0x01
+
+
+def cursor_pos():
+    pt = wintypes.POINT()
+    user32.GetCursorPos(ctypes.byref(pt))
+    return int(pt.x), int(pt.y)
+
+
+class ClickRecorder(threading.Thread):
+    """左クリックを want 回ぶん見張って、押した場所を覚える。
+
+    フックは使わず、キーの状態を細かく見に行くだけ。取りこぼしても
+    次のクリックで拾えるし、他のアプリの邪魔をしない。
+    """
+
+    def __init__(self, want=2, on_point=None):
+        super().__init__(daemon=True)
+        self.want = int(want)
+        self.on_point = on_point
+        self.points = []
+        self._halt = threading.Event()
+        self.done = False
+
+    def stop(self):
+        self._halt.set()
+
+    def run(self):
+        # 「おぼえる」を押したクリック自体を拾わないよう、指が離れるまで待つ
+        while not self._halt.is_set():
+            if not (user32.GetAsyncKeyState(VK_LBUTTON) & 0x8000):
+                break
+            self._halt.wait(0.02)
+        was_down = False
+        while not self._halt.is_set() and len(self.points) < self.want:
+            down = bool(user32.GetAsyncKeyState(VK_LBUTTON) & 0x8000)
+            if down and not was_down:
+                p = cursor_pos()
+                self.points.append(p)
+                if self.on_point:
+                    try:
+                        self.on_point(len(self.points), p)
+                    except Exception:
+                        pass
+            was_down = down
+            self._halt.wait(0.015)
+        self.done = True
+
+
+class EggRunner(threading.Thread):
+    """覚えた2か所を、たまごの数だけくり返し押す。"""
+
+    def __init__(self, get_cfg):
+        super().__init__(daemon=True)
+        self.get_cfg = get_cfg
+        self._halt = threading.Event()
+        self.count = 0
+        self.waiting = False
+        self.finished = False
+
+    def stop(self):
+        self._halt.set()
+
+    def _click_at(self, pos, cfg, hwnd):
+        if not pos:
+            return False
+        user32.SetCursorPos(int(pos[0]), int(pos[1]))
+        _sleep(0.02)
+        c = dict(cfg)
+        c["action"] = "left"
+        ok, _why = send_once(c, hwnd)
+        return ok
+
+    def run(self):
+        c = self.get_cfg()
+        egg, act = c.get("egg_pos"), c.get("act_pos")
+        slots = max(1, min(MAX_EGGS, int(c.get("slots") or MAX_EGGS)))
+        if not egg or not act:
+            self.finished = True
+            return
+        hwnd = None
+        while not self._halt.is_set() and self.count < slots:
+            if (c.get("send_mode") or DEFAULT_SEND_MODE) != "input":
+                hwnd = afk.find_window_cached(c.get("target") or "")
+                if not hwnd:
+                    self.waiting = True
+                    self._halt.wait(0.5)
+                    continue
+            elif c.get("only_target") and not afk.matches(c.get("target") or ""):
+                self.waiting = True
+                self._halt.wait(0.15)
+                continue
+            self.waiting = False
+            self._click_at(egg, c, hwnd)
+            self._halt.wait(max(0.0, int(c.get("mid_ms") or 150) / 1000.0))
+            if self._halt.is_set():
+                break
+            self._click_at(act, c, hwnd)
+            self.count += 1
+            if self.count >= slots:
+                break
+            self._halt.wait(max(0.0, int(c.get("gap_ms") or 300) / 1000.0))
+        self.finished = True
+
+
 # ---------------------------------------------------------------- ホットキー
 WM_HOTKEY = 0x0312
 WM_QUIT = 0x0012
@@ -282,10 +393,11 @@ class Hotkey(threading.Thread):
     メッセージを回しつづける必要がある。
     """
 
-    def __init__(self, mods, vk, callback):
+    def __init__(self, mods, vk, callback, hk_id=1):
         super().__init__(daemon=True)
         self.mods = int(mods)
         self.vk = int(vk)
+        self.hk_id = int(hk_id)
         self.callback = callback
         self.ready = threading.Event()
         self.ok = False
@@ -294,8 +406,8 @@ class Hotkey(threading.Thread):
 
     def run(self):
         self._tid = kernel32.GetCurrentThreadId()
-        self.ok = bool(user32.RegisterHotKey(None, 1, self.mods | MOD_NOREPEAT,
-                                             self.vk))
+        self.ok = bool(user32.RegisterHotKey(None, self.hk_id,
+                                             self.mods | MOD_NOREPEAT, self.vk))
         if not self.ok:
             # だいたい「他のアプリが同じ組み合わせを押さえている」
             self.error = "他のアプリに取られているかもしれません"
@@ -309,7 +421,7 @@ class Hotkey(threading.Thread):
                     self.callback()
                 except Exception:
                     pass
-        user32.UnregisterHotKey(None, 1)
+        user32.UnregisterHotKey(None, self.hk_id)
 
     def stop(self):
         if self._tid:

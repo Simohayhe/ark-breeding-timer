@@ -43,7 +43,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.37.0"
+APP_VERSION = "1.38.0"
 
 
 def _res_dir():
@@ -125,6 +125,15 @@ DEFAULT_CONFIG = {
     "macro_hotkey_on": True,
     "macro_hotkey_mods": macro.MOD_CONTROL,
     "macro_hotkey_vk": 0x52,           # R
+    # たまごマクロ（孵化器）。連射とは別のショートカットで動かす
+    "egg_pos": None,                   # たまごを押す場所 [x, y]
+    "egg_act_pos": None,               # 壊す／孵す を押す場所 [x, y]
+    "egg_slots": 10,                   # 何個ぶんやるか（枠は10まで）
+    "egg_mid_ms": 150,                 # たまご→ボタン のあいだ
+    "egg_gap_ms": 300,                 # 次のたまごまで
+    "egg_hotkey_on": True,
+    "egg_hotkey_mods": macro.MOD_CONTROL,
+    "egg_hotkey_vk": 0x45,             # E
     # ゲーム内時計（マップごとに、合わせた時刻・進む速さ・見張るサーバー）
     "game_clock": {},        # 昔の1つだけの形（引き継ぎ用）
     "game_clocks": {},
@@ -1288,6 +1297,10 @@ class App(tk.Tk):
         self.macro = None
         self.hotkey = None
         self._hotkey_err = ""
+        self.egg = None                # たまごマクロのスレッド
+        self.egg_rec = None            # 位置を覚えているところ
+        self.egg_hotkey = None
+        self._egg_hotkey_err = ""
         # 起動前に終わっていたタイマーを開いた瞬間に消さないための基準時刻
         self.start_ts = time.time()
         th.use(self.cfg.get("theme", "cute"))   # 部品を作る前に色を決める
@@ -1432,6 +1445,7 @@ class App(tk.Tk):
         # ---------------- ゲーム内時計のページ ----------------
         self.page_gametime = GameTimePage(self, self)
         self.apply_hotkey()
+        self.apply_egg_hotkey()
 
         self.show_page(self.cfg.get("page") or "timers")
 
@@ -1743,6 +1757,56 @@ class App(tk.Tk):
             self.hotkey = None
         else:
             self.hotkey = hk
+
+    # ---------------- たまごマクロ ----------------
+    def _egg_cfg(self):
+        c = self.cfg
+        return {
+            "egg_pos": c.get("egg_pos"), "act_pos": c.get("egg_act_pos"),
+            "slots": c.get("egg_slots", macro.MAX_EGGS),
+            "mid_ms": c.get("egg_mid_ms", 150),
+            "gap_ms": c.get("egg_gap_ms", 300),
+            "target": c.get("macro_target") or "",
+            "only_target": c.get("macro_only_target", True),
+            "send_mode": c.get("macro_send_mode") or macro.DEFAULT_SEND_MODE,
+        }
+
+    def egg_running(self):
+        return self.egg is not None and self.egg.is_alive()
+
+    def toggle_egg(self):
+        """たまごマクロの入切。ホットキーのスレッドから呼ばれても平気なように。"""
+        if self.egg_running():
+            self.egg.stop()
+            self.egg = None
+            return
+        if not (self.cfg.get("egg_pos") and self.cfg.get("egg_act_pos")):
+            return                      # まだ覚えていない
+        self.egg = macro.EggRunner(self._egg_cfg)
+        self.egg.start()
+
+    def stop_egg(self):
+        if self.egg is not None:
+            self.egg.stop()
+            self.egg = None
+
+    def apply_egg_hotkey(self):
+        """たまごマクロのショートカットを登録し直す。"""
+        if self.egg_hotkey is not None:
+            self.egg_hotkey.stop()
+            self.egg_hotkey = None
+        self._egg_hotkey_err = ""
+        if not self.cfg.get("egg_hotkey_on", True):
+            return
+        hk = macro.Hotkey(self.cfg.get("egg_hotkey_mods", macro.MOD_CONTROL),
+                          self.cfg.get("egg_hotkey_vk", 0x45),
+                          self.toggle_egg, hk_id=2)   # 連射とidを分ける
+        hk.start()
+        hk.ready.wait(1.0)
+        if not hk.ok:
+            self._egg_hotkey_err = hk.error or "登録できませんでした"
+        else:
+            self.egg_hotkey = hk
 
     def hotkey_status(self):
         name = macro.hotkey_name(self.cfg.get("macro_hotkey_mods", macro.MOD_CONTROL),
@@ -2122,6 +2186,11 @@ class App(tk.Tk):
         self.save_timers()
         snd.stop()
         self.stop_macro()          # 連射を止め忘れて暴走させない
+        self.stop_egg()
+        if self.egg_rec is not None:
+            self.egg_rec.stop()
+        if self.egg_hotkey is not None:
+            self.egg_hotkey.stop()
         self.watcher.stop()
         if self.hotkey is not None:
             self.hotkey.stop()
