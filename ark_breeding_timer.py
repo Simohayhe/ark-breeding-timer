@@ -43,7 +43,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.39.0"
+APP_VERSION = "1.39.1"
 
 
 def _res_dir():
@@ -1770,21 +1770,36 @@ class App(tk.Tk):
         self.stop_macro()
         self.stop_egg()
 
+    def cancel_button(self):
+        """止めるのに使うボタン。
+
+        ふつうは右クリック。ただし連射そのものが右クリックだと紛らわしいので、
+        そのときは左クリックで止める。
+        """
+        if (self.macro_running()
+                and (self.cfg.get("macro_action") or macro.DEFAULT_ACTION)
+                == "right"):
+            return "left"
+        return "right"
+
     def sync_cancel_watch(self):
-        """マクロが動いているあいだだけ、右クリックを見張る。
+        """マクロが動いているあいだだけ、止める用のクリックを見張る。
 
         ずっと仕掛けておく必要はないので、動いていないときは外す。
+        連射の種類を変えたら、見張るボタンも入れ替える。
         """
         want = (self.cfg.get("macro_cancel_rclick", True)
                 and (self.macro_running() or self.egg_running()))
+        btn = self.cancel_button()
+        if (self.cancel_watch is not None
+                and (not want or self.cancel_watch.button != btn)):
+            self.cancel_watch.stop()
+            self.cancel_watch = None
         if want and self.cancel_watch is None:
-            w = macro.CancelWatch(self._on_right_cancel)
+            w = macro.CancelWatch(self._on_right_cancel, btn)
             w.start()
             w.ready.wait(0.5)
             self.cancel_watch = w if w.ok else None
-        elif not want and self.cancel_watch is not None:
-            self.cancel_watch.stop()
-            self.cancel_watch = None
 
     # ---------------- たまごマクロ ----------------
     def _egg_cfg(self):

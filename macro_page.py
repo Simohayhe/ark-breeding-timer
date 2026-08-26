@@ -142,14 +142,17 @@ class MacroPage(tk.Frame):
 
         self.v_rcancel = tk.BooleanVar(
             value=bool(cfg.get("macro_cancel_rclick", True)))
-        tk.Checkbutton(c, text="右クリックでとめる（連射・たまごの両方）",
+        self.chk_rcancel = tk.Checkbutton(
+                       c, text="右クリックでとめる（連射・たまごの両方）",
                        variable=self.v_rcancel, command=self.save_rcancel,
                        bg=th.CARD, fg=th.INK, activebackground=th.CARD,
                        activeforeground=th.INK, selectcolor=th.FIELD,
                        font=F["cute"], bd=0, highlightthickness=0,
-                       anchor="w").pack(anchor="w", pady=(6, 0))
-        tk.Label(c, text="動かしているあいだだけ見張ります。右クリックそのものは"
-                         "ゲームに届きますし、マクロが送った右クリックでは止まりません",
+                       anchor="w")
+        self.chk_rcancel.pack(anchor="w", pady=(6, 0))
+        tk.Label(c, text="動かしているあいだだけ見張ります。クリックそのものは"
+                         "ゲームに届きますし、マクロが送ったクリックでは止まりません。"
+                         "連射が右クリックのときは、代わりに左クリックで止まります",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
                  justify="left").pack(anchor="w", pady=(0, 8))
 
@@ -410,7 +413,8 @@ class MacroPage(tk.Frame):
                 self.lbl_learn.config(text="まだ覚えていません", fg=th.INK_SUB)
         name = macro.hotkey_name(c.get("egg_hotkey_mods", macro.MOD_CONTROL),
                                  c.get("egg_hotkey_vk", 0x45))
-        self.btn_ehk.set_text(name)
+        if self._capturing != "egg_hotkey":
+            self.btn_ehk.set_text(name)
         running = self.app.egg_running()
         self.btn_egg.set_text("■ とめる" if running else "▶ はじめる")
         slots = c.get("egg_slots", macro.MAX_EGGS)
@@ -543,11 +547,18 @@ class MacroPage(tk.Frame):
 
         # キー指定ボタンの文字（アクションが「キー」のときだけ意味がある）
         vk = cfg.get("macro_key_vk") or 0
-        self.btn_key.set_text("キー: %s" % macro.vk_name(vk))
-        self.btn_hotkey.set_text("%s ▸ 変える" % macro.hotkey_name(
-            cfg.get("macro_hotkey_mods", macro.MOD_CONTROL),
-            cfg.get("macro_hotkey_vk", 0x52)))
+        # キー待ちのあいだは、ボタンの文字を書き換えない。
+        # 毎秒この処理が走るので、上書きすると「押した瞬間に戻る」ように見える。
+        if self._capturing != "key":
+            self.btn_key.set_text("キー: %s" % macro.vk_name(vk))
+        if self._capturing != "hotkey":
+            self.btn_hotkey.set_text("%s ▸ 変える" % macro.hotkey_name(
+                cfg.get("macro_hotkey_mods", macro.MOD_CONTROL),
+                cfg.get("macro_hotkey_vk", 0x52)))
 
+        self.chk_rcancel.config(
+            text="%sクリックでとめる（連射・たまごの両方）"
+                 % ("左" if self.app.cancel_button() == "left" else "右"))
         st = self.app.hotkey_status()
         self.lbl_hk.config(text=st, fg=th.PINK_DK if st.startswith("⚠") else th.INK_SUB)
         self.update_egg_view()

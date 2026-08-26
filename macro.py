@@ -380,6 +380,7 @@ class EggRunner(threading.Thread):
 # 右クリック連射をしているときに自分で自分を止めてしまうと使い物にならない。
 # 低レベルフックなら注入された入力に印(LLMHF_INJECTED)が付くので、それで分ける。
 WH_MOUSE_LL = 14
+WM_LBUTTONDOWN_LL = 0x0201
 WM_RBUTTONDOWN_LL = 0x0204
 LLMHF_INJECTED = 0x00000001
 ULONG_PTR = wintypes.WPARAM
@@ -402,9 +403,12 @@ class CancelWatch(threading.Thread):
     （旗を立てるだけにして、画面はあとから見に行く）
     """
 
-    def __init__(self, callback):
+    def __init__(self, callback, button="right"):
         super().__init__(daemon=True)
         self.callback = callback
+        self.button = button
+        self.msg = (WM_LBUTTONDOWN_LL if button == "left"
+                    else WM_RBUTTONDOWN_LL)
         self._tid = 0
         self._hook = None
         self._proc = None          # GCで消えると落ちるので持っておく
@@ -413,7 +417,7 @@ class CancelWatch(threading.Thread):
 
     def _on_event(self, code, wparam, lparam):
         try:
-            if (code >= 0 and wparam == WM_RBUTTONDOWN_LL
+            if (code >= 0 and wparam == self.msg
                     and not (lparam.contents.flags & LLMHF_INJECTED)):
                 self.callback()
         except Exception:
