@@ -512,6 +512,29 @@ for _i in range(1, 25):
     VK_NAMES[0x6F + _i] = "F%d" % _i
 
 
+VK_SHIFT, VK_CONTROL, VK_MENU, VK_LWIN, VK_RWIN = 0x10, 0x11, 0x12, 0x5B, 0x5C
+
+
+def mods_now():
+    """いま押さえている修飾キー。RegisterHotKey に渡す形で返す。
+
+    tkinter の event.state は当てにしない。Windows では NumLock が
+    0x0008 に乗ってくるので、それを Alt と読み違えて勝手に Alt が
+    入ってしまう（CapsLock も 0x0002 に乗る）。実際のキーの状態を見る。
+    """
+    m = 0
+    if user32.GetAsyncKeyState(VK_CONTROL) & 0x8000:
+        m |= MOD_CONTROL
+    if user32.GetAsyncKeyState(VK_SHIFT) & 0x8000:
+        m |= MOD_SHIFT
+    if user32.GetAsyncKeyState(VK_MENU) & 0x8000:
+        m |= MOD_ALT
+    if (user32.GetAsyncKeyState(VK_LWIN) & 0x8000
+            or user32.GetAsyncKeyState(VK_RWIN) & 0x8000):
+        m |= MOD_WIN
+    return m
+
+
 def vk_name(vk):
     vk = int(vk or 0)
     if not vk:

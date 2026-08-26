@@ -366,13 +366,8 @@ class MacroPage(tk.Frame):
             self.app.cfg["macro_key_scan"] = macro.scancode_of(vk)
             self.app.save_cfg()
         else:
-            mods = 0
-            if e.state & 0x0004:
-                mods |= macro.MOD_CONTROL
-            if e.state & 0x0001:
-                mods |= macro.MOD_SHIFT
-            if e.state & 0x20000 or e.state & 0x0008:
-                mods |= macro.MOD_ALT
+            # 押しているキーそのものを見る（NumLock を Alt と読み違えない）
+            mods = macro.mods_now()
             if not mods:
                 mods = macro.MOD_CONTROL   # 修飾なしは事故のもとなので Ctrl を足す
             if what == "egg_hotkey":
@@ -434,9 +429,10 @@ class MacroPage(tk.Frame):
             self.lbl_egg.config(text="✅ %d個ぶん終わりました" % r.count,
                                 fg=th.MINT)
         else:
-            self.lbl_egg.config(text="%d個ぶん、%s で入切できます"
-                                     "（送り方は上の設定と同じです）"
-                                     % (slots, name), fg=th.INK_SUB)
+            mode = macro.send_mode_label(c.get("macro_send_mode")
+                                         or macro.DEFAULT_SEND_MODE)
+            self.lbl_egg.config(text="%d個ぶん、%s で入切できます ／ 送り方: %s"
+                                     % (slots, name, mode), fg=th.INK_SUB)
 
     def save_rcancel(self):
         self.app.cfg["macro_cancel_rclick"] = bool(self.v_rcancel.get())
