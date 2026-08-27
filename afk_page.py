@@ -64,14 +64,22 @@ class AfkPage(tk.Frame):
                                                  in afk.key_choices()]
         self.cb_key2.pack(side="left", padx=4)
         self.cb_key2.bind("<<ComboboxSelected>>", lambda e: self.save())
+        self.v_alt = tk.BooleanVar(value=bool(cfg.get("afk_alternate", True)))
+        tk.Checkbutton(c, text="2つを交互に送る（1回ごとに W、次は S …）",
+                       variable=self.v_alt, command=self.save, bg=th.CARD,
+                       fg=th.INK, activebackground=th.CARD,
+                       activeforeground=th.INK, selectcolor=th.FIELD,
+                       font=F["cute"], bd=0, highlightthickness=0,
+                       anchor="w").pack(anchor="w", pady=(4, 0))
         th.RoundButton(krow, "▶ ためす", self.test_once, kind="soft", bg=th.CARD,
                        font=F["small"], padx=12, pady=5).pack(side="left", padx=6)
-        tk.Label(c, text="ARKの離席判定は「動いたかどうか」を見ているようで、"
-                         "しゃがみだけだと蹴られることがあります。"
-                         "確実にしたいときは W → S のように「そのあと」も指定して、"
-                         "一歩出て戻る形にしてください（位置はほぼ元のまま）。　"
-                         "Ctrl（しゃがみ）は落ちる心配がないぶん、いちばん安全です。"
-                         "スペース（ジャンプ）は落下する所では避けてください",
+        tk.Label(c, text="ARKの離席判定は「前に見たときから位置が変わったか」を"
+                         "見ているようです。行って戻ると元の位置に返ってしまうので、"
+                         "W と S を選んで「交互に送る」にしてください。"
+                         "1回ごとに必ず位置が変わり、行ったり来たりするだけなので"
+                         "遠くへは行きません。　"
+                         "しゃがみやジャンプはその場から動かないので、"
+                         "蹴られることがあります",
                  justify="left", wraplength=760,
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
                                                                   pady=(0, 10))
@@ -172,6 +180,7 @@ class AfkPage(tk.Frame):
         c = self.app.cfg
         c["afk_key"] = self.key_name()
         c["afk_key2"] = self.key_name2()
+        c["afk_alternate"] = bool(self.v_alt.get())
         c["afk_interval"] = self._int(self.v_interval, 120, 5, 3600)
         c["afk_times"] = self._int(self.v_times, 1, 1, 20)
         c["afk_gap_ms"] = self._int(self.v_gap, 60, 10, 2000)

@@ -43,7 +43,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.41.0"
+APP_VERSION = "1.42.0"
 
 
 def _res_dir():
@@ -107,7 +107,11 @@ DEFAULT_CONFIG = {
     ],
     # AFK防止（放置キック対策のキー送信）
     "afk_key": afk.DEFAULT_KEY,
-    "afk_key2": "",               # そのあと押して戻すキー（W→S など）
+    "afk_key2": "",               # 2つめのキー（W→S など）
+    # 2つめのキーを「毎回まとめて」ではなく「1回ごとに交互に」送る。
+    # まとめて送ると行って戻るので、位置が元のままになってしまい、
+    # ARK から見ると動いていないことになる（それで蹴られた）。
+    "afk_alternate": True,
     "afk_interval": 120,          # 何秒ごとに送るか
     "afk_times": 2,               # 1回あたり何連打
     "afk_gap_ms": 60,             # 連打の間隔
@@ -1873,12 +1877,22 @@ class App(tk.Tk):
     def _afk_tick(self, now):
         """AFK防止: 時間が来たらキーを送る。"""
         if self.afk_running and now >= self.afk_next:
+            key = self.cfg.get("afk_key") or afk.DEFAULT_KEY
+            key2 = self.cfg.get("afk_key2") or None
+            pair = key2
+            if key2 and self.cfg.get("afk_alternate", True):
+                # 交互に送る。今回は W、次は S、その次は W…。
+                # 1回ごとに必ず位置が変わるので「動いた」ことになるし、
+                # 行ったり来たりするだけなので遠くへは行かない。
+                if self.afk_count % 2:
+                    key = key2
+                pair = None
             sent, why = afk.send(self.cfg.get("afk_mode") or afk.DEFAULT_MODE,
                                  self.cfg.get("afk_target") or "",
-                                 self.cfg.get("afk_key") or afk.DEFAULT_KEY,
+                                 key,
                                  self.cfg.get("afk_times", 1),
                                  self.cfg.get("afk_gap_ms", 60),
-                                 name2=self.cfg.get("afk_key2") or None)
+                                 name2=pair)
             self.afk_why = why
             if sent:
                 self.afk_count += 1
