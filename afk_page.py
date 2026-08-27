@@ -64,8 +64,19 @@ class AfkPage(tk.Frame):
                                                  in afk.key_choices()]
         self.cb_key2.pack(side="left", padx=4)
         self.cb_key2.bind("<<ComboboxSelected>>", lambda e: self.save())
+        tk.Label(krow, text="  そのあと", bg=th.CARD, fg=th.INK,
+                 font=F["cute"]).pack(side="left")
+        self.v_key3 = tk.StringVar(value=afk.key_label(cfg.get("afk_key3"))
+                                   if cfg.get("afk_key3") else "（なし）")
+        self.cb_key3 = ttk.Combobox(krow, textvariable=self.v_key3,
+                                    state="readonly", width=22,
+                                    style="Cute.TCombobox", font=F["ui"])
+        self.cb_key3["values"] = ["（なし）"] + [lbl for _k, lbl
+                                                 in afk.key_choices()]
+        self.cb_key3.pack(side="left", padx=4)
+        self.cb_key3.bind("<<ComboboxSelected>>", lambda e: self.save())
         self.v_alt = tk.BooleanVar(value=bool(cfg.get("afk_alternate", True)))
-        tk.Checkbutton(c, text="2つを交互に送る（1回ごとに W、次は S …）",
+        tk.Checkbutton(c, text="1回ごとに順ぐりに送る（W → S → ← …）",
                        variable=self.v_alt, command=self.save, bg=th.CARD,
                        fg=th.INK, activebackground=th.CARD,
                        activeforeground=th.INK, selectcolor=th.FIELD,
@@ -74,12 +85,11 @@ class AfkPage(tk.Frame):
         th.RoundButton(krow, "▶ ためす", self.test_once, kind="soft", bg=th.CARD,
                        font=F["small"], padx=12, pady=5).pack(side="left", padx=6)
         tk.Label(c, text="ARKの離席判定は「前に見たときから位置が変わったか」を"
-                         "見ているようです。行って戻ると元の位置に返ってしまうので、"
-                         "W と S を選んで「交互に送る」にしてください。"
-                         "1回ごとに必ず位置が変わり、行ったり来たりするだけなので"
-                         "遠くへは行きません。　"
-                         "しゃがみやジャンプはその場から動かないので、"
-                         "蹴られることがあります",
+                         "見ているようです。W と S だけだと、壁の隅に詰まったときに"
+                         "どちらを押しても動けず、そのまま蹴られます。　"
+                         "← か → を混ぜて「順ぐりに送る」にしておくと、"
+                         "毎回むきが変わるので詰まったままになりません。　"
+                         "おすすめは W ／ ← ／ S です",
                  justify="left", wraplength=760,
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
                                                                   pady=(0, 10))
@@ -161,6 +171,13 @@ class AfkPage(tk.Frame):
         except ValueError:
             return default
 
+    def key_name3(self):
+        want = self.v_key3.get()
+        for k, lbl in afk.key_choices():
+            if lbl == want:
+                return k
+        return ""
+
     def key_name2(self):
         """「そのあと」に選んだキー。なしなら空。"""
         want = self.v_key2.get()
@@ -180,6 +197,7 @@ class AfkPage(tk.Frame):
         c = self.app.cfg
         c["afk_key"] = self.key_name()
         c["afk_key2"] = self.key_name2()
+        c["afk_key3"] = self.key_name3()
         c["afk_alternate"] = bool(self.v_alt.get())
         c["afk_interval"] = self._int(self.v_interval, 120, 5, 3600)
         c["afk_times"] = self._int(self.v_times, 1, 1, 20)

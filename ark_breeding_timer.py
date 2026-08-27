@@ -43,7 +43,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.42.0"
+APP_VERSION = "1.43.0"
 
 
 def _res_dir():
@@ -111,6 +111,7 @@ DEFAULT_CONFIG = {
     # 2つめのキーを「毎回まとめて」ではなく「1回ごとに交互に」送る。
     # まとめて送ると行って戻るので、位置が元のままになってしまい、
     # ARK から見ると動いていないことになる（それで蹴られた）。
+    "afk_key3": "",               # 3つめ（← や → を混ぜると壁で詰まらない）
     "afk_alternate": True,
     "afk_interval": 120,          # 何秒ごとに送るか
     "afk_times": 2,               # 1回あたり何連打
@@ -1877,16 +1878,15 @@ class App(tk.Tk):
     def _afk_tick(self, now):
         """AFK防止: 時間が来たらキーを送る。"""
         if self.afk_running and now >= self.afk_next:
-            key = self.cfg.get("afk_key") or afk.DEFAULT_KEY
-            key2 = self.cfg.get("afk_key2") or None
-            pair = key2
-            if key2 and self.cfg.get("afk_alternate", True):
-                # 交互に送る。今回は W、次は S、その次は W…。
-                # 1回ごとに必ず位置が変わるので「動いた」ことになるし、
-                # 行ったり来たりするだけなので遠くへは行かない。
-                if self.afk_count % 2:
-                    key = key2
-                pair = None
+            keys = [k for k in (self.cfg.get("afk_key") or afk.DEFAULT_KEY,
+                                self.cfg.get("afk_key2"),
+                                self.cfg.get("afk_key3")) if k]
+            key, pair = keys[0], (keys[1] if len(keys) > 1 else None)
+            if len(keys) > 1 and self.cfg.get("afk_alternate", True):
+                # 1回ごとに順ぐりに送る。W→S だけだと、壁の隅に詰まったときに
+                # どちらを押しても動けず、離席と見なされてしまう。
+                # ← や → を混ぜておけば向きが変わるので、詰まったままにならない。
+                key, pair = keys[self.afk_count % len(keys)], None
             sent, why = afk.send(self.cfg.get("afk_mode") or afk.DEFAULT_MODE,
                                  self.cfg.get("afk_target") or "",
                                  key,
