@@ -44,7 +44,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.51.0"
+APP_VERSION = "1.52.0"
 
 
 def _res_dir():
@@ -148,12 +148,13 @@ DEFAULT_CONFIG = {
     # 画面から時刻を読む（ARKの左上のHUD）
     "hud_rect": list(hudread.DEFAULT_RECT),   # ウィンドウ内の割合 x,y,w,h
     "hud_prefer": None,                       # 前回うまくいった設定
-    "hud_auto_min": 10,        # 自動で合わせるとき、何分ごとに読むか
-    "hud_auto_max": 24,        # 何回まで読むか（際限なく回さないため）
+    # 実験では 5分ごと×4回（20分）で誤差3秒まで落ちた。余裕をみて6回。
+    "hud_auto_min": 5,         # 自動で合わせるとき、何分ごとに読むか
+    "hud_auto_max": 18,        # 何回まで読むか（際限なく回さないため）
     # 合わせ終わりの条件。合わせた直後はズレが小さくて当たり前なので、
     # 「2回続けて小さい」だけでは速さが合った証拠にならない。
     # 昼と夜をひととおりまたぐくらいの回数を最低ラインにする。
-    "hud_auto_least": 10,      # 最低これだけは読む
+    "hud_auto_least": 6,       # 最低これだけは読む
     "hud_auto_need": 3,        # そのうえで、続けてこの回数ズレが小さいこと
     "hud_auto_tol": 30,        # ズレがこの秒数以内なら「合った」とみなす
     # 更新の見張り
@@ -2136,9 +2137,14 @@ class App(tk.Tk):
                 "rect": self.cfg.get("hud_rect") or hudread.DEFAULT_RECT,
                 "prefer": self.cfg.get("hud_prefer")}
 
-    def _hud_result(self, sec, day, where, why):
-        """読む係からの知らせ。Tkは触らず、置いておくだけ。"""
-        self.hud_results.append((sec, day, where, why, time.time()))
+    def _hud_result(self, sec, day, where, why, shot_at=0.0):
+        """読む係からの知らせ。Tkは触らず、置いておくだけ。
+
+        shot_at は「画面を写した時刻」。OCRに十数秒かかるので、
+        届いた時刻で合わせると、そのぶん時計が後ろへずれる。
+        """
+        self.hud_results.append((sec, day, where, why,
+                                 shot_at or time.time()))
 
     def start_hud_auto(self, on=True):
         """自動で合わせるのを始める／やめる。"""

@@ -172,6 +172,8 @@ TRY_SETTINGS = ((200, 3), (225, 4), (180, 3), (210, 4), (160, 2), (240, 4))
 
 # 直近で効いた設定。次から最初に試して速くする
 LAST_USED = [None]
+# 最後に画面を写した時刻。時計を合わせるときはこれを使う
+LAST_SHOT = [0.0]
 
 
 def read_once(rect, prefer=None, src=""):
@@ -185,11 +187,15 @@ def read_once(rect, prefer=None, src=""):
         order.insert(0, tuple(prefer))
     last = []
     for thr, scale in order:
+        # 画面を写すのは PowerShell が動き出してすぐ。OCR に十数秒かかるので、
+        # 「届いた時刻」で記録すると、そのぶん時計が後ろへずれてしまう。
+        shot_at = time.time() + 0.4
         lines = capture_text(rect, scale=scale, thr=thr, src=src)
         sec, day, where = parse(lines)
         last = lines or last
         if sec is not None:
             LAST_USED[0] = (thr, scale)
+            LAST_SHOT[0] = shot_at
             return sec, day, where, lines, (thr, scale)
     return None, None, "", last, None
 
@@ -281,7 +287,7 @@ class AutoReader(threading.Thread):
             self.last_used = None
             hwnd = self.find_window()
             if not hwnd:
-                self.on_result(None, None, None, "ARKが起動していません")
+                self.on_result(None, None, None, "ARKが起動していません", 0.0)
                 continue
             try:
                 rect = rect_from_window(hwnd, c.get("rect") or DEFAULT_RECT)
@@ -290,10 +296,10 @@ class AutoReader(threading.Thread):
                     rect, tries=2, gap=1.5,
                     prefer=tuple(pref) if pref else None)
             except HudError as e:
-                self.on_result(None, None, None, str(e))
+                self.on_result(None, None, None, str(e), 0.0)
                 continue
             self.last_used = LAST_USED[0]     # 効いた設定を控える
-            self.on_result(sec, day, where, why)
+            self.on_result(sec, day, where, why, LAST_SHOT[0])
 
 
 def rect_from_window(hwnd, fracs):
