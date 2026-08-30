@@ -44,7 +44,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.49.1"
+APP_VERSION = "1.50.0"
 
 
 def _res_dir():
@@ -151,6 +151,9 @@ DEFAULT_CONFIG = {
     "hud_auto_min": 10,        # 自動で合わせるとき、何分ごとに読むか
     "hud_auto_max": 12,        # 何回まで読むか（際限なく回さないため）
     "hud_auto_tol": 30,        # ズレがこの秒数以内なら「合った」とみなす
+    # 更新の見張り
+    "update_check": True,      # 新しい版が出ていないか見に行くか
+    "update_told": "",         # すでに知らせた版（同じ版で何度も鳴らさない）
     "watch_interval": 60,      # 死活を見に行く間隔（秒）
     "watch_rush_min": 5,       # 定期再起動の前後 何分を「集中して見る」か
     "watch_rush_interval": 10, # そのあいだの間隔（秒）
@@ -1374,6 +1377,9 @@ class App(tk.Tk):
         self.hud_fails = 0         # 続けて読めなかった回数
         self.hud_say = ""          # 画面に出す一言
         self.hud_reader = None
+        # 更新の見張り。見つけたらボタンを目立たせる
+        self.update_found = None   # {"tag":.., "title":..}
+        self.update_at = 0.0       # 次に見に行く時刻
         self.watcher.start()
         self.hud_reader = hudread.AutoReader(
             self._hud_cfg, self._hud_result,
@@ -1437,8 +1443,11 @@ class App(tk.Tk):
         self.head_ctrl.pack(in_=top, side="right")
         th.RoundButton(self.head_ctrl, "⚙ 設定", self.open_settings, kind="soft",
                        bg=th.BG, font=F["small"]).pack(side="right", padx=(6, 0))
-        th.RoundButton(self.head_ctrl, "⬆ 更新", self.open_update, kind="soft",
-                       bg=th.BG, font=F["small"]).pack(side="right", padx=6)
+        self.btn_update = th.RoundButton(self.head_ctrl, "⬆ 更新",
+                                         self.open_update, kind="soft",
+                                         bg=th.BG, font=F["small"], width=150)
+        self.btn_update.pack(side="right", padx=6)
+        self._update_shown = ""
         th.RoundButton(self.head_ctrl, "🔔 音を試す", self.test_sound, kind="soft",
                        bg=th.BG, font=F["small"]).pack(side="right", padx=6)
         th.RoundButton(self.head_ctrl, "🗕 ミニ表示", self.open_mini, kind="accent",
@@ -1763,6 +1772,8 @@ class App(tk.Tk):
         self._afk_tick(now)
         self._macro_tick()
         self._hud_tick()
+        self._update_tick(now)
+        self._update_show()
         # 過ぎた定期再起動のぶんを差し引く（画面を開いていなくても効かせる）
         for _c in self.clocks.clocks.values():
             _c.apply_restarts(now)
@@ -2058,6 +2069,58 @@ class App(tk.Tk):
             if c is not None and c.address:
                 out.append((name, c.address))
         return out
+
+    # ---------------- 更新が出ていないか見る ----------------
+    def _update_tick(self, now):
+        """半日に1回くらい、新しい版が出ていないか見に行く。
+
+        通信は別スレッドでやる（本体を止めないため）。見つけたら
+        ボタンの見た目を変えて、1度だけ知らせる。
+        """
+        if not self.cfg.get("update_check", True) or self.update_found:
+            return
+        if now < self.update_at:
+            return
+        self.update_at = now + 12 * 3600
+        threading.Thread(target=self._update_look, daemon=True).start()
+
+    def _update_look(self):
+        """別スレッド。Tkは触らず、見つけたものを置くだけ。"""
+        try:
+            info = updater.check(timeout=10)
+        except Exception:
+            return
+        if not info.get("ok"):
+            return
+        if updater.is_newer(info.get("tag") or "", APP_VERSION):
+            self.update_found = {"tag": info.get("tag") or "",
+                                 "title": info.get("title") or ""}
+
+    def _update_show(self):
+        """見つけた更新をボタンに出す。ここは本体（Tk）側。"""
+        got = self.update_found
+        if not got or not hasattr(self, "btn_update"):
+            return
+        tag = got.get("tag") or ""
+        if self._update_shown == tag:
+            return
+        self._update_shown = tag
+        # ボタンを目立つ色にして、版まで出す
+        self.btn_update.fill = th.PINK
+        self.btn_update.hover = th.PINK_DK
+        self.btn_update.fg = th.ON_ACCENT
+        self.btn_update.itemconfigure(self.btn_update.shape, fill=th.PINK)
+        self.btn_update.itemconfigure(self.btn_update.label, fill=th.ON_ACCENT)
+        self.btn_update.set_text("⬆ 更新 %s" % tag)
+        if self.cfg.get("update_told") != tag:
+            self.cfg["update_told"] = tag
+            self.save_cfg()
+            self.notifier.fire(
+                "⬆ 新しい版が出ています（%s）" % tag,
+                "%s\n右上の「⬆ 更新」から入れられます"
+                % (got.get("title") or ""),
+                urgent=False, repeat=False,
+                auto_close=self.cfg.get("watch_popup_close", 10))
 
     # ---------------- 画面から時刻を読む（自動） ----------------
     def _hud_cfg(self):
@@ -3764,12 +3827,14 @@ class SettingsDialog(tk.Toplevel):
                  font=F["cute_b"]).pack(anchor="w")
         self.v_sound = tk.BooleanVar(value=bool(cfg["sound"]))
         self.v_popup = tk.BooleanVar(value=bool(cfg["popup"]))
+        self.v_upd = tk.BooleanVar(value=bool(cfg.get("update_check", True)))
         self.v_toast = tk.BooleanVar(value=bool(cfg["toast"]))
         self.v_rep = tk.BooleanVar(value=bool(cfg["repeat_alarm"]))
         self.v_chain = tk.BooleanVar(value=bool(cfg["auto_chain"]))
         for text, v in (("音を鳴らす", self.v_sound),
                         ("画面のすみにポップアップを出す", self.v_popup),
                         ("Windowsの通知も出す", self.v_toast),
+                        ("新しい版が出たら知らせる", self.v_upd),
                         ("「とめる」を押すまで音をくり返す", self.v_rep),
                         ("孵化・出産のあと成長／刷り込みも自動で作る", self.v_chain)):
             self._check(f, text, v).pack(anchor="w")
@@ -3985,6 +4050,7 @@ class SettingsDialog(tk.Toplevel):
         c["sound"] = bool(self.v_sound.get())
         c["popup"] = bool(self.v_popup.get())
         c["toast"] = bool(self.v_toast.get())
+        c["update_check"] = bool(self.v_upd.get())
         c["repeat_alarm"] = bool(self.v_rep.get())
         c["auto_chain"] = bool(self.v_chain.get())
         c["volume"] = self.vol
