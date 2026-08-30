@@ -37,6 +37,7 @@ import taming
 import theme as th
 import updater
 from afk_page import AfkPage
+from calc_page import CalcPage
 from gametime_page import GameTimePage
 from macro_page import MacroPage
 
@@ -44,7 +45,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.52.0"
+APP_VERSION = "1.53.0"
 
 
 def _res_dir():
@@ -1479,7 +1480,8 @@ class App(tk.Tk):
                            ("checklist", "🗒 チェックリスト"),
                            ("afk", "🎮 AFK防止"),
                            ("macro", "🖱 マクロ"),
-                           ("gametime", "🌙 ゲーム内時計")):
+                           ("gametime", "🌙 ゲーム内時計"),
+                           ("calc", "🧮 電卓")):
             self.tabs[key] = tabs.add(
                 Pill(tabs, label, lambda k=key: self.show_page(k), bg=th.BG,
                      font=F["cute"]))
@@ -1527,6 +1529,7 @@ class App(tk.Tk):
 
         # ---------------- ゲーム内時計のページ ----------------
         self.page_gametime = GameTimePage(self, self)
+        self.page_calc = CalcPage(self, self)
         self.apply_hotkey()
         self.apply_egg_hotkey()
 
@@ -1580,7 +1583,8 @@ class App(tk.Tk):
 
     def show_page(self, name):
         """⏰タイマー / 🗒チェックリスト / 🎮AFK防止 / 🖱マクロ の切り替え。"""
-        if name not in ("timers", "checklist", "afk", "macro", "gametime"):
+        if name not in ("timers", "checklist", "afk", "macro", "gametime",
+                        "calc"):
             name = "timers"
         self.page = name
         for key, pill in self.tabs.items():
@@ -1590,6 +1594,7 @@ class App(tk.Tk):
         self.page_afk.pack_forget()
         self.page_macro.pack_forget()
         self.page_gametime.pack_forget()
+        self.page_calc.pack_forget()
         if name == "checklist":
             self.page_check.pack(fill="both", expand=True, padx=18, pady=(0, 12))
         elif name == "afk":
@@ -1599,13 +1604,15 @@ class App(tk.Tk):
         elif name == "gametime":
             self.page_gametime.pack(fill="both", expand=True, padx=12,
                                     pady=(0, 12))
+        elif name == "calc":
+            self.page_calc.pack(fill="both", expand=True, padx=12, pady=(0, 12))
         else:
             self.page_timer.pack(fill="both", expand=True)
         self.cfg["page"] = name
 
     def _on_wheel(self, e):
         page = getattr(self, "page", "timers")
-        if page in ("afk", "macro"):
+        if page in ("afk", "macro", "calc"):
             return   # スクロールする一覧が無いページ
         if page == "gametime":
             cv = self.page_gametime.canvas
