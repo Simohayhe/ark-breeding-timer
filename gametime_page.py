@@ -187,12 +187,18 @@ class GameTimePage(tk.Frame):
         th.RoundButton(r1, "この時刻に合わせる", self.do_sync, kind="primary",
                        bg=th.CARD, font=F["small"], padx=14,
                        pady=6).pack(side="left", padx=8)
-        th.RoundButton(r1, "🌙 夜を知らせる", lambda: self.make_timer("night"),
-                       kind="accent", bg=th.CARD, font=F["small"], padx=12,
-                       pady=6).pack(side="left")
-        th.RoundButton(r1, "☀ 朝を知らせる", lambda: self.make_timer("day"),
-                       kind="soft", bg=th.CARD, font=F["small"], padx=12,
-                       pady=6).pack(side="left", padx=6)
+        # アベレーションでは「朝＝地上が燃える」なので、言い方を変える
+        self.btn_night = th.RoundButton(r1, "🌙 夜を知らせる",
+                                        lambda: self.make_timer("night"),
+                                        kind="accent", bg=th.CARD,
+                                        font=F["small"], padx=12, pady=6,
+                                        width=230)
+        self.btn_night.pack(side="left")
+        self.btn_day = th.RoundButton(r1, "☀ 朝を知らせる",
+                                      lambda: self.make_timer("day"),
+                                      kind="soft", bg=th.CARD, font=F["small"],
+                                      padx=12, pady=6, width=230)
+        self.btn_day.pack(side="left", padx=6)
         r2 = tk.Frame(c, bg=th.CARD)
         r2.pack(fill="x", pady=(4, 0))
         tk.Label(r2, text="ゲーム内", bg=th.CARD, fg=th.INK,
@@ -981,10 +987,16 @@ class GameTimePage(tk.Frame):
         left = c.next_night() if which == "night" else c.next_day()
         if not left or left <= 0:
             return
-        name = self.app.clocks.current
-        label = "%s %s" % ("🌙 夜になる" if which == "night" else "☀ 朝になる", name)
+        name = G.map_label(self.app.clocks.current)
+        if c.aberration:
+            # 地上は昼のあいだ燃えている。朝＝逃げ遅れたら死ぬ時刻。
+            label = "%s %s" % ("🌙 地上に出られる" if which == "night"
+                               else "🔥 地上が燃える", name)
+        else:
+            label = "%s %s" % ("🌙 夜になる" if which == "night"
+                               else "☀ 朝になる", name)
         note = "ゲーム内 %s になったら" % G.fmt_game_time(
-            G.NIGHT_START if which == "night" else G.DAY_START)
+            c.night_start if which == "night" else c.day_start)
         self.app.add_game_time_timer(label, left, note)
         self.lbl_msg.config(text="⏰ タイマーを作りました（%s後）" % _hms(left),
                             fg=th.MINT)
@@ -1124,6 +1136,12 @@ class GameTimePage(tk.Frame):
             self.lbl_sel.config(text="マップが登録されていません")
             self.lbl_total.config(text="")
             return
+        if c.aberration:
+            self.btn_night.set_text("🌙 地上に出られる時刻")
+            self.btn_day.set_text("🔥 地上が燃える時刻")
+        else:
+            self.btn_night.set_text("🌙 夜を知らせる")
+            self.btn_day.set_text("☀ 朝を知らせる")
         note = c.season_note(now)
         self.lbl_sel.config(text=("⚙ %s の設定" % G.map_label(cs.current))
                             + (("　🌋 " + note) if note else ""))
