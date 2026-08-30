@@ -18,6 +18,18 @@ import time
 import eos
 
 
+def fmt_uptime(sec):
+    """継続稼働時間の見せ方。長くなるので日・時間・分まで。"""
+    sec = int(max(0, sec))
+    d, rem = divmod(sec, 86400)
+    h, m = divmod(rem // 60, 60)
+    if d:
+        return "%d日%d時間" % (d, h)
+    if h:
+        return "%d時間%d分" % (h, m)
+    return "%d分" % m
+
+
 class Watcher(threading.Thread):
     """登録されたサーバーを順に見て、状態を覚えておくスレッド。
 

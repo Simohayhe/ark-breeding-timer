@@ -19,18 +19,6 @@ import serverwatch as W
 import theme as th
 
 
-def _dhm(sec):
-    """稼働時間の見せ方。長いので日・時間・分まで。"""
-    sec = int(max(0, sec))
-    d, rem = divmod(sec, 86400)
-    h, m = divmod(rem // 60, 60)
-    if d:
-        return "%d日%d時間" % (d, h)
-    if h:
-        return "%d時間%d分" % (h, m)
-    return "%d分" % m
-
-
 def _hms(sec):
     sec = int(max(0, sec))
     h, rem = divmod(sec, 3600)
@@ -615,7 +603,7 @@ class GameTimePage(tk.Frame):
                 live += 1
                 r["lamp"].config(fg=th.MINT)
                 up, exact = self.app.watcher.uptime(name, now)
-                ago = ("　稼働 %s%s" % (_dhm(up), "" if exact else "以上")
+                ago = ("　稼働 %s%s" % (W.fmt_uptime(up), "" if exact else "以上")
                        if up is not None else "")
                 r["info"].config(
                     text="%s/%s人　Day %s%s　%s"

@@ -43,7 +43,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.44.0"
+APP_VERSION = "1.45.0"
 
 
 def _res_dir():
@@ -902,6 +902,7 @@ class MiniWindow(tk.Toplevel):
         super().__init__(app)
         self.app = app
         self.rows = {}
+        self._ren_ent = None
         self.title("%s — Mini" % APP_NAME)
         self.configure(bg=th.BG)
         self.attributes("-topmost", True)
@@ -1136,6 +1137,10 @@ class MiniWindow(tk.Toplevel):
                 note = ("✅ %s/%s人 ／ Day %s"
                         % (st.get("players", "?"), st.get("max_players", "?"),
                            st.get("day", "?")))
+                up, exact = self.app.watcher.uptime(name, now)
+                if up is not None:
+                    note += "\n稼働 %s%s" % (serverwatch.fmt_uptime(up),
+                                            "" if exact else "以上")
             else:
                 note = "⚠ いま落ちています"
             msg = self.app.watch_msg.get(name)
@@ -1157,6 +1162,35 @@ class MiniWindow(tk.Toplevel):
                 self.add_bar, it["label"],
                 lambda s=it["sec"], t=it["label"]: self.app.quick_add(t, s),
                 bg=th.BG, font=th.F["small"]))
+
+    def _rename(self, t, lbl, holder):
+        """ミニ表示でも名前を書き換えられるようにする。"""
+        if getattr(self, "_ren_ent", None) is not None:
+            return
+        lbl.pack_forget()
+        var = tk.StringVar(value=t.label or "")
+        ent = th.soft_entry(holder, var, width=18, font=th.F["ui_b"])
+        ent.pack(side="left", fill="x", expand=True, ipady=1)
+        self._ren_ent = ent
+
+        def done(keep):
+            if self._ren_ent is None:
+                return
+            self._ren_ent = None
+            name = var.get().strip()
+            ent.destroy()
+            lbl.pack(side="left", fill="x", expand=True)
+            if keep and name and name != t.label:
+                t.label = name
+                self.app.save_timers()
+                self.app.rebuild_list()
+                self.rebuild()
+
+        ent.bind("<Return>", lambda e: done(True))
+        ent.bind("<Escape>", lambda e: done(False))
+        ent.bind("<FocusOut>", lambda e: done(True))
+        ent.focus_set()
+        ent.select_range(0, "end")
 
     def _wheel(self, e):
         cv = self.page_check.canvas if self.page == "checklist" else self.canvas
@@ -1200,8 +1234,11 @@ class MiniWindow(tk.Toplevel):
                        font=th.F["num_s"])
         rem.pack(side="right", padx=(0, 4))
         lbl = tk.Label(top, text="%s %s" % (icon, t.label), bg=th.CARD, fg=th.INK,
-                       font=th.F["ui_b"], anchor="w", justify="left")
+                       font=th.F["ui_b"], anchor="w", justify="left",
+                       cursor="hand2")
         lbl.pack(side="left", fill="x", expand=True)
+        # 名前を押すと、その場で書き換えられる（本体のカードと同じ）
+        lbl.bind("<Button-1>", lambda e, tt=t, w=lbl, p=top: self._rename(tt, w, p))
 
         ctl = tk.Frame(inner, bg=th.CARD)
         ctl.pack(fill="x", pady=(4, 0))
