@@ -29,6 +29,7 @@ from tkinter import font as tkfont
 
 import afk
 import gametime
+import hudread
 import macro
 import sounds as snd
 import serverwatch
@@ -43,7 +44,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.47.0"
+APP_VERSION = "1.48.0"
 
 
 def _res_dir():
@@ -144,6 +145,9 @@ DEFAULT_CONFIG = {
     # ゲーム内時計（マップごとに、合わせた時刻・進む速さ・見張るサーバー）
     "game_clock": {},        # 昔の1つだけの形（引き継ぎ用）
     "game_clocks": {},
+    # 画面から時刻を読む（ARKの左上のHUD）
+    "hud_rect": list(hudread.DEFAULT_RECT),   # ウィンドウ内の割合 x,y,w,h
+    "hud_prefer": None,                       # 前回うまくいった設定
     "watch_interval": 60,      # 死活を見に行く間隔（秒）
     "watch_rush_min": 5,       # 定期再起動の前後 何分を「集中して見る」か
     "watch_rush_interval": 10, # そのあいだの間隔（秒）

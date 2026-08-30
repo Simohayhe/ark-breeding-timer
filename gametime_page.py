@@ -15,6 +15,8 @@ import tkinter as tk
 from tkinter import ttk
 
 import gametime as G
+import hudread
+import macro
 import serverwatch as W
 import theme as th
 
@@ -187,6 +189,9 @@ class GameTimePage(tk.Frame):
         th.RoundButton(r1, "この時刻に合わせる", self.do_sync, kind="primary",
                        bg=th.CARD, font=F["small"], padx=14,
                        pady=6).pack(side="left", padx=8)
+        th.RoundButton(r1, "📷 画面から読む", self.read_hud, kind="mint",
+                       bg=th.CARD, font=F["small"], padx=12,
+                       pady=6).pack(side="left")
         # アベレーションでは「朝＝地上が燃える」なので、言い方を変える
         self.btn_night = th.RoundButton(r1, "🌙 夜を知らせる",
                                         lambda: self.make_timer("night"),
@@ -216,6 +221,19 @@ class GameTimePage(tk.Frame):
         for q in ("18:00", "20:00", "22:00", "00:00", "04:00"):
             th.Chip(r2, q, lambda v=q: self.v_at.set(v), bg=th.CARD,
                     font=F["small"]).pack(side="left", padx=2)
+
+        hrow = tk.Frame(c, bg=th.CARD)
+        hrow.pack(fill="x", pady=(2, 0))
+        tk.Label(hrow, text="読む場所", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(0, 4))
+        self.btn_hudarea = th.RoundButton(hrow, "🖱 範囲をおしえる",
+                                          self.learn_hud_area, kind="soft",
+                                          bg=th.CARD, font=F["small"], padx=12,
+                                          pady=5, width=190)
+        self.btn_hudarea.pack(side="left")
+        self.lbl_hud = tk.Label(hrow, text="", bg=th.CARD, fg=th.INK_SUB,
+                                font=F["small"], anchor="w", justify="left")
+        self.lbl_hud.pack(side="left", padx=6)
 
         self.lbl_msg = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
                                 font=F["small"], anchor="w", justify="left",
@@ -978,6 +996,104 @@ class GameTimePage(tk.Frame):
         self.app.save_clocks()
         self.v_time.set("")
         self.update_view()
+
+    # ---------------- 画面から時刻を読む ----------------
+    def learn_hud_area(self):
+        """時刻が出ている場所を、左上と右下のクリックで教えてもらう。"""
+        if getattr(self, "hud_rec", None) is not None:
+            self.hud_rec.stop()
+            self.hud_rec = None
+            self.btn_hudarea.set_text("🖱 範囲をおしえる")
+            self.lbl_hud.config(text="やめました", fg=th.INK_SUB)
+            return
+        self.hud_rec = macro.ClickRecorder(2)
+        self.hud_rec.start()
+        self.btn_hudarea.set_text("やめる")
+        self.lbl_hud.config(text="ARKへ行って、時刻が出ている所の"
+                                 "「左上」→「右下」の順にクリックしてください",
+                            fg=th.INK)
+        self._poll_hud_area()
+
+    def _poll_hud_area(self):
+        rec = getattr(self, "hud_rec", None)
+        if rec is None:
+            return
+        n = len(rec.points)
+        if rec.done and n >= 2:
+            self.hud_rec = None
+            self.btn_hudarea.set_text("🖱 範囲をおしえなおす")
+            hwnd = self._ark_hwnd()
+            if not hwnd:
+                self.lbl_hud.config(text="⚠ ARKのウィンドウが見つかりません",
+                                    fg=th.PINK_DK)
+                return
+            import ctypes
+            from ctypes import wintypes
+            r = wintypes.RECT()
+            ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(r))
+            Wd, Ht = max(1, r.right - r.left), max(1, r.bottom - r.top)
+            (x1, y1), (x2, y2) = rec.points[0], rec.points[1]
+            x1, x2 = min(x1, x2), max(x1, x2)
+            y1, y2 = min(y1, y2), max(y1, y2)
+            fr = ((x1 - r.left) / Wd, (y1 - r.top) / Ht,
+                  (x2 - x1) / Wd, (y2 - y1) / Ht)
+            self.app.cfg["hud_rect"] = [round(v, 4) for v in fr]
+            self.app.cfg["hud_prefer"] = None       # 場所が変わったら試し直す
+            self.app.save_cfg()
+            self.lbl_hud.config(text="✅ 覚えました（%d×%d）" % (x2 - x1, y2 - y1),
+                                fg=th.MINT)
+            return
+        if not rec.is_alive():
+            self.hud_rec = None
+            self.btn_hudarea.set_text("🖱 範囲をおしえる")
+            return
+        self.lbl_hud.config(
+            text=("時刻の「左上」をクリック" if n == 0 else "つぎに「右下」を"
+                  "クリック"), fg=th.INK)
+        self.after(120, self._poll_hud_area)
+
+    @staticmethod
+    def _ark_hwnd():
+        import afk
+        return afk.find_window("ArkAscended.exe")
+
+    def read_hud(self):
+        """ARKの画面から時刻を読んで、そのまま合わせる。"""
+        c = self.app.clocks.get()
+        if c is None:
+            self.lbl_msg.config(text="⚠ さきにマップを追加してください",
+                                fg=th.PINK_DK)
+            return
+        hwnd = self._ark_hwnd()
+        if not hwnd:
+            self.lbl_msg.config(text="⚠ ARKが起動していません", fg=th.PINK_DK)
+            return
+        self.lbl_msg.config(text="📷 画面を読んでいます…（数秒かかります）",
+                            fg=th.INK)
+        self.update_idletasks()
+        try:
+            rect = hudread.rect_from_window(
+                hwnd, self.app.cfg.get("hud_rect") or hudread.DEFAULT_RECT)
+            prefer = self.app.cfg.get("hud_prefer")
+            sec, day, why = hudread.read_steady(
+                rect, tries=2, gap=1.5,
+                prefer=tuple(prefer) if prefer else None)
+        except hudread.HudError as e:
+            self.lbl_msg.config(text="⚠ " + str(e), fg=th.PINK_DK)
+            return
+        if sec is None:
+            self.lbl_msg.config(
+                text="⚠ 読めませんでした（%s）。ARKを前に出して、Hキーで時刻を"
+                     "出してから、「🖱 範囲をおしえる」で場所を指定してください"
+                     % why, fg=th.PINK_DK)
+            return
+        if day is not None:
+            c.day_number = day
+        self.v_time.set(G.fmt_game_time(sec))
+        self.do_sync()
+        self.lbl_msg.config(text="📷 %s と読み取りました（%s）／ %s"
+                                 % (G.fmt_game_time(sec), why,
+                                    self.lbl_msg.cget("text")), fg=th.MINT)
 
     def make_timer(self, which):
         c = self.app.clocks.get()
