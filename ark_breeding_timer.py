@@ -44,7 +44,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.48.0"
+APP_VERSION = "1.49.0"
 
 
 def _res_dir():
@@ -148,6 +148,9 @@ DEFAULT_CONFIG = {
     # 画面から時刻を読む（ARKの左上のHUD）
     "hud_rect": list(hudread.DEFAULT_RECT),   # ウィンドウ内の割合 x,y,w,h
     "hud_prefer": None,                       # 前回うまくいった設定
+    "hud_auto_min": 10,        # 自動で合わせるとき、何分ごとに読むか
+    "hud_auto_max": 12,        # 何回まで読むか（際限なく回さないため）
+    "hud_auto_tol": 30,        # ズレがこの秒数以内なら「合った」とみなす
     "watch_interval": 60,      # 死活を見に行く間隔（秒）
     "watch_rush_min": 5,       # 定期再起動の前後 何分を「集中して見る」か
     "watch_rush_interval": 10, # そのあいだの間隔（秒）
@@ -1363,7 +1366,20 @@ class App(tk.Tk):
         self.watch_msg = {}
         # 見張りスレッドからの知らせ置き場。Tk は本体の周期処理から触る
         self.watch_notices = []
+        # 画面読み取り。押したときだけ動かす（ずっと回すと重いので）
+        self.hud_results = []      # 読む係が置いていく結果
+        self.hud_on = False        # いま自動で合わせているか
+        self.hud_left = 0          # あと何回読むか
+        self.hud_good = 0          # 続けて「ズレ小さい」だった回数
+        self.hud_fails = 0         # 続けて読めなかった回数
+        self.hud_say = ""          # 画面に出す一言
+        self.hud_reader = None
         self.watcher.start()
+        self.hud_reader = hudread.AutoReader(
+            self._hud_cfg, self._hud_result,
+            lambda: afk.find_window(self.cfg.get("macro_target")
+                                    or "ArkAscended.exe"))
+        self.hud_reader.start()
         # チェックリストは本体とミニ表示で同じものを見せるので App が持つ
         self.checklist_items = load_checklist()
         self.checklist_pages = []
@@ -1746,6 +1762,7 @@ class App(tk.Tk):
         self._update_head(now)
         self._afk_tick(now)
         self._macro_tick()
+        self._hud_tick()
         # 過ぎた定期再起動のぶんを差し引く（画面を開いていなくても効かせる）
         for _c in self.clocks.clocks.values():
             _c.apply_restarts(now)
@@ -2042,6 +2059,87 @@ class App(tk.Tk):
                 out.append((name, c.address))
         return out
 
+    # ---------------- 画面から時刻を読む（自動） ----------------
+    def _hud_cfg(self):
+        return {"on": self.hud_on,
+                "minutes": self.cfg.get("hud_auto_min", 10),
+                "rect": self.cfg.get("hud_rect") or hudread.DEFAULT_RECT,
+                "prefer": self.cfg.get("hud_prefer")}
+
+    def _hud_result(self, sec, day, where, why):
+        """読む係からの知らせ。Tkは触らず、置いておくだけ。"""
+        self.hud_results.append((sec, day, where, why, time.time()))
+
+    def start_hud_auto(self, on=True):
+        """自動で合わせるのを始める／やめる。"""
+        self.hud_on = bool(on)
+        self.hud_good = 0
+        self.hud_fails = 0
+        if on:
+            self.hud_left = max(1, int(self.cfg.get("hud_auto_max", 12)))
+            self.hud_say = "📷 はじめました。いちど読みます…"
+            if self.hud_reader is not None:
+                self.hud_reader.poke()
+        else:
+            self.hud_left = 0
+            self.hud_say = "とめました"
+
+    def _hud_stop(self, msg):
+        self.hud_on = False
+        self.hud_left = 0
+        self.hud_say = msg
+
+    def _hud_tick(self):
+        """置かれた結果を反映する。ここは本体（Tk）側。"""
+        while self.hud_results:
+            sec, day, where, why, at = self.hud_results.pop(0)
+            self.hud_left -= 1
+            if sec is None:
+                self.hud_fails += 1
+                self.hud_good = 0
+                self.hud_say = "⚠ 画面から読めません（%s）" % why
+                if self.hud_fails in (2, 5):
+                    self.notifier.fire(
+                        "⚠ ゲーム内時刻が読めません",
+                        "%s ／ %d回続けて失敗しています。ARKが隠れているか、"
+                        "Hキーの表示が消えているかもしれません"
+                        % (why, self.hud_fails),
+                        urgent=False, repeat=False,
+                        auto_close=self.cfg.get("watch_popup_close", 10))
+                if self.hud_fails >= 5:
+                    self._hud_stop("⚠ 5回続けて読めなかったので、いったん"
+                                   "やめました")
+                elif self.hud_left <= 0:
+                    self._hud_stop("⚠ 読めないまま回数ぶん終わりました")
+                continue
+            self.hud_fails = 0
+            name = self.clocks.match_label(where) or self.clocks.current
+            c = self.clocks.clocks.get(name)
+            if c is None:
+                self._hud_stop("⚠ %s の時計がありません" % (where or "?"))
+                continue
+            if day is not None:
+                c.day_number = day
+            # 合わせる前のズレ。これが小さいほど、もう合っている
+            drift = c.drift_at(sec, at)
+            tol = float(self.cfg.get("hud_auto_tol", 30) or 30)
+            _ok, msg = c.resync(sec, at)
+            self.save_clocks()
+            label = gametime.map_label(name)
+            if drift is not None and abs(drift) <= tol:
+                self.hud_good += 1
+            else:
+                self.hud_good = 0
+            head = "📷 %s %s" % (label, gametime.fmt_game_time(sec))
+            if self.hud_good >= 2:
+                self._hud_stop("✅ %s ／ 2回続けてズレ%s以内。合いました"
+                               % (head, gametime.fmt_span(tol)))
+            elif self.hud_left <= 0:
+                self._hud_stop("%s ／ 回数ぶん終わりました。%s" % (head, msg))
+            else:
+                self.hud_say = "%s ／ %s（あと%d回）" % (head, msg,
+                                                        self.hud_left)
+
     def _watch_interval(self):
         """次まで何秒待つか。覚えている再起動の前後だけ短くする。
 
@@ -2298,6 +2396,8 @@ class App(tk.Tk):
         if self.egg_hotkey is not None:
             self.egg_hotkey.stop()
         self.watcher.stop()
+        if self.hud_reader is not None:
+            self.hud_reader.stop()
         if self.hotkey is not None:
             self.hotkey.stop()
         self.destroy()

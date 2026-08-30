@@ -24,6 +24,7 @@ import os
 import re
 import subprocess
 import tempfile
+import threading
 import time
 
 # 既定で写す場所（ウィンドウの左上からの割合）。人によってUIの倍率が違うので
@@ -137,7 +138,11 @@ _DAY = re.compile(r"Day[^0-9]{0,4}(\d{1,6})", re.I)
 
 
 def parse(lines):
-    """読めた行から (ゲーム内秒, Day) を拾う。分からなければ None。"""
+    """読めた行から (ゲーム内秒, Day, マップ名) を拾う。
+
+    マップ名は「アストレオス, 26°(C)」の行から。どのマップにいるかが
+    分かれば、その時計へ合わせられる。
+    """
     joined = "\n".join(lines)
     flat = re.sub(r"[ 　]", "", joined)
     day = None
@@ -150,7 +155,15 @@ def parse(lines):
         if 0 <= h < 24 and 0 <= mi < 60:
             sec = h * 3600 + mi * 60
             break                     # HUDでは時刻が先に出てくる
-    return sec, day
+    # 最後の行にマップ名と気温が出る。「, 26°(C)」の手前を拾う
+    where = ""
+    for ln in reversed(lines):
+        flat_ln = re.sub(r"[ 　]", "", ln)
+        m2 = re.match(r"^(.{2,20}?)[,、.]\s*[-−]?\d{1,3}", flat_ln)
+        if m2:
+            where = m2.group(1)
+            break
+    return sec, day, where
 
 
 # 明るさのしきい値と拡大率の組み合わせ。背景やUIの倍率で当たり外れが
@@ -159,7 +172,7 @@ TRY_SETTINGS = ((200, 3), (225, 4), (180, 3), (210, 4), (160, 2), (240, 4))
 
 
 def read_once(rect, prefer=None, src=""):
-    """1回読む。(ゲーム内秒, Day, 読めた行, 効いた設定) を返す。
+    """1回読む。(ゲーム内秒, Day, マップ名, 読めた行, 効いた設定) を返す。
 
     prefer に前回うまくいった (しきい値, 拡大) を渡すと、そこから試す。
     """
@@ -170,11 +183,11 @@ def read_once(rect, prefer=None, src=""):
     last = []
     for thr, scale in order:
         lines = capture_text(rect, scale=scale, thr=thr, src=src)
-        sec, day = parse(lines)
+        sec, day, where = parse(lines)
         last = lines or last
         if sec is not None:
-            return sec, day, lines, (thr, scale)
-    return None, None, last, None
+            return sec, day, where, lines, (thr, scale)
+    return None, None, "", last, None
 
 
 def read_steady(rect, tries=3, gap=2.0, prefer=None):
@@ -191,32 +204,90 @@ def read_steady(rect, tries=3, gap=2.0, prefer=None):
         if i:
             time.sleep(gap)
         try:
-            sec, day, lines, got = read_once(rect, prefer=used)
+            sec, day, where, lines, got = read_once(rect, prefer=used)
         except HudError as e:
-            return None, None, str(e)
+            return None, None, None, str(e)
         lines_last = lines
         if got:
             used = got            # 効いた設定は次から最初に試す
         if sec is None:
             continue
-        seen.append((sec, day))
+        seen.append((sec, day, where))
     if not seen:
-        return None, None, ("時刻が見つかりません（読めた文字: %s）"
-                            % " / ".join(lines_last)[:80] or "何も読めません")
+        return None, None, None, ("時刻が見つかりません（読めた文字: %s）"
+                                  % (" / ".join(lines_last)[:80]
+                                     or "何も読めません"))
     if len(seen) == 1:
-        return seen[0][0], seen[0][1], "1回だけ読めました"
+        return seen[0][0], seen[0][1], seen[0][2], "1回だけ読めました"
     # 進み方が変でないか。1日ぶんで折り返す
     ok = True
-    for (a, _d1), (b, _d2) in zip(seen, seen[1:]):
+    for (a, _d1, _w1), (b, _d2, _w2) in zip(seen, seen[1:]):
         fwd = (b - a) % 86400
         if fwd > 3600:          # 数十秒のはずが1時間以上進んだ＝読み違い
             ok = False
     if not ok:
-        return None, None, ("読み取りがぶれています（%s）"
-                            % "→".join("%02d:%02d" % (s // 3600, s % 3600 // 60)
-                                       for s, _ in seen))
-    sec, day = seen[-1]
-    return sec, day, "%d回読んで一致しました" % len(seen)
+        return None, None, None, ("読み取りがぶれています（%s）"
+                                  % "→".join("%02d:%02d"
+                                             % (s // 3600, s % 3600 // 60)
+                                             for s, _d, _w in seen))
+    sec, day, where = seen[-1]
+    return sec, day, where, "%d回読んで一致しました" % len(seen)
+
+
+class AutoReader(threading.Thread):
+    """言われた間隔で画面を読む係。
+
+    ずっと回すと重いので、動くのは「入」のあいだだけ。読めた・読めなかったを
+    on_result(秒, Day, マップ名, 説明) で知らせる。Tk は触らないので、
+    受け取った側が本体の周期処理で反映すること。
+    """
+
+    def __init__(self, get_cfg, on_result, find_window):
+        super().__init__(daemon=True)
+        self.get_cfg = get_cfg      # {"on":.., "minutes":.., "rect":.., "prefer":..}
+        self.on_result = on_result
+        self.find_window = find_window
+        self._halt = threading.Event()
+        self._wake = threading.Event()
+        self.next_at = 0.0
+
+    def stop(self):
+        self._halt.set()
+        self._wake.set()
+
+    def poke(self):
+        """すぐ1回読ませる（「はじめる」を押したとき用）。"""
+        self.next_at = 0.0
+        self._wake.set()
+
+    def run(self):
+        while not self._halt.is_set():
+            c = self.get_cfg() or {}
+            if not c.get("on"):
+                self.next_at = 0.0
+                self._wake.wait(3.0)
+                self._wake.clear()
+                continue
+            now = time.time()
+            if now < self.next_at:
+                self._wake.wait(min(20.0, self.next_at - now))
+                self._wake.clear()
+                continue
+            self.next_at = now + max(60.0, float(c.get("minutes") or 10) * 60)
+            hwnd = self.find_window()
+            if not hwnd:
+                self.on_result(None, None, None, "ARKが起動していません")
+                continue
+            try:
+                rect = rect_from_window(hwnd, c.get("rect") or DEFAULT_RECT)
+                pref = c.get("prefer")
+                sec, day, where, why = read_steady(
+                    rect, tries=2, gap=1.5,
+                    prefer=tuple(pref) if pref else None)
+            except HudError as e:
+                self.on_result(None, None, None, str(e))
+                continue
+            self.on_result(sec, day, where, why)
 
 
 def rect_from_window(hwnd, fracs):

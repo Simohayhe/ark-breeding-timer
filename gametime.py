@@ -967,6 +967,12 @@ class GameClock:
                    d.get("bounds"))
 
 
+def label_key(text):
+    """比べやすいように、名前をならす。"""
+    return (text or "").replace(" ", "").replace("　", "").replace("・",
+                                                                  "").lower()
+
+
 class ClockSet:
     """マップごとの時計をまとめて持つ。
 
@@ -1014,6 +1020,24 @@ class ClockSet:
         if self.current == old:
             self.current = new
         return True
+
+    def match_label(self, text):
+        """画面から読んだマップ名に合う時計を探す。
+
+        HUDは日本語で出る（アストレオス等）ので、表示名でも内部名でも
+        引けるようにする。見つからなければ None。
+        """
+        want = label_key(text)
+        if not want:
+            return None
+        for name in self.order:
+            if label_key(map_label(name)) == want or label_key(name) == want:
+                return name
+        for name in self.order:                 # 少し崩れていても拾う
+            lab = label_key(map_label(name))
+            if lab and (lab in want or want in lab):
+                return name
+        return None
 
     def get(self, name=None):
         return self.clocks.get(name or self.current)

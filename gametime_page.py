@@ -226,6 +226,21 @@ class GameTimePage(tk.Frame):
         hrow.pack(fill="x", pady=(2, 0))
         tk.Label(hrow, text="読む場所", bg=th.CARD, fg=th.INK_SUB,
                  font=F["small"]).pack(side="left", padx=(0, 4))
+        self.btn_hudauto = th.RoundButton(hrow, "▶ 自動で合わせる",
+                                          self.toggle_hud_auto, kind="mint",
+                                          bg=th.CARD, font=F["small"], padx=12,
+                                          pady=5, width=180)
+        self.btn_hudauto.pack(side="left", padx=(0, 6))
+        tk.Label(hrow, text="", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left")
+        self.v_hmin = tk.StringVar(value="%g" % self.app.cfg.get("hud_auto_min", 10))
+        th.soft_entry(hrow, self.v_hmin, width=4).pack(side="left", ipady=2)
+        tk.Label(hrow, text="分ごと×", bg=th.CARD, fg=th.INK,
+                 font=F["small"]).pack(side="left")
+        self.v_hmax = tk.StringVar(value="%g" % self.app.cfg.get("hud_auto_max", 12))
+        th.soft_entry(hrow, self.v_hmax, width=3).pack(side="left", ipady=2)
+        tk.Label(hrow, text="回まで　", bg=th.CARD, fg=th.INK,
+                 font=F["small"]).pack(side="left")
         self.btn_hudarea = th.RoundButton(hrow, "🖱 範囲をおしえる",
                                           self.learn_hud_area, kind="soft",
                                           bg=th.CARD, font=F["small"], padx=12,
@@ -998,6 +1013,24 @@ class GameTimePage(tk.Frame):
         self.update_view()
 
     # ---------------- 画面から時刻を読む ----------------
+    def toggle_hud_auto(self):
+        """自動で合わせるのを始める／やめる。合ったら自分で止まります。"""
+        if self.app.hud_on:
+            self.app.start_hud_auto(False)
+            self.update_view()
+            return
+        try:
+            mins = max(1.0, float(self.v_hmin.get() or 10))
+            times = max(1, int(float(self.v_hmax.get() or 12)))
+        except ValueError:
+            self.lbl_hud.config(text="⚠ 数字で入れてください", fg=th.PINK_DK)
+            return
+        self.app.cfg["hud_auto_min"] = mins
+        self.app.cfg["hud_auto_max"] = times
+        self.app.save_cfg()
+        self.app.start_hud_auto(True)
+        self.update_view()
+
     def learn_hud_area(self):
         """時刻が出ている場所を、左上と右下のクリックで教えてもらう。"""
         if getattr(self, "hud_rec", None) is not None:
@@ -1258,6 +1291,13 @@ class GameTimePage(tk.Frame):
         else:
             self.btn_night.set_text("🌙 夜を知らせる")
             self.btn_day.set_text("☀ 朝を知らせる")
+        self.btn_hudauto.set_text("■ 自動をとめる" if self.app.hud_on
+                                  else "▶ 自動で合わせる")
+        if self.app.hud_say:
+            self.lbl_hud.config(text=self.app.hud_say,
+                                fg=th.PINK_DK if self.app.hud_say.startswith("⚠")
+                                else (th.MINT if self.app.hud_say.startswith("✅")
+                                      else th.INK_SUB))
         note = c.season_note(now)
         self.lbl_sel.config(text=("⚙ %s の設定" % G.map_label(cs.current))
                             + (("　🌋 " + note) if note else ""))
