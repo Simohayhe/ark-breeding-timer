@@ -44,7 +44,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.49.0"
+APP_VERSION = "1.49.1"
 
 
 def _res_dir():
@@ -2113,7 +2113,11 @@ class App(tk.Tk):
                     self._hud_stop("⚠ 読めないまま回数ぶん終わりました")
                 continue
             self.hud_fails = 0
-            name = self.clocks.match_label(where) or self.clocks.current
+            # まず Day で当てる（サーバーごとに違うので一意に決まる）。
+            # HUDの下の行は地域名なので、名前での照合は保険あつかい。
+            name = (self.clocks.match_day(day)
+                    or self.clocks.match_label(where)
+                    or self.clocks.current)
             c = self.clocks.clocks.get(name)
             if c is None:
                 self._hud_stop("⚠ %s の時計がありません" % (where or "?"))

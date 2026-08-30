@@ -1021,11 +1021,24 @@ class ClockSet:
             self.current = new
         return True
 
-    def match_label(self, text):
-        """画面から読んだマップ名に合う時計を探す。
+    def match_day(self, day):
+        """画面から読んだ Day の数字で、どのマップか当てる。
 
-        HUDは日本語で出る（アストレオス等）ので、表示名でも内部名でも
-        引けるようにする。見つからなければ None。
+        HUDの下の行はマップ名ではなく**その場の地域名**（「レムノキス」など）
+        なので、名前では当てにならない。一方 Day はサーバーごとに違うので、
+        見張りが覚えている Day と突き合わせれば一意に決まる。
+        """
+        if day is None:
+            return None
+        hit = [n for n in self.order
+               if self.clocks[n].day_number == day]
+        return hit[0] if len(hit) == 1 else None
+
+    def match_label(self, text):
+        """画面から読んだ文字に合う時計を探す。
+
+        ただしHUDに出るのは地域名なので、これは当てにならないことが多い。
+        Day で決まらなかったときの保険。見つからなければ None。
         """
         want = label_key(text)
         if not want:

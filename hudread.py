@@ -170,6 +170,9 @@ def parse(lines):
 # あるので、うまくいくまで順に試す。効いた組はあとで最初に回す。
 TRY_SETTINGS = ((200, 3), (225, 4), (180, 3), (210, 4), (160, 2), (240, 4))
 
+# 直近で効いた設定。次から最初に試して速くする
+LAST_USED = [None]
+
 
 def read_once(rect, prefer=None, src=""):
     """1回読む。(ゲーム内秒, Day, マップ名, 読めた行, 効いた設定) を返す。
@@ -186,6 +189,7 @@ def read_once(rect, prefer=None, src=""):
         sec, day, where = parse(lines)
         last = lines or last
         if sec is not None:
+            LAST_USED[0] = (thr, scale)
             return sec, day, where, lines, (thr, scale)
     return None, None, "", last, None
 
@@ -274,6 +278,7 @@ class AutoReader(threading.Thread):
                 self._wake.clear()
                 continue
             self.next_at = now + max(60.0, float(c.get("minutes") or 10) * 60)
+            self.last_used = None
             hwnd = self.find_window()
             if not hwnd:
                 self.on_result(None, None, None, "ARKが起動していません")
@@ -287,6 +292,7 @@ class AutoReader(threading.Thread):
             except HudError as e:
                 self.on_result(None, None, None, str(e))
                 continue
+            self.last_used = LAST_USED[0]     # 効いた設定を控える
             self.on_result(sec, day, where, why)
 
 

@@ -1108,7 +1108,7 @@ class GameTimePage(tk.Frame):
             rect = hudread.rect_from_window(
                 hwnd, self.app.cfg.get("hud_rect") or hudread.DEFAULT_RECT)
             prefer = self.app.cfg.get("hud_prefer")
-            sec, day, why = hudread.read_steady(
+            sec, day, where, why = hudread.read_steady(
                 rect, tries=2, gap=1.5,
                 prefer=tuple(prefer) if prefer else None)
         except hudread.HudError as e:
@@ -1120,12 +1120,21 @@ class GameTimePage(tk.Frame):
                      "出してから、「🖱 範囲をおしえる」で場所を指定してください"
                      % why, fg=th.PINK_DK)
             return
+        # Day でどのマップか当てる（HUDの下の行は地域名なので当てにならない）
+        name = self.app.clocks.match_day(day)
+        if name and name != self.app.clocks.current:
+            self.select(name)
+            c = self.app.clocks.get()
         if day is not None:
             c.day_number = day
+        if hudread.LAST_USED[0]:
+            self.app.cfg["hud_prefer"] = list(hudread.LAST_USED[0])
+            self.app.save_cfg()
         self.v_time.set(G.fmt_game_time(sec))
         self.do_sync()
-        self.lbl_msg.config(text="📷 %s と読み取りました（%s）／ %s"
-                                 % (G.fmt_game_time(sec), why,
+        self.lbl_msg.config(text="📷 %s の %s と読み取りました（%s）／ %s"
+                                 % (G.map_label(self.app.clocks.current),
+                                    G.fmt_game_time(sec), why,
                                     self.lbl_msg.cget("text")), fg=th.MINT)
 
     def make_timer(self, which):
