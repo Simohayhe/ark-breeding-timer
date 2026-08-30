@@ -43,7 +43,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.43.0"
+APP_VERSION = "1.44.0"
 
 
 def _res_dir():
@@ -2274,8 +2274,16 @@ class TimerCard(th.Card):
         head.pack(fill="x")
         th.PillBadge(head, "%s %s" % (emoji, kname), color, bg=th.CARD,
                      font=F["small"]).pack(side="left")
-        tk.Label(head, text="  " + (t.label or "むめい"), bg=th.CARD, fg=th.INK,
-                 font=F["cute_b"]).pack(side="left")
+        # 名前は押すと書き換えられる（ダイアログは出さない）
+        self.name_box = tk.Frame(head, bg=th.CARD)
+        self.name_box.pack(side="left")
+        self.lbl_name = tk.Label(self.name_box, text="  " + (t.label or "むめい"),
+                                 bg=th.CARD, fg=th.INK, font=F["cute_b"],
+                                 cursor="hand2")
+        self.lbl_name.pack(side="left")
+        self.lbl_name.bind("<Button-1>", lambda e: self.start_rename())
+        self.v_name = tk.StringVar(value=t.label or "")
+        self.ent_name = None
         if t.species:
             tk.Label(head, text=" " + t.species, bg=th.CARD, fg=th.INK_SUB,
                      font=F["small"]).pack(side="left")
@@ -2292,6 +2300,9 @@ class TimerCard(th.Card):
             btns, "🔁", self.edit_repeat, kind="accent" if t.repeat else "ghost",
             bg=th.CARD, font=F["small"], padx=11, pady=5)
         self.btn_repeat.pack(side="right", padx=2)
+        th.RoundButton(btns, "✏ 名前", self.start_rename, kind="ghost",
+                       bg=th.CARD, font=F["small"], padx=9,
+                       pady=5).pack(side="right", padx=2)
         th.RoundButton(btns, "−5分", lambda: self.nudge(-300), kind="ghost",
                        bg=th.CARD, font=F["small"], padx=9, pady=5).pack(side="right",
                                                                         padx=2)
@@ -2344,6 +2355,36 @@ class TimerCard(th.Card):
 
     def edit_repeat(self):
         RepeatDialog(self.app, self.t, parent=self.winfo_toplevel())
+
+    # ---------------- 名前を変える ----------------
+    def start_rename(self, _e=None):
+        """名前の所を入力欄に差し替える。Enterで決定、Escでやめる。"""
+        if self.ent_name is not None:
+            return
+        self.lbl_name.pack_forget()
+        self.v_name.set(self.t.label or "")
+        self.ent_name = th.soft_entry(self.name_box, self.v_name, width=22,
+                                      font=self.app.F["cute_b"])
+        self.ent_name.pack(side="left", padx=(4, 0), ipady=2)
+        self.ent_name.bind("<Return>", lambda e: self.finish_rename(True))
+        self.ent_name.bind("<Escape>", lambda e: self.finish_rename(False))
+        self.ent_name.bind("<FocusOut>", lambda e: self.finish_rename(True))
+        self.ent_name.focus_set()
+        self.ent_name.select_range(0, "end")
+
+    def finish_rename(self, keep):
+        if self.ent_name is None:
+            return
+        name = self.v_name.get().strip()
+        self.ent_name.destroy()
+        self.ent_name = None
+        self.lbl_name.pack(side="left")
+        if keep and name and name != self.t.label:
+            self.t.label = name
+            self.app.save_timers()
+            self.app.rebuild_list()
+            return
+        self.lbl_name.config(text="  " + (self.t.label or "むめい"))
 
     def nudge(self, sec):
         self.t.end_ts += sec

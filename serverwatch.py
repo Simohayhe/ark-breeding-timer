@@ -43,6 +43,9 @@ class Watcher(threading.Thread):
         self._last_seen = {}   # キー -> 最後に確認した時刻
         self._day_at = {}      # キー -> そのDayになった時刻
         self._online_at = {}   # キー -> 最後に「起きている」のを見た時刻
+        # キー -> (起きているのを最初に見た時刻, 立ち上がる瞬間を見たか)
+        # 落ちたら捨てる。定期再起動でもクラッシュでも同じ扱い。
+        self._up_since = {}
 
     def stop(self):
         self._halt.set()
@@ -78,6 +81,18 @@ class Watcher(threading.Thread):
         out.update({"ok": True, "online": True, "at": time.time(),
                     "sessions": sessions})
         return out
+
+    def uptime(self, key, now=None):
+        """そのサーバーが続けて起きている秒数と、それが正確かどうか。
+
+        戻り値 (秒, 正確か)。落ちるとリセットされるので、定期再起動でも
+        クラッシュでも 0 から数え直しになる。見つからなければ (None, False)。
+        """
+        got = self._up_since.get(key)
+        if not got:
+            return None, False
+        since, exact = got
+        return max(0.0, (now or time.time()) - since), exact
 
     def day_at(self, key):
         """そのマップで前に Day が変わった時刻。まだ見ていなければ None。
@@ -152,6 +167,12 @@ class Watcher(threading.Thread):
                 self._fire(key, "up", now)
         if online:
             self._online_at[key] = now
+            if key not in self._up_since:
+                # 落ちてから戻ったのを見たなら、その時刻が本当の起動時刻。
+                # 見張りはじめて最初から起きていた場合は「それ以上」しか言えない。
+                self._up_since[key] = (now, prev is not None and not was)
+        else:
+            self._up_since.pop(key, None)
 
         # Day が増えたら知らせる（前に増えた時刻も一緒に）
         day = res.get("day")
