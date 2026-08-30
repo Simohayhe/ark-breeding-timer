@@ -43,7 +43,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.45.0"
+APP_VERSION = "1.46.0"
 
 
 def _res_dir():
@@ -1117,7 +1117,7 @@ class MiniWindow(tk.Toplevel):
                 sl["note"].config(text="本体で H キーの時刻を合わせてください")
                 continue
             g = c.game_at(now)
-            night = gametime.is_night(g)
+            night = c.is_night(g)
             if c.paused:
                 sl["time"].config(text="⏸ %s" % gametime.fmt_game_time(g),
                                   fg=th.INK_SUB)
@@ -2062,6 +2062,9 @@ class App(tk.Tk):
         """見張りスレッドからの知らせ。Tkは触らず、時計だけ動かす。"""
         c = self.clocks.clocks.get(name)
         if c is None:
+            return
+        if kind == "daynum":
+            c.day_number = value      # アベレーションの季節を出すのに使う
             return
         if kind == "down":
             # 落ちている間はゲーム内時間も進まないので、その場で止める

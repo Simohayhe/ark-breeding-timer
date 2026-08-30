@@ -441,7 +441,7 @@ class GameTimePage(tk.Frame):
             elif want == "night":
                 self.meter_phase = True
             elif c.synced:
-                self.meter_phase = G.is_night(c.game_at())
+                self.meter_phase = c.is_night(c.game_at())
             else:
                 # まだ合わせていないと昼夜が分からない。勝手に昼にしない。
                 self.lbl_meter.config(
@@ -887,6 +887,7 @@ class GameTimePage(tk.Frame):
             c = self.app.clocks.get(name)
             if c is not None:
                 c.address = addr
+                G.apply_map_defaults(c, name)
             added.append(name)
         self.app.save_clocks()
         self.rebuild()
@@ -1092,7 +1093,7 @@ class GameTimePage(tk.Frame):
                 row["label"].config(text="まだ合わせていません", fg=th.INK_SUB)
                 continue
             g = c.game_at(now)
-            night = G.is_night(g)
+            night = c.is_night(g)
             if c.paused:
                 row["label"].config(
                     text="⏸ %s ／ 止まっています（サーバーが落ちています）"
@@ -1123,7 +1124,9 @@ class GameTimePage(tk.Frame):
             self.lbl_sel.config(text="マップが登録されていません")
             self.lbl_total.config(text="")
             return
-        self.lbl_sel.config(text="⚙ %s の設定" % G.map_label(cs.current))
+        note = c.season_note(now)
+        self.lbl_sel.config(text=("⚙ %s の設定" % G.map_label(cs.current))
+                            + (("　🌋 " + note) if note else ""))
         if c.restarts and c.restart_minutes > 0:
             self.lbl_restart.config(
                 text="→ %s に %g分ずつ、自動で差し引きます"

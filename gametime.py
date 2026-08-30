@@ -112,6 +112,68 @@ def fmt_span(sec):
     return "%d分%02d秒" % (sec // 60, sec % 60)
 
 
+# マップによって夜明け・日暮れの時刻が違う。既定はラグナロク等の値で、
+# アベレーションだけは地上が燃えはじめる／収まる時刻に合わせる。
+MAP_BOUNDS = {
+    "aberration": (5 * 3600 + 30 * 60, 17 * 3600 + 30 * 60),
+}
+
+# アベレーションは10日で一巡する「季節」がある。ゲーム内の日数の**末尾**で
+# 昼と夜の割合が変わる（時刻の境目は動かず、進む速さが変わる）。
+#   末尾 0〜3 … 昼50% / 夜50%
+#   末尾 4〜6 … 昼90% / 夜10%
+#   末尾 7〜9 … 昼10% / 夜90%   ← 夜がいちばん長い。地上へ行くならこの日
+ABERRATION_SEASONS = ((7, 0.10, "夜が長い"), (4, 0.90, "昼が長い"),
+                      (0, 0.50, "半々"))
+
+
+def apply_map_defaults(clock, name):
+    """マップの名前から、夜明け・日暮れと季節の有無を決める。
+
+    アベレーションだけ地上の燃える時刻に合わせ、季節（末尾の数字で
+    昼夜の割合が変わる）を有効にする。
+    """
+    key = (name or "").replace("_WP", "").replace("_P", "")
+    key = key.replace(" ", "").replace("_", "").lower()
+    key = key.rstrip("0123456789")        # 「アベレーション 2」なども拾う
+    if key in MAP_BOUNDS:
+        clock.bounds = MAP_BOUNDS[key]
+    clock.aberration = key == "aberration"
+    return clock.aberration
+
+
+def fmt_span_long(sec):
+    """「約3時間20分」のような、ざっくりした長さ。"""
+    sec = int(max(0, sec))
+    h, m = divmod(sec // 60, 60)
+    if h >= 24:
+        return "%d日%d時間" % (h // 24, h % 24)
+    if h:
+        return "%d時間%d分" % (h, m)
+    return "%d分" % m
+
+
+def season_of(day_number):
+    """その日の (昼の割合, 呼び名)。日数が分からなければ半々あつかい。"""
+    try:
+        tail = int(day_number) % 10
+    except (TypeError, ValueError):
+        return 0.5, "半々"
+    for start, ratio, name in ABERRATION_SEASONS:
+        if tail >= start:
+            return ratio, name
+    return 0.5, "半々"
+
+
+def days_until_tail(day_number, tails=(7, 8, 9)):
+    """あと何日で末尾がその数字になるか。今日が当てはまれば0。"""
+    try:
+        tail = int(day_number) % 10
+    except (TypeError, ValueError):
+        return None
+    return min((t - tail) % 10 for t in tails)
+
+
 def _circ_diff(a, b):
     """ゲーム内時刻 a と b の差（-12h〜+12h）。"""
     d = (int(a) - int(b)) % DAY_SECONDS
@@ -139,11 +201,17 @@ class GameClock:
                  night_real=DEFAULT_NIGHT_REAL, address="", restarts=None,
                  restart_minutes=3.0, restart_done=0.0, day_boundary=None,
                  total_measured=False, measuring=False, measure_since=0.0,
-                 notify=False, boundary_votes=None, samples=None):
+                 notify=False, boundary_votes=None, samples=None,
+                 aberration=False, bounds=None):
         # サーバーが落ちている間、時計を止めておく時刻（0なら動いている）。
         # 保存はしない。アプリを開き直したら見張りが数秒で入れ直すし、
         # 閉じていた間ぶんを丸ごと引くと、かえって大きくずれてしまう。
         self.notify = bool(notify)   # 落ちた／戻ったを知らせるか
+        # アベレーション式（日数の末尾で昼夜の割合が変わる）かどうか
+        self.aberration = bool(aberration)
+        self.day_number = None       # 見張りが教えてくれる「Day N」
+        # このマップの夜明け・日暮れ（ゲーム内秒）
+        self.bounds = tuple(bounds) if bounds else (DAY_START, NIGHT_START)
         self.paused_at = 0.0
         # 止めた合計（実秒）。日の変わり目どうしの間隔から落ちていた分を
         # 引くのに使う。sync_real は hold() で後ろへずれるので、
@@ -184,10 +252,12 @@ class GameClock:
     def _segment(self, game_sec):
         """(この区間の終わりのゲーム内秒, ゲーム内1秒あたりの実秒)"""
         g = int(game_sec) % DAY_SECONDS
-        if DAY_START <= g < NIGHT_START:
-            return NIGHT_START, self.day_real / DAY_SPAN
-        end = DAY_START + DAY_SECONDS if g >= NIGHT_START else DAY_START
-        return end, self.night_real / NIGHT_SPAN
+        d0, n0 = self.bounds
+        day_real, night_real = self.rates()
+        if d0 <= g < n0:
+            return n0, day_real / self.day_span()
+        end = d0 + DAY_SECONDS if g >= n0 else d0
+        return end, night_real / self.night_span()
 
     def _segment_back(self, game_sec):
         """(この区間の始まりのゲーム内秒, ゲーム内1秒あたりの実秒)
@@ -195,10 +265,11 @@ class GameClock:
         さかのぼる用。境目ちょうどのときは「手前の区間」を返す。
         """
         g = int(game_sec) % DAY_SECONDS
-        if DAY_START < g <= NIGHT_START:
-            return DAY_START, self.day_real / DAY_SPAN
-        return (NIGHT_START if g <= DAY_START else NIGHT_START), \
-               self.night_real / NIGHT_SPAN
+        d0, n0 = self.bounds
+        day_real, night_real = self.rates()
+        if d0 < g <= n0:
+            return d0, day_real / self.day_span()
+        return n0, night_real / self.night_span()
 
     def game_at(self, real_now=None):
         """いまのゲーム内秒。"""
@@ -265,10 +336,10 @@ class GameClock:
         return None
 
     def next_night(self, real_now=None):
-        return self.real_until(NIGHT_START, real_now)
+        return self.real_until(self.night_start, real_now)
 
     def next_day(self, real_now=None):
-        return self.real_until(DAY_START, real_now)
+        return self.real_until(self.day_start, real_now)
 
     # ---- 合わせる・測る ----
     MAX_SAMPLES = 16
@@ -349,6 +420,72 @@ class GameClock:
         if n == 1:
             return "観測1本（もう1回ちがう時間帯で合わせると配分が出ます）"
         return "観測%d本から出しています" % n
+
+    # ---- このマップの昼夜 ----
+    @property
+    def day_start(self):
+        return self.bounds[0]
+
+    @property
+    def night_start(self):
+        return self.bounds[1]
+
+    def day_span(self):
+        return (self.night_start - self.day_start) % DAY_SECONDS
+
+    def night_span(self):
+        return DAY_SECONDS - self.day_span()
+
+    def is_night(self, game_sec):
+        g = int(game_sec) % DAY_SECONDS
+        return g >= self.night_start or g < self.day_start
+
+    def rates(self):
+        """(昼ぜんぶの実秒, 夜ぜんぶの実秒)。
+
+        アベレーションは季節で割合が変わるので、1日の合計は変えずに
+        そのぶんだけ振り分け直す。
+        """
+        if not self.aberration:
+            return self.day_real, self.night_real
+        total = self.full_day_real()
+        ratio, _name = season_of(self.day_number)
+        return max(1.0, total * ratio), max(1.0, total * (1.0 - ratio))
+
+    def season_name(self):
+        if not self.aberration:
+            return ""
+        ratio, name = season_of(self.day_number)
+        return "%s（昼%d%% / 夜%d%%）" % (name, round(ratio * 100),
+                                          round((1 - ratio) * 100))
+
+    def season_note(self, now=None):
+        """アベレーションの季節と、次の「夜が長い日」までの案内。
+
+        地上へビーコンを拾いに行くのは末尾7〜9の日（夜が9割）。
+        あと何日か、実時間にするとどれくらいかを出す。
+        """
+        if not self.aberration or self.day_number is None:
+            return ""
+        txt = "Day %s ／ %s" % (self.day_number, self.season_name())
+        left = days_until_tail(self.day_number)
+        if left == 0:
+            return txt + " ← いま地上へ行ける日です"
+        total = self.full_day_real()
+        if total > 0 and self.synced:
+            # 今日の残り + まるまる (left-1) 日ぶん
+            rest = self.real_until(self.day_boundary
+                                   if self.day_boundary is not None
+                                   else self.day_start, now)
+            if rest is not None:
+                secs = rest + max(0, left - 1) * total
+                return txt + " ／ 夜が長い日まで あと%d日（約%s）" % (
+                    left, fmt_span_long(secs))
+        return txt + " ／ 夜が長い日まで あと%d日" % left
+
+    def crossed(self, g0, g1):
+        """このマップの境目で、g0→g1 の昼・夜の秒数を数える。"""
+        return crossed(g0, g1, self.bounds)
 
     @property
     def paused(self):
@@ -502,12 +639,12 @@ class GameClock:
 
         # 観測を1本ためて、まとめて解き直せるなら解く。
         # elapsed は sync_real 起点なので、落ちていた分はすでに引かれている。
-        gd, gn = crossed(prev_game, g)
+        gd, gn = self.crossed(prev_game, g)
         # crossed() は1日ぶんで折り返すので、間があきすぎた回は観測にしない。
         # いまの速さが倍ずれていても巻き戻らないよう、半日ぶんまでに絞る。
         short = elapsed <= 0.5 * self.full_day_real()
-        if short and self.add_sample(gd / float(DAY_SPAN),
-                                     gn / float(NIGHT_SPAN), elapsed):
+        if short and self.add_sample(gd / float(self.day_span()),
+                                     gn / float(self.night_span()), elapsed):
             got = self.solve()
             if got:
                 self.sync(g, now)
@@ -759,8 +896,8 @@ class GameClock:
         elapsed = new_real - prev_real
         if total <= 0 or elapsed < 60 or elapsed > total * 1.2:
             return None                      # 間が短すぎ/1日以上あいている
-        gd, gn = crossed(prev_game, new_game)
-        a, b = gd / float(DAY_SPAN), gn / float(NIGHT_SPAN)
+        gd, gn = self.crossed(prev_game, new_game)
+        a, b = gd / float(self.day_span()), gn / float(self.night_span())
         if abs(a - b) < 0.15:
             return None                      # 昼夜の割合が近すぎて分けられない
         day = (elapsed - b * total) / (a - b)
@@ -801,6 +938,8 @@ class GameClock:
                 "measuring": self.measuring,
                 "measure_since": self.measure_since,
                 "notify": self.notify,
+                "aberration": self.aberration,
+                "bounds": list(self.bounds),
                 "boundary_votes": self.boundary_votes,
                 "samples": self.samples,
                 "model": 2}
@@ -824,7 +963,8 @@ class GameClock:
                    d.get("day_boundary"), d.get("total_measured", False),
                    d.get("measuring", False), d.get("measure_since", 0.0),
                    d.get("notify", False), d.get("boundary_votes"),
-                   d.get("samples"))
+                   d.get("samples"), d.get("aberration", False),
+                   d.get("bounds"))
 
 
 class ClockSet:
@@ -989,12 +1129,13 @@ class TapMeter:
         return p * ((NIGHT_SPAN if night else DAY_SPAN) / 60.0)
 
 
-def crossed(g0, g1):
+def crossed(g0, g1, bounds=None):
     """ゲーム内 g0 から g1 まで進むあいだの「昼」「夜」の秒数を返す。
 
     前へ進む向きだけを見る（1日ぶんで折り返す）。昼と夜で速さが違うので、
     実時間に直すにはこの内訳が要る。
     """
+    d0, n0 = bounds if bounds else (DAY_START, NIGHT_START)
     g0 = int(g0) % DAY_SECONDS
     g1 = int(g1) % DAY_SECONDS
     total = (g1 - g0) % DAY_SECONDS
@@ -1004,11 +1145,10 @@ def crossed(g0, g1):
     guard = 0
     while left > 0 and guard < 10:
         guard += 1
-        if DAY_START <= g < NIGHT_START:
-            end, is_day = NIGHT_START, True
+        if d0 <= g < n0:
+            end, is_day = n0, True
         else:
-            end, is_day = (DAY_START + DAY_SECONDS if g >= NIGHT_START
-                           else DAY_START), False
+            end, is_day = (d0 + DAY_SECONDS if g >= n0 else d0), False
         span = min(left, (end - g) if end > g else (end + DAY_SECONDS - g))
         if is_day:
             day_sec += span

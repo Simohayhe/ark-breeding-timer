@@ -188,6 +188,8 @@ class Watcher(threading.Thread):
 
         # Day が増えたら知らせる（前に増えた時刻も一緒に）
         day = res.get("day")
+        if res.get("online") and day is not None and self.on_event:
+            self._fire(key, "daynum", day)   # 季節の判定に使う
         if res.get("online") and day is not None:
             old = (prev or {}).get("day")
             if old is not None and day != old:
