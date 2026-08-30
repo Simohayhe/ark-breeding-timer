@@ -44,7 +44,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.50.0"
+APP_VERSION = "1.51.0"
 
 
 def _res_dir():
@@ -149,7 +149,12 @@ DEFAULT_CONFIG = {
     "hud_rect": list(hudread.DEFAULT_RECT),   # ウィンドウ内の割合 x,y,w,h
     "hud_prefer": None,                       # 前回うまくいった設定
     "hud_auto_min": 10,        # 自動で合わせるとき、何分ごとに読むか
-    "hud_auto_max": 12,        # 何回まで読むか（際限なく回さないため）
+    "hud_auto_max": 24,        # 何回まで読むか（際限なく回さないため）
+    # 合わせ終わりの条件。合わせた直後はズレが小さくて当たり前なので、
+    # 「2回続けて小さい」だけでは速さが合った証拠にならない。
+    # 昼と夜をひととおりまたぐくらいの回数を最低ラインにする。
+    "hud_auto_least": 10,      # 最低これだけは読む
+    "hud_auto_need": 3,        # そのうえで、続けてこの回数ズレが小さいこと
     "hud_auto_tol": 30,        # ズレがこの秒数以内なら「合った」とみなす
     # 更新の見張り
     "update_check": True,      # 新しい版が出ていないか見に行くか
@@ -1374,6 +1379,8 @@ class App(tk.Tk):
         self.hud_on = False        # いま自動で合わせているか
         self.hud_left = 0          # あと何回読むか
         self.hud_good = 0          # 続けて「ズレ小さい」だった回数
+        self.hud_done = 0          # 読めた回数
+        self.hud_drifts = []       # 直近のズレ（画面に出す用）
         self.hud_fails = 0         # 続けて読めなかった回数
         self.hud_say = ""          # 画面に出す一言
         self.hud_reader = None
@@ -2138,9 +2145,13 @@ class App(tk.Tk):
         self.hud_on = bool(on)
         self.hud_good = 0
         self.hud_fails = 0
+        self.hud_done = 0
+        self.hud_drifts = []
         if on:
-            self.hud_left = max(1, int(self.cfg.get("hud_auto_max", 12)))
-            self.hud_say = "📷 はじめました。いちど読みます…"
+            least = int(self.cfg.get("hud_auto_least", 10))
+            self.hud_left = max(least, int(self.cfg.get("hud_auto_max", 24)))
+            self.hud_say = ("📷 はじめました（最低%d回 読みます）。1回目…"
+                            % least)
             if self.hud_reader is not None:
                 self.hud_reader.poke()
         else:
@@ -2176,6 +2187,7 @@ class App(tk.Tk):
                     self._hud_stop("⚠ 読めないまま回数ぶん終わりました")
                 continue
             self.hud_fails = 0
+            self.hud_done += 1
             # まず Day で当てる（サーバーごとに違うので一意に決まる）。
             # HUDの下の行は地域名なので、名前での照合は保険あつかい。
             name = (self.clocks.match_day(day)
@@ -2190,22 +2202,35 @@ class App(tk.Tk):
             # 合わせる前のズレ。これが小さいほど、もう合っている
             drift = c.drift_at(sec, at)
             tol = float(self.cfg.get("hud_auto_tol", 30) or 30)
+            least = int(self.cfg.get("hud_auto_least", 10))
+            need = int(self.cfg.get("hud_auto_need", 3))
             _ok, msg = c.resync(sec, at)
             self.save_clocks()
             label = gametime.map_label(name)
+            if drift is not None:
+                self.hud_drifts.append(int(abs(drift)))
+                del self.hud_drifts[:-4]
             if drift is not None and abs(drift) <= tol:
                 self.hud_good += 1
             else:
                 self.hud_good = 0
-            head = "📷 %s %s" % (label, gametime.fmt_game_time(sec))
-            if self.hud_good >= 2:
-                self._hud_stop("✅ %s ／ 2回続けてズレ%s以内。合いました"
-                               % (head, gametime.fmt_span(tol)))
+            head = "📷 %s %s ／ %d回目" % (label, gametime.fmt_game_time(sec),
+                                           self.hud_done)
+            near = ("直近のズレ %s"
+                    % "・".join(gametime.fmt_span(d) for d in self.hud_drifts)
+                    if self.hud_drifts else "")
+            # 合わせた直後はズレが小さくて当たり前なので、回数もそろえる
+            if self.hud_done >= least and self.hud_good >= need:
+                self._hud_stop("✅ %s ／ %d回読んで、%d回続けてズレ%s以内。"
+                               "合いました（昼%.1f分 夜%.1f分）"
+                               % (head, self.hud_done, need,
+                                  gametime.fmt_span(tol),
+                                  c.day_real / 60, c.night_real / 60))
             elif self.hud_left <= 0:
-                self._hud_stop("%s ／ 回数ぶん終わりました。%s" % (head, msg))
+                self._hud_stop("%s ／ 回数ぶん終わりました（%s）" % (head, near))
             else:
-                self.hud_say = "%s ／ %s（あと%d回）" % (head, msg,
-                                                        self.hud_left)
+                self.hud_say = "%s／最低%d回（あと%d回）／ %s" % (
+                    head, least, max(0, self.hud_left), near or msg[:28])
 
     def _watch_interval(self):
         """次まで何秒待つか。覚えている再起動の前後だけ短くする。
