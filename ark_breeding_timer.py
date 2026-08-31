@@ -45,7 +45,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.55.0"
+APP_VERSION = "1.56.0"
 
 
 def _res_dir():
@@ -95,6 +95,11 @@ DEFAULT_CONFIG = {
     # サーバーの知らせの音。空ならタイマーと同じ音を使う
     "sound_watch_down": "",    # 落ちたとき
     "sound_watch_up": "",      # 戻ったとき
+    # サーバーが落ちているあいだ、タイマーも止める。
+    # 落ちている間は孵化も成長も進まないので、進めてしまうと早く鳴る。
+    # 対象は 🔔 を付けたマップだけ（気にしているサーバーの意思表示なので）。
+    "pause_timers_on_down": True,
+    "default_map": "",         # タイマーを作るとき、最初に選んでおくマップ
     "prewarn_sec": 60,
     "auto_chain": True,
     # 操作
@@ -347,6 +352,47 @@ def calc_times(sp: dict, cfg: dict) -> dict:
     }
 
 
+# タイマーのマップ欄の値。空 = まだ決めていない（既定のマップを使う）、
+# NO_MAP = はっきり「なし」（サーバーが落ちても止めない）
+NO_MAP = "-"
+
+
+def map_choices(app):
+    """タイマーに選ばせるマップの一覧。見張っているものだけ出す。"""
+    out = [("", "既定のマップ"), (NO_MAP, "マップなし（止めない）")]
+    for name in app.clocks.order:
+        c = app.clocks.clocks.get(name)
+        if c is not None and c.address:
+            out.append((name, gametime.map_label(name)))
+    return out
+
+
+class MapPicker(ttk.Combobox):
+    """どのマップのタイマーかを選ぶプルダウン。
+
+    見張っているマップだけを並べる。既定では設定の「既定のマップ」が
+    選ばれた状態にしておく。
+    """
+
+    def __init__(self, master, app, value=None, **kw):
+        self.app = app
+        self.keys = []
+        super().__init__(master, state="readonly", style="Cute.TCombobox",
+                         width=20, font=app.F["ui"], **kw)
+        self.reload(value)
+
+    def reload(self, value=None):
+        pairs = map_choices(self.app)
+        self.keys = [k for k, _ in pairs]
+        self["values"] = [lbl for _k, lbl in pairs]
+        want = value if value is not None else ""
+        self.current(self.keys.index(want) if want in self.keys else 0)
+
+    def get_map(self):
+        i = self.current()
+        return self.keys[i] if 0 <= i < len(self.keys) else ""
+
+
 # ---------------------------------------------------------------- タイマー
 class BreedTimer:
     """1本のカウントダウン。end_ts(絶対時刻)で持つのでアプリを閉じても続く。"""
@@ -358,6 +404,8 @@ class BreedTimer:
         self.species = species
         self.total = float(total)
         self.end_ts = kw.get("end_ts") or (time.time() + self.total)
+        # どのマップの話か。落ちたときに、そのマップのタイマーだけ止める
+        self.map = kw.get("map", "")
         self.paused = kw.get("paused", False)
         self.pause_left = kw.get("pause_left", 0.0)
         self.done = kw.get("done", False)
@@ -426,7 +474,8 @@ class BreedTimer:
             self.pause_left = max(0.0, self.remaining())
             self.paused = True
 
-    FIELDS = ("id", "kind", "label", "species", "total", "end_ts", "paused",
+    FIELDS = ("id", "kind", "label", "species", "map", "total", "end_ts",
+              "paused",
               "pause_left", "done", "prewarned", "milestone_done", "milestone_frac",
               "milestone_text", "imp_index", "imp_count", "imp_per", "mature_end",
               "chain", "repeat", "repeat_count", "repeat_done", "repeat_every",
@@ -1386,6 +1435,9 @@ class App(tk.Tk):
         self.watch_msg = {}
         # 見張りスレッドからの知らせ置き場。Tk は本体の周期処理から触る
         self.watch_notices = []
+        # サーバーが落ちて自動で止めたタイマー。戻したときに、これだけ動かす
+        # （自分で止めていたタイマーを勝手に動かさないため）
+        self.paused_by_watch = set()
         # 画面読み取り。押したときだけ動かす（ずっと回すと重いので）
         self.hud_results = []      # 読む係が置いていく結果
         self.hud_on = False        # いま自動で合わせているか
@@ -1801,6 +1853,7 @@ class App(tk.Tk):
         self._afk_tick(now)
         self._macro_tick()
         self._hud_tick()
+        self.sync_timer_pause()
         self._update_tick(now)
         self._update_show()
         # 過ぎた定期再起動のぶんを差し引く（画面を開いていなくても効かせる）
@@ -2291,6 +2344,48 @@ class App(tk.Tk):
             else:
                 self.hud_say = "%s／最低%d回（あと%d回）／ %s" % (
                     head, least, max(0, self.hud_left), near or msg[:28])
+
+    # ---------------- 落ちているあいだタイマーを止める ----------------
+    def map_is_down(self, name):
+        """そのマップのサーバーが、いま落ちているか。"""
+        c = self.clocks.clocks.get(name or "")
+        return bool(c is not None and c.address and c.paused)
+
+    def timer_map(self, t):
+        """そのタイマーが見ているマップ。
+
+        空なら既定のマップを使う。はっきり「なし」を選んでいれば、
+        サーバーが落ちても止めない。
+        """
+        got = getattr(t, "map", "") or ""
+        if got == NO_MAP:
+            return ""
+        return got or self.cfg.get("default_map") or ""
+
+    def sync_timer_pause(self):
+        """サーバーが落ちているあいだ、そのマップのタイマーを止める。
+
+        止めるのは「そのタイマーのマップ」が落ちているときだけ。
+        マップを決めていないタイマーは、既定のマップを見る。
+        自分で止めたタイマーは触らない（こちらが止めたものだけ覚えておく）。
+        """
+        on = self.cfg.get("pause_timers_on_down", True)
+        changed = False
+        for t in list(self.timers):
+            name = self.timer_map(t)
+            want = bool(on and name and self.map_is_down(name))
+            if want and not t.paused and not t.done:
+                t.toggle_pause()
+                self.paused_by_watch.add(t.id)
+                changed = True
+            elif not want and t.id in self.paused_by_watch:
+                self.paused_by_watch.discard(t.id)
+                if t.paused:
+                    t.toggle_pause()
+                    changed = True
+        if changed:
+            self.save_timers()
+            self.rebuild_list()
 
     def _watch_interval(self):
         """次まで何秒待つか。覚えている再起動の前後だけ短くする。
@@ -3072,6 +3167,10 @@ class NewTimerDialog(tk.Toplevel):
                  anchor="w").pack(side="left", pady=4)
         self.f_sound = SoundPicker(row, self.app, value="", allow_default=True)
         self.f_sound.pack(side="left")
+        tk.Label(row, text="   マップ  ", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["cute"]).pack(side="left", pady=4)
+        self.f_map = MapPicker(row, self.app)
+        self.f_map.pack(side="left")
 
         self.f_repeat = RepeatPanel(f, self.app)
         self.f_repeat.pack(fill="x")
@@ -3165,6 +3264,7 @@ class NewTimerDialog(tk.Toplevel):
         t.repeat_count = count
         t.repeat_every = every
         t.sound = self.f_sound.get()
+        t.map = self.f_map.get_map()
         t.note = self.f_note.get().strip()
         self.app.add_timer(t)
         self.destroy()
@@ -3203,6 +3303,11 @@ class NewTimerDialog(tk.Toplevel):
         self.var_label = tk.StringVar()
         th.soft_entry(right, self.var_label, font=F["cute"]).pack(fill="x", ipady=5,
                                                                  pady=(2, 12))
+
+        tk.Label(right, text="どのマップ？", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(anchor="w")
+        self.var_map = MapPicker(right, self.app)
+        self.var_map.pack(fill="x", pady=(2, 12))
 
         tk.Label(right, text="つくるタイマー", bg=th.CARD, fg=th.INK_SUB,
                  font=F["small"]).pack(anchor="w")
@@ -3603,7 +3708,9 @@ class NewTimerDialog(tk.Toplevel):
         if not made:
             self._warn(self.ark_err, "この恐竜にはそのタイマーがありません")
             return
+        picked = self.var_map.get_map()
         for t in made:
+            t.map = picked          # 作った全部を同じマップのものにする
             self.app.timers.append(t)
         self.app.rebuild_list()
         self.app.save_timers()
@@ -4029,6 +4136,20 @@ class SettingsDialog(tk.Toplevel):
 
         tk.Label(f, text="消すとき", bg=th.CARD, fg=th.INK,
                  font=F["cute_b"]).pack(anchor="w")
+        tk.Label(f, text="タイマーの既定のマップ", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w", pady=(0, 2))
+        tk.Label(f, text="タイマーを作るとき、最初に選んでおくマップです。"
+                         "そのサーバーが落ちているあいだ、タイマーも止まります",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=540,
+                 justify="left").pack(anchor="w")
+        self.pick_map = MapPicker(f, self.app,
+                                  value=cfg.get("default_map", ""))
+        self.pick_map.pack(anchor="w", pady=(4, 12))
+        self.v_pause_down = tk.BooleanVar(
+            value=bool(cfg.get("pause_timers_on_down", True)))
+        self._check(f, "サーバーが落ちているあいだタイマーも止める",
+                    self.v_pause_down).pack(anchor="w", pady=(0, 10))
+
         self.v_confirm = tk.BooleanVar(
             value=bool(self.app.cfg.get("confirm_delete", True)))
         self._check(f, "✕ を押したとき「消しますか？」と確認する",
@@ -4142,6 +4263,8 @@ class SettingsDialog(tk.Toplevel):
         c = self.app.cfg
         c["quick_buttons"] = quick
         c["confirm_delete"] = bool(self.v_confirm.get())
+        c["default_map"] = self.pick_map.get_map()
+        c["pause_timers_on_down"] = bool(self.v_pause_down.get())
         c["auto_clear_done"] = bool(self.v_autoclear.get())
         c["gestation_uses_hatch_mult"] = bool(self.v_gest.get())
         c["sound"] = bool(self.v_sound.get())
