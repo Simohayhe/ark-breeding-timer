@@ -203,11 +203,18 @@ class MacroPage(tk.Frame):
 
         r1 = tk.Frame(e, bg=th.CARD)
         r1.pack(fill="x")
-        self.btn_learn = th.RoundButton(r1, "① おぼえる（1回やって見せる）",
-                                        self.learn_egg, kind="primary",
-                                        bg=th.CARD, font=F["small"], padx=14,
-                                        pady=6, width=260)
+        self.btn_learn = th.RoundButton(r1, "① 孵化をおぼえる",
+                                        lambda: self.learn_egg("hatch"),
+                                        kind="primary", bg=th.CARD,
+                                        font=F["small"], padx=14, pady=6,
+                                        width=180)
         self.btn_learn.pack(side="left")
+        self.btn_learn_kill = th.RoundButton(r1, "① 破壊をおぼえる",
+                                             lambda: self.learn_egg("destroy"),
+                                             kind="danger", bg=th.CARD,
+                                             font=F["small"], padx=14, pady=6,
+                                             width=180)
+        self.btn_learn_kill.pack(side="left", padx=6)
         self.lbl_learn = tk.Label(r1, text="", bg=th.CARD, fg=th.INK_SUB,
                                   font=F["small"], anchor="w", justify="left")
         self.lbl_learn.pack(side="left", padx=8)
@@ -234,20 +241,43 @@ class MacroPage(tk.Frame):
 
         r3 = tk.Frame(e, bg=th.CARD)
         r3.pack(fill="x", pady=(8, 0))
-        self.btn_egg = th.RoundButton(r3, "▶ はじめる", self.toggle_egg,
+        self.btn_egg = th.RoundButton(r3, "▶ 孵化をはじめる",
+                                      lambda: self.toggle_egg("hatch"),
                                       kind="mint", bg=th.CARD, font=F["small"],
-                                      padx=16, pady=6, width=170)
+                                      padx=14, pady=6, width=180)
         self.btn_egg.pack(side="left")
         self.btn_ehk = th.RoundButton(r3, "", self.capture_egg_hotkey,
                                       kind="soft", bg=th.CARD, font=F["small"],
-                                      padx=12, pady=5, width=190)
-        self.btn_ehk.pack(side="left", padx=8)
+                                      padx=12, pady=5, width=150)
+        self.btn_ehk.pack(side="left", padx=6)
         self.v_ehk_on = tk.BooleanVar(value=bool(cfg.get("egg_hotkey_on", True)))
         tk.Checkbutton(r3, text="使う", variable=self.v_ehk_on,
                        command=self.save_egg_hotkey, bg=th.CARD, fg=th.INK,
                        activebackground=th.CARD, activeforeground=th.INK,
                        selectcolor=th.FIELD, font=F["cute"], bd=0,
                        highlightthickness=0).pack(side="left")
+
+        r4 = tk.Frame(e, bg=th.CARD)
+        r4.pack(fill="x", pady=(6, 0))
+        self.btn_kill = th.RoundButton(r4, "▶ 破壊をはじめる",
+                                       lambda: self.toggle_egg("destroy"),
+                                       kind="danger", bg=th.CARD,
+                                       font=F["small"], padx=14, pady=6,
+                                       width=180)
+        self.btn_kill.pack(side="left")
+        self.btn_khk = th.RoundButton(r4, "", self.capture_kill_hotkey,
+                                      kind="soft", bg=th.CARD, font=F["small"],
+                                      padx=12, pady=5, width=150)
+        self.btn_khk.pack(side="left", padx=6)
+        self.v_khk_on = tk.BooleanVar(
+            value=bool(cfg.get("egg_kill_hotkey_on", True)))
+        tk.Checkbutton(r4, text="使う", variable=self.v_khk_on,
+                       command=self.save_egg_hotkey, bg=th.CARD, fg=th.INK,
+                       activebackground=th.CARD, activeforeground=th.INK,
+                       selectcolor=th.FIELD, font=F["cute"], bd=0,
+                       highlightthickness=0).pack(side="left")
+        tk.Label(r4, text="  ⚠ 破壊は戻せません。位置をよく確かめてから",
+                 bg=th.CARD, fg=th.PINK_DK, font=F["small"]).pack(side="left")
         self.lbl_egg = tk.Label(e, text="", bg=th.CARD, fg=th.INK_SUB,
                                 font=F["small"], anchor="w", justify="left",
                                 wraplength=760)
@@ -326,7 +356,7 @@ class MacroPage(tk.Frame):
             return
         self._capturing = what
         btn = {"key": self.btn_key, "hotkey": self.btn_hotkey,
-               "egg_hotkey": self.btn_ehk}[what]
+               "egg_hotkey": self.btn_ehk, "kill_hotkey": self.btn_khk}[what]
         btn.set_text("キーを押してください…（Escでやめる）")
         top = self.winfo_toplevel()
         # Alt の組み合わせは Windows がシステムキー扱いにするので、
@@ -370,9 +400,11 @@ class MacroPage(tk.Frame):
             mods = macro.mods_now()
             if not mods:
                 mods = macro.MOD_CONTROL   # 修飾なしは事故のもとなので Ctrl を足す
-            if what == "egg_hotkey":
-                self.app.cfg["egg_hotkey_mods"] = mods
-                self.app.cfg["egg_hotkey_vk"] = vk
+            if what in ("egg_hotkey", "kill_hotkey"):
+                head = "egg_kill_hotkey" if what == "kill_hotkey" \
+                    else "egg_hotkey"
+                self.app.cfg[head + "_mods"] = mods
+                self.app.cfg[head + "_vk"] = vk
                 self.app.save_cfg()
                 self.app.apply_egg_hotkey()
             else:
@@ -395,30 +427,48 @@ class MacroPage(tk.Frame):
     def update_egg_view(self):
         """たまごマクロの見た目を今の状態に合わせる。"""
         c = self.app.cfg
-        learned = bool(c.get("egg_pos") and c.get("egg_act_pos"))
+        egg = c.get("egg_pos")
+        hatch, kill = c.get("egg_act_pos"), c.get("egg_kill_pos")
         if self.app.egg_rec is None:
-            if learned:
+            bits = []
+            if egg and hatch:
+                bits.append("孵化 → (%d, %d)" % (hatch[0], hatch[1]))
+            if egg and kill:
+                bits.append("破壊 → (%d, %d)" % (kill[0], kill[1]))
+            if bits:
                 self.lbl_learn.config(
-                    text="✅ たまご(%d, %d) → ボタン(%d, %d)"
-                         % (c["egg_pos"][0], c["egg_pos"][1],
-                            c["egg_act_pos"][0], c["egg_act_pos"][1]),
+                    text="✅ たまご(%d, %d) ／ %s" % (egg[0], egg[1],
+                                                     "／ ".join(bits)),
                     fg=th.MINT)
-                self.btn_learn.set_text("① おぼえなおす")
             else:
                 self.lbl_learn.config(text="まだ覚えていません", fg=th.INK_SUB)
+            self.btn_learn.set_text("① 孵化をおぼえ%s"
+                                    % ("なおす" if (egg and hatch) else "る"))
+            self.btn_learn_kill.set_text("① 破壊をおぼえ%s"
+                                         % ("なおす" if (egg and kill) else "る"))
         name = macro.hotkey_name(c.get("egg_hotkey_mods", macro.MOD_CONTROL),
                                  c.get("egg_hotkey_vk", 0x45))
+        kname = macro.hotkey_name(
+            c.get("egg_kill_hotkey_mods", macro.MOD_CONTROL),
+            c.get("egg_kill_hotkey_vk", 0x4C))
         if self._capturing != "egg_hotkey":
             self.btn_ehk.set_text(name)
+        if self._capturing != "kill_hotkey":
+            self.btn_khk.set_text(kname)
         running = self.app.egg_running()
-        self.btn_egg.set_text("■ とめる" if running else "▶ はじめる")
+        mode = self.app.egg_mode
+        self.btn_egg.set_text("■ とめる" if (running and mode == "hatch")
+                              else "▶ 孵化をはじめる")
+        self.btn_kill.set_text("■ とめる" if (running and mode == "destroy")
+                               else "▶ 破壊をはじめる")
         slots = c.get("egg_slots", macro.MAX_EGGS)
         r = self.app.egg
         if running:
+            what = "破壊" if mode == "destroy" else "孵化"
             if r is not None and r.waiting:
-                txt = "待っています（%s）" % (c.get("macro_target") or "対象")
+                txt = "%s待ち（%s）" % (what, c.get("macro_target") or "対象")
             else:
-                txt = "うごいています — %d / %d 個" % (r.count if r else 0, slots)
+                txt = "%s中 — %d / %d 個" % (what, r.count if r else 0, slots)
             self.lbl_egg.config(text=txt, fg=th.MINT)
         elif self.app._egg_hotkey_err:
             self.lbl_egg.config(text="⚠ %s が使えません（%s）。別の組み合わせに"
@@ -431,8 +481,9 @@ class MacroPage(tk.Frame):
         else:
             mode = macro.send_mode_label(c.get("macro_send_mode")
                                          or macro.DEFAULT_SEND_MODE)
-            self.lbl_egg.config(text="%d個ぶん、%s で入切できます ／ 送り方: %s"
-                                     % (slots, name, mode), fg=th.INK_SUB)
+            self.lbl_egg.config(
+                text="%d個ぶん ／ 孵化 %s・破壊 %s で入切 ／ 送り方: %s"
+                     % (slots, name, kname, mode), fg=th.INK_SUB)
 
     def save_rcancel(self):
         self.app.cfg["macro_cancel_rclick"] = bool(self.v_rcancel.get())
@@ -449,22 +500,24 @@ class MacroPage(tk.Frame):
         self.app.save_cfg()
         self.update_view()
 
-    def learn_egg(self):
+    def learn_egg(self, mode="hatch"):
         """次の2クリックを覚える。ゲーム画面で実際にやってもらう。"""
         if self.app.egg_rec is not None and self.app.egg_rec.is_alive():
             self.app.egg_rec.stop()
             self.app.egg_rec = None
-            self.btn_learn.set_text("① おぼえる（1回やって見せる）")
             self.lbl_learn.config(text="やめました", fg=th.INK_SUB)
+            self.update_view()
             return
-        self.app.cfg["egg_pos"] = None
-        self.app.cfg["egg_act_pos"] = None
+        self._learn_mode = mode
+        self.app.cfg[self.app.egg_act_key(mode)] = None
         rec = macro.ClickRecorder(2)
         self.app.egg_rec = rec
         rec.start()
-        self.btn_learn.set_text("やめる")
+        what = "壊す" if mode == "destroy" else "孵す"
+        (self.btn_learn_kill if mode == "destroy"
+         else self.btn_learn).set_text("やめる")
         self.lbl_learn.config(text="ARKへ行って、たまごを1つクリック → "
-                                  "「壊す」か「孵す」をクリックしてください",
+                                  "「%s」をクリックしてください" % what,
                               fg=th.INK)
         self._poll_learn()
 
@@ -474,36 +527,45 @@ class MacroPage(tk.Frame):
         if rec is None:
             return
         n = len(rec.points)
+        mode = getattr(self, "_learn_mode", "hatch")
         if rec.done and n >= 2:
             self.app.cfg["egg_pos"] = list(rec.points[0])
-            self.app.cfg["egg_act_pos"] = list(rec.points[1])
+            self.app.cfg[self.app.egg_act_key(mode)] = list(rec.points[1])
             self.app.save_cfg()
             self.app.egg_rec = None
-            self.btn_learn.set_text("① おぼえなおす")
-            self.lbl_learn.config(text="✅ 覚えました", fg=th.MINT)
+            self.lbl_learn.config(
+                text="✅ %s を覚えました" % ("破壊" if mode == "destroy"
+                                             else "孵化"), fg=th.MINT)
             self.update_view()
             return
         if not rec.is_alive():
             self.app.egg_rec = None
-            self.btn_learn.set_text("① おぼえる（1回やって見せる）")
+            self.update_view()
             return
         self.lbl_learn.config(
             text=("たまごをクリックしてください（あと2回）" if n == 0 else
-                  "つぎに「壊す」か「孵す」をクリック（あと1回）"), fg=th.INK)
+                  "つぎに「%s」をクリック（あと1回）"
+                  % ("壊す" if mode == "destroy" else "孵す")), fg=th.INK)
         self.after(120, self._poll_learn)
 
-    def toggle_egg(self):
+    def toggle_egg(self, mode="hatch"):
         c = self.app.cfg
-        if not (c.get("egg_pos") and c.get("egg_act_pos")):
-            self.lbl_egg.config(text="⚠ さきに「① おぼえる」で2か所を覚えさせて"
-                                     "ください", fg=th.PINK_DK)
+        if not (c.get("egg_pos") and c.get(self.app.egg_act_key(mode))):
+            self.lbl_egg.config(
+                text="⚠ さきに「① %sをおぼえる」で2か所を覚えさせてください"
+                     % ("破壊" if mode == "destroy" else "孵化"),
+                fg=th.PINK_DK)
             return
         self.save_egg()
-        self.app.toggle_egg()
+        self.app.toggle_egg(mode)
         self.update_view()
+
+    def capture_kill_hotkey(self):
+        self._capture("kill_hotkey")
 
     def save_egg_hotkey(self):
         self.app.cfg["egg_hotkey_on"] = bool(self.v_ehk_on.get())
+        self.app.cfg["egg_kill_hotkey_on"] = bool(self.v_khk_on.get())
         self.app.save_cfg()
         self.app.apply_egg_hotkey()
         self.update_view()
