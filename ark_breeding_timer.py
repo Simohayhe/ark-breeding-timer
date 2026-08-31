@@ -45,7 +45,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.54.0"
+APP_VERSION = "1.55.0"
 
 
 def _res_dir():
@@ -92,6 +92,9 @@ DEFAULT_CONFIG = {
     "popup_close_prewarn": 8,
     "popup_close_done": 0,
     "watch_popup_close": 10,   # サーバーの知らせが自分で消えるまで（秒）
+    # サーバーの知らせの音。空ならタイマーと同じ音を使う
+    "sound_watch_down": "",    # 落ちたとき
+    "sound_watch_up": "",      # 戻ったとき
     "prewarn_sec": 60,
     "auto_chain": True,
     # 操作
@@ -1755,10 +1758,14 @@ class App(tk.Tk):
         now = time.time()
         # 見張りスレッドが積んだ知らせを、ここ（本体側）で鳴らす
         while self.watch_notices:
-            title, body, urgent = self.watch_notices.pop(0)
+            title, body, urgent, kind = self.watch_notices.pop(0)
+            # 専用の音があればそれを鳴らす。空ならタイマーと同じ音になる
+            spec = self.cfg.get("sound_watch_down" if kind == "down"
+                                else "sound_watch_up") or None
             # サーバーの知らせは放っておくと溜まるので、自分から消えるようにする。
             # 鳴らし続けるのも（落ちるたびに止めに行くことになるので）しない。
-            self.notifier.fire(title, body, urgent=urgent, repeat=False,
+            self.notifier.fire(title, body, urgent=urgent, sound_spec=spec,
+                               repeat=False,
                                auto_close=self.cfg.get("watch_popup_close", 10))
         changed = False
         for t in list(self.timers):
@@ -2320,7 +2327,7 @@ class App(tk.Tk):
             if c.notify:
                 self.watch_notices.append(
                     ("⚠ %s が落ちました" % gametime.map_label(name),
-                     "時計を止めました", True))
+                     "時計を止めました", True, "down"))
         elif kind == "up":
             gap = c.resume(value)
             self.watch_msg[name] = ("戻ったので時計を動かします（%d分ぶん止めました）"
@@ -2330,7 +2337,7 @@ class App(tk.Tk):
                 self.watch_notices.append(
                     ("✅ %s が戻りました" % gametime.map_label(name),
                      ("%d分ほど落ちていました" % round(gap / 60)) if gap >= 60
-                     else "また動いています", False))
+                     else "また動いています", False, "up"))
         elif kind == "hold":
             c.hold(value)          # 定期再起動ぶんの差し引き
         elif kind == "day":
@@ -3897,6 +3904,18 @@ class SettingsDialog(tk.Toplevel):
                  font=F["cute_b"]).pack(anchor="w")
         self.pick_pre = SoundPicker(f, self.app, value=cfg.get("sound_prewarn", ""))
         self.pick_pre.pack(anchor="w", pady=(4, 4))
+        tk.Label(f, text="サーバーが落ちたときの音", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w", pady=(10, 0))
+        self.pick_down = SoundPicker(f, self.app,
+                                     value=cfg.get("sound_watch_down", ""),
+                                     allow_default=True)
+        self.pick_down.pack(anchor="w", pady=(4, 6))
+        tk.Label(f, text="サーバーが戻ったときの音", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w")
+        self.pick_up = SoundPicker(f, self.app,
+                                   value=cfg.get("sound_watch_up", ""),
+                                   allow_default=True)
+        self.pick_up.pack(anchor="w", pady=(4, 4))
         tk.Label(f, text="mp3 / wav / m4a などを「🎵 ファイル」から選べます",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
                                                                   pady=(0, 14))
@@ -4134,6 +4153,9 @@ class SettingsDialog(tk.Toplevel):
         c["volume"] = self.vol
         c["sound_done"] = self.pick_done.get() or snd.DEFAULT_DONE
         c["sound_prewarn"] = self.pick_pre.get() or snd.DEFAULT_PREWARN
+        # 空のままなら、タイマーと同じ音を使う（既定にもどす）
+        c["sound_watch_down"] = self.pick_down.get() or ""
+        c["sound_watch_up"] = self.pick_up.get() or ""
         changed = self.v_theme.get() != c.get("theme", "cute")
         c["theme"] = self.v_theme.get()
         self.app.save_cfg()
