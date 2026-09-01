@@ -45,7 +45,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.58.0"
+APP_VERSION = "1.59.0"
 
 
 def _res_dir():
@@ -91,6 +91,8 @@ DEFAULT_CONFIG = {
     # ポップアップが自分で消えるまでの秒数（0 = 「とめる」を押すまで消えない）
     "popup_close_prewarn": 8,
     "popup_close_done": 0,
+    "snooze_button": True,     # 通知に「完了 / 保留」を出す
+    "snooze_sec": 180,         # 「保留」を押したとき、もう一度知らせるまでの秒
     "blip": True,              # 切り替えたときに一瞬だけ出る小さな知らせ
     "blip_sec": 1.4,           # それが消えるまでの秒
     "watch_popup_close": 10,   # サーバーの知らせが自分で消えるまで（秒）
@@ -138,6 +140,7 @@ DEFAULT_CONFIG = {
     "macro_hold_ms": 20,
     "macro_limit": 0,                  # 0 = ずっと
     "macro_send_mode": macro.DEFAULT_SEND_MODE,  # input / post / swap
+    "macro_hold_delay_ms": 300,        # 何ミリ秒押しつづけたら連射しはじめるか
     "macro2_hotkey_on": True,          # ずっと連射のほう
     "macro2_hotkey_mods": macro.MOD_CONTROL,
     "macro2_hotkey_vk": 0x54,          # T
@@ -409,6 +412,8 @@ class BreedTimer:
         self.species = species
         self.total = float(total)
         self.end_ts = kw.get("end_ts") or (time.time() + self.total)
+        # 「保留」を押した回数。何度も先送りしたのが分かるように残す
+        self.snoozed = kw.get("snoozed", 0)
         # どのマップの話か。落ちたときに、そのマップのタイマーだけ止める
         self.map = kw.get("map", "")
         self.paused = kw.get("paused", False)
@@ -479,8 +484,8 @@ class BreedTimer:
             self.pause_left = max(0.0, self.remaining())
             self.paused = True
 
-    FIELDS = ("id", "kind", "label", "species", "map", "total", "end_ts",
-              "paused",
+    FIELDS = ("id", "kind", "label", "species", "map", "snoozed", "total",
+              "end_ts", "paused",
               "pause_left", "done", "prewarned", "milestone_done", "milestone_frac",
               "milestone_text", "imp_index", "imp_count", "imp_per", "mature_end",
               "chain", "repeat", "repeat_count", "repeat_done", "repeat_every",
@@ -503,8 +508,11 @@ class Notifier:
         self.app = app
 
     def fire(self, title, body, urgent=True, sound_spec=None, timer=None,
-             auto_close=None, repeat=None):
-        """timer を渡すと、そのタイマー個別の音量・音の有無・中央表示に従う。"""
+             auto_close=None, repeat=None, snooze=None):
+        """timer を渡すと、そのタイマー個別の音量・音の有無・中央表示に従う。
+
+        snooze にタイマーを渡すと、通知に「完了 / 保留」が出る。
+        """
         cfg = self.app.cfg
         vol = cfg.get("volume", 0.7)
         sound_on = bool(cfg.get("sound"))
@@ -522,7 +530,8 @@ class Notifier:
         if cfg.get("popup"):
             self.app.show_popup(title, body, urgent, sound_spec,
                                 center=center, volume=vol, sound_on=sound_on,
-                                auto_close=auto_close, repeat=repeat)
+                                auto_close=auto_close, repeat=repeat,
+                                snooze=snooze)
         self.app.flash_taskbar()
 
     def _toast(self, title, body):
@@ -1895,6 +1904,13 @@ class App(tk.Tk):
             "send_mode": c.get("macro_send_mode") or macro.DEFAULT_SEND_MODE,
         }
 
+    def hold_delay(self):
+        """何秒押しつづけたら連射しはじめるか。"""
+        try:
+            return max(0.0, float(self.cfg.get("macro_hold_delay_ms", 300)) / 1000.0)
+        except (TypeError, ValueError):
+            return 0.3
+
     def macro_mode(self):
         """いま動いている（または最後に動かした）出しかた。"""
         return self.macro_kind
@@ -1924,7 +1940,8 @@ class App(tk.Tk):
             if not w.ok:
                 return   # フックを掛けられないので構えない
             self.hold_watch = w
-            gate = lambda: w.held
+            # ちょっと押しただけでは撃たない。ふつうのクリックと分けるため
+            gate = lambda: w.held_for() >= self.hold_delay()
         self.macro_kind = mode
         self.macro = macro.Runner(self._macro_cfg, gate=gate)
         self.macro.start()
@@ -2168,13 +2185,17 @@ class App(tk.Tk):
                 "💗 刷り込みの時間! — %s" % t.label,
                 "%s  %d/%d回目 (+%.1f%%)" % (t.species, t.imp_index + 1,
                                              t.imp_count, t.imp_per),
-                sound_spec=t.sound or None, timer=t)
+                sound_spec=t.sound or None, timer=t,
+                snooze=t if self.cfg.get("snooze_button", True) else None)
             return
         msg = {"hatch": "🥚 卵が孵りました", "gestation": "🌸 出産の時間です",
                "mature": "🌱 成長が完了しました", "matingcd": "💞 再交配できます",
                "custom": "⏰ 時間になりました"}.get(t.kind, "時間になりました")
+        # くり返しタイマーは、この後すぐ次の待ち時間に入るので保留は出さない
+        can_snooze = (self.cfg.get("snooze_button", True) and not t.repeat)
         self.notifier.fire("%s — %s" % (msg, t.label), t.species or t.note or "",
-                           sound_spec=t.sound or None, timer=t)
+                           sound_spec=t.sound or None, timer=t,
+                           snooze=t if can_snooze else None)
         if t.chain and self.cfg.get("auto_chain"):
             self._spawn_chain(t)
         if t.repeat:
@@ -2527,6 +2548,32 @@ class App(tk.Tk):
         self.add_timer(t)
         return t
 
+    def snooze_sec(self):
+        try:
+            return max(10, int(float(self.cfg.get("snooze_sec") or 180)))
+        except (TypeError, ValueError):
+            return 180
+
+    def snooze_timer(self, t: BreedTimer):
+        """「保留」。少ししたらもう一度知らせる。
+
+        終わったことにせず、待ち時間を入れ直す。一覧にも残り時間が出るので、
+        あとどれくらいで鳴り直すかが見える。
+        """
+        if t is None or t not in self.timers:
+            return                      # もう消されている
+        wait = self.snooze_sec()
+        t.snoozed += 1
+        t.done = False
+        t.paused = False
+        t.prewarned = True              # すぐ「もうすぐ」が鳴るのを防ぐ
+        t.end_ts = time.time() + wait
+        t.note = "保留中（%s後にもう一度）" % fmt_dur(wait)
+        self.paused_by_watch.discard(t.id)
+        self.rebuild_list()
+        self.save_timers()
+        self.blip("⏳ %s … %s後にもう一度" % (t.label, fmt_dur(wait)), "sub")
+
     def imprint_next(self, t: BreedTimer):
         t.imp_index += 1
         if t.imp_index >= t.imp_count:
@@ -2559,9 +2606,13 @@ class App(tk.Tk):
 
     def show_popup(self, title, body, urgent=True, sound_spec=None,
                    center=False, volume=None, sound_on=True,
-                   auto_close=None, repeat=None):
+                   auto_close=None, repeat=None, snooze=None):
         """auto_close に秒を渡すと、設定より優先してその秒数で自分から消える。
-        repeat=False なら「とめる」を押すまで鳴らし続けるのをやめる。"""
+        repeat=False なら「とめる」を押すまで鳴らし続けるのをやめる。
+
+        snooze にタイマーを渡すと「完了 / 保留」の2つが出る。ほうっておいて
+        自分から閉じたときは完了あつかい（＝そのまま終わり）。
+        """
         if self.popup is not None and self.popup.winfo_exists():
             self.popup.destroy()
         p = tk.Toplevel(self)
@@ -2589,8 +2640,20 @@ class App(tk.Tk):
         tk.Label(b, text=datetime.now().strftime("%H:%M:%S"), bg=th.CARD,
                  fg=th.INK_SUB, font=self.F["small"], anchor="w").pack(fill="x",
                                                                       pady=(8, 10))
-        th.RoundButton(b, "とめる", lambda: self._close_popup(p), kind="primary",
-                       bg=th.CARD, font=self.F["cute"]).pack()
+        brow = tk.Frame(b, bg=th.CARD)
+        brow.pack()
+        if snooze is not None:
+            th.RoundButton(brow, "✅ 完了", lambda: self._close_popup(p),
+                           kind="primary", bg=th.CARD,
+                           font=self.F["cute"], padx=20).pack(side="left")
+            th.RoundButton(brow, "⏳ 保留（%s後）" % fmt_dur(self.snooze_sec()),
+                           lambda: self._snooze_popup(p, snooze), kind="soft",
+                           bg=th.CARD, font=self.F["cute"],
+                           padx=20).pack(side="left", padx=8)
+        else:
+            th.RoundButton(brow, "とめる", lambda: self._close_popup(p),
+                           kind="primary", bg=th.CARD,
+                           font=self.F["cute"]).pack()
 
         # 自分から消えるまでの残りを細いバーで見せる（0秒設定なら出さない）
         if auto_close is None:
@@ -2634,6 +2697,11 @@ class App(tk.Tk):
             vol = self.cfg.get("volume", 0.7) if volume is None else volume
             snd.play_async(sound_spec or self.cfg["sound_done"], vol, SOUND_CACHE)
         p.after(6000, lambda: self._repeat_alarm(p, sound_spec, n + 1, volume))
+
+    def _snooze_popup(self, p, t):
+        """「保留」を押した。閉じて、少ししたらまた知らせる。"""
+        self._close_popup(p)
+        self.snooze_timer(t)
 
     def _close_popup(self, p):
         self.alarm_on = False
@@ -4206,6 +4274,7 @@ class SettingsDialog(tk.Toplevel):
     # ------------------------------------------------ タイマーの設定
     def _build_timer(self, f):
         F = self.F
+        cfg = self.app.cfg
         tk.Label(f, text="さくっとボタン", bg=th.CARD, fg=th.INK,
                  font=F["cute_b"]).pack(anchor="w")
         tk.Label(f, text="ワンクリックでタイマーを作るボタンです。"
@@ -4264,8 +4333,6 @@ class SettingsDialog(tk.Toplevel):
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"],
                  wraplength=520, justify="left").pack(anchor="w", pady=(2, 12))
 
-        tk.Label(f, text="消すとき", bg=th.CARD, fg=th.INK,
-                 font=F["cute_b"]).pack(anchor="w")
         tk.Label(f, text="タイマーの既定のマップ", bg=th.CARD, fg=th.INK,
                  font=F["cute_b"]).pack(anchor="w", pady=(0, 2))
         tk.Label(f, text="タイマーを作るとき、最初に選んでおくマップです。"
@@ -4280,6 +4347,25 @@ class SettingsDialog(tk.Toplevel):
         self._check(f, "サーバーが落ちているあいだタイマーも止める",
                     self.v_pause_down).pack(anchor="w", pady=(0, 10))
 
+        self.v_snooze = tk.BooleanVar(value=bool(cfg.get("snooze_button", True)))
+        self._check(f, "鳴ったときの知らせに「完了 / 保留」を出す",
+                    self.v_snooze).pack(anchor="w")
+        srow = tk.Frame(f, bg=th.CARD)
+        srow.pack(anchor="w", pady=(2, 0))
+        tk.Label(srow, text="「保留」を押したら", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left")
+        self.v_snooze_min = tk.StringVar(
+            value="%g" % (float(cfg.get("snooze_sec") or 180) / 60.0))
+        th.soft_entry(srow, self.v_snooze_min, width=5).pack(side="left", padx=4,
+                                                             ipady=3)
+        tk.Label(srow, text="分後にもう一度知らせる", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left")
+        tk.Label(f, text="ほうっておいて知らせが自分から消えたときは、完了あつかいです",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
+                                                                  pady=(0, 10))
+
+        tk.Label(f, text="消すとき", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w")
         self.v_confirm = tk.BooleanVar(
             value=bool(self.app.cfg.get("confirm_delete", True)))
         self._check(f, "✕ を押したとき「消しますか？」と確認する",
@@ -4395,6 +4481,11 @@ class SettingsDialog(tk.Toplevel):
         c["confirm_delete"] = bool(self.v_confirm.get())
         c["default_map"] = self.pick_map.get_map()
         c["pause_timers_on_down"] = bool(self.v_pause_down.get())
+        c["snooze_button"] = bool(self.v_snooze.get())
+        try:
+            c["snooze_sec"] = max(10, int(float(self.v_snooze_min.get()) * 60))
+        except (TypeError, ValueError):
+            pass                    # 数字でなければ前のままにしておく
         c["auto_clear_done"] = bool(self.v_autoclear.get())
         c["gestation_uses_hatch_mult"] = bool(self.v_gest.get())
         c["sound"] = bool(self.v_sound.get())

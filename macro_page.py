@@ -68,7 +68,16 @@ class MacroPage(tk.Frame):
         self.lbl_mode = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
                                  font=F["small"], wraplength=760,
                                  justify="left")
-        self.lbl_mode.pack(anchor="w", pady=(2, 0))
+        self.lbl_mode.pack(anchor="w", pady=(2, 4))
+        drow = tk.Frame(c, bg=th.CARD)
+        drow.pack(fill="x", pady=(0, 10))
+        tk.Label(drow, text="長押しと見なすまで", bg=th.CARD, fg=th.INK,
+                 font=F["cute"], width=14, anchor="w").pack(side="left")
+        self.v_delay = tk.StringVar(
+            value="%g" % (float(cfg.get("macro_hold_delay_ms", 300)) / 1000.0))
+        th.soft_entry(drow, self.v_delay, width=7).pack(side="left", ipady=3)
+        tk.Label(drow, text=" 秒（これより短く押したら、ただのクリック）",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(side="left")
         self.v_blip = tk.BooleanVar(value=bool(cfg.get("blip", True)))
         tk.Checkbutton(c, text="入切したとき、画面の上に一瞬だけ出す",
                        variable=self.v_blip, command=self.save_blip,
@@ -354,6 +363,11 @@ class MacroPage(tk.Frame):
         c["macro_action"] = self.action_name()
         c["macro_interval_ms"] = self._int(self.v_interval, 100, 1, 600000)
         c["macro_hold_ms"] = self._int(self.v_hold, 20, 0, 5000)
+        try:
+            c["macro_hold_delay_ms"] = max(0, min(
+                5000, int(float(self.v_delay.get()) * 1000)))
+        except (TypeError, ValueError):
+            pass                    # 数字でなければ前のままにしておく
         c["macro_limit"] = self._int(self.v_limit, 0, 0, 1000000)
         c["macro_target"] = self.v_target.get().strip()
         c["macro_only_target"] = bool(self.v_only.get())

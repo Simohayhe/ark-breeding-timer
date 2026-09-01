@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import ctypes
 import threading
+import time
 from ctypes import wintypes
 
 import afk
@@ -492,6 +493,7 @@ class HoldWatch(threading.Thread):
         super().__init__(daemon=True)
         self.button = button
         self.guard = guard
+        self.since = 0.0           # 押しはじめた時刻（離すと0）
         self.down = (WM_LBUTTONDOWN_LL if button == "left"
                      else WM_RBUTTONDOWN_LL)
         self.up = WM_LBUTTONUP_LL if button == "left" else WM_RBUTTONUP_LL
@@ -507,8 +509,10 @@ class HoldWatch(threading.Thread):
             if code >= 0 and not (lparam.contents.flags & LLMHF_INJECTED):
                 if wparam == self.down:
                     self.held = bool(self.guard is None or self.guard())
+                    self.since = time.time() if self.held else 0.0
                 elif wparam == self.up:
                     self.held = False
+                    self.since = 0.0
         except Exception:
             pass
         return user32.CallNextHookEx(None, code, wparam, lparam)
@@ -527,8 +531,13 @@ class HoldWatch(threading.Thread):
         user32.UnhookWindowsHookEx(self._hook)
         self._hook = None
 
+    def held_for(self):
+        """押しつづけている秒数。離していれば 0。"""
+        return (time.time() - self.since) if (self.held and self.since) else 0.0
+
     def stop(self):
         self.held = False
+        self.since = 0.0
         if self._tid:
             user32.PostThreadMessageW(self._tid, WM_QUIT, 0, 0)
 
