@@ -45,7 +45,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.56.1"
+APP_VERSION = "1.57.0"
 
 
 def _res_dir():
@@ -91,6 +91,8 @@ DEFAULT_CONFIG = {
     # ポップアップが自分で消えるまでの秒数（0 = 「とめる」を押すまで消えない）
     "popup_close_prewarn": 8,
     "popup_close_done": 0,
+    "blip": True,              # 切り替えたときに一瞬だけ出る小さな知らせ
+    "blip_sec": 1.4,           # それが消えるまでの秒
     "watch_popup_close": 10,   # サーバーの知らせが自分で消えるまで（秒）
     # サーバーの知らせの音。空ならタイマーと同じ音を使う
     "sound_watch_down": "",    # 落ちたとき
@@ -136,6 +138,7 @@ DEFAULT_CONFIG = {
     "macro_hold_ms": 20,
     "macro_limit": 0,                  # 0 = ずっと
     "macro_send_mode": macro.DEFAULT_SEND_MODE,  # input / post / swap
+    "macro_mode": macro.DEFAULT_MODE,  # hold（押しっぱなし）/ always（ずっと）
     "macro_target": "ArkAscended.exe",
     "macro_only_target": True,
     "macro_hotkey_on": True,
@@ -1422,6 +1425,10 @@ class App(tk.Tk):
         self.egg_kill_hotkey = None
         self._egg_kill_hotkey_err = ""
         self.cancel_watch = None       # 右クリック見張り
+        self.hold_watch = None         # 押しっぱなし見張り
+        self.blip_at = 0.0             # 一瞬の知らせを出した時刻
+        self._blip = None              # (文字, 色) ／ 別スレッドから置かれる
+        self._blip_win = None
         self.cancelled_at = 0.0        # 止めた時刻（画面のお知らせ用）
         # 起動前に終わっていたタイマーを開いた瞬間に消さないための基準時刻
         self.start_ts = time.time()
@@ -1852,6 +1859,7 @@ class App(tk.Tk):
         self._update_head(now)
         self._afk_tick(now)
         self._macro_tick()
+        self._blip_tick(now)
         self._hud_tick()
         self.sync_timer_pause()
         self._update_tick(now)
@@ -1882,22 +1890,43 @@ class App(tk.Tk):
             "send_mode": c.get("macro_send_mode") or macro.DEFAULT_SEND_MODE,
         }
 
+    def macro_mode(self):
+        return self.cfg.get("macro_mode") or macro.DEFAULT_MODE
+
     def toggle_macro(self):
-        """入切。ホットキーのスレッドから呼ばれてもいいように Tk は触らない。"""
+        """入切。ホットキーのスレッドから呼ばれてもいいように Tk は触らない。
+
+        「押しっぱなしで連打」のときは、ここでは構えるだけ。実際に撃つのは
+        左クリックを押しているあいだだけになる。
+        """
         if self.macro_running():
-            self.macro.stop()
-            self.macro = None
-        else:
-            if (self.cfg.get("macro_action") == "key"
-                    and not self.cfg.get("macro_key_vk")):
-                return   # 送るキーが決まっていないので始めない
-            self.macro = macro.Runner(self._macro_cfg)
-            self.macro.start()
+            self.stop_macro()
+            self.blip("連射 とめました", "sub")
+            return
+        if (self.cfg.get("macro_action") == "key"
+                and not self.cfg.get("macro_key_vk")):
+            return       # 送るキーが決まっていないので始めない
+        gate = None
+        if self.macro_mode() == "hold":
+            w = macro.HoldWatch("left", guard=self._game_in_front)
+            w.start()
+            w.ready.wait(0.5)
+            if not w.ok:
+                return   # フックを掛けられないので構えない
+            self.hold_watch = w
+            gate = lambda: w.held
+        self.macro = macro.Runner(self._macro_cfg, gate=gate)
+        self.macro.start()
+        self.blip("連射 %s" % ("かまえました（左クリック長押しで連打）"
+                               if gate is not None else "はじめました"), "mint")
 
     def stop_macro(self):
         if self.macro is not None:
             self.macro.stop()
             self.macro = None
+        if self.hold_watch is not None:
+            self.hold_watch.stop()
+            self.hold_watch = None
 
     def apply_hotkey(self):
         """設定に合わせてグローバルホットキーを登録し直す。"""
@@ -1956,8 +1985,11 @@ class App(tk.Tk):
         ずっと仕掛けておく必要はないので、動いていないときは外す。
         連射の種類を変えたら、見張るボタンも入れ替える。
         """
+        # 押しっぱなしのときは、指を離せば止まるので見張らない。
+        # むしろ右クリック（＝ゲーム内の照準など）で構えが解けてしまう。
         want = (self.cfg.get("macro_cancel_rclick", True)
-                and (self.macro_running() or self.egg_running()))
+                and (self.egg_running()
+                     or (self.macro_running() and self.macro_mode() != "hold")))
         btn = self.cancel_button()
         if (self.cancel_watch is not None
                 and (not want or self.cancel_watch.button != btn)):
@@ -2577,6 +2609,56 @@ class App(tk.Tk):
         if p.winfo_exists():
             p.destroy()
 
+    def blip(self, text, tone="mint"):
+        """画面の上に一瞬だけ出る、小さな知らせ。
+
+        ホットキーのスレッドからも呼ばれるので、ここでは置くだけにして、
+        出すのは _tick（本体のスレッド）にまかせる。
+        """
+        self._blip = (text, tone)
+
+    def _blip_tick(self, now):
+        got, self._blip = self._blip, None
+        if got is not None:
+            self._show_blip(*got)
+        if (self._blip_win is not None
+                and now - self.blip_at > float(self.cfg.get("blip_sec") or 1.4)):
+            self._close_blip()
+
+    def _close_blip(self):
+        win, self._blip_win = self._blip_win, None
+        if win is not None:
+            try:
+                win.destroy()
+            except Exception:
+                pass
+
+    def _show_blip(self, text, tone="mint"):
+        if not self.cfg.get("blip", True):
+            return
+        self._close_blip()
+        fg = {"mint": th.MINT, "warn": th.PINK_DK}.get(tone, th.INK_SUB)
+        try:
+            w = tk.Toplevel(self)
+            w.overrideredirect(True)
+            w.attributes("-topmost", True)
+            try:
+                w.attributes("-alpha", 0.92)
+            except Exception:
+                pass
+            box = tk.Frame(w, bg=th.CARD, highlightthickness=2,
+                           highlightbackground=fg, highlightcolor=fg)
+            box.pack()
+            tk.Label(box, text=text, bg=th.CARD, fg=fg, font=self.F["cute"],
+                     padx=22, pady=10).pack()
+            w.update_idletasks()
+            sw = w.winfo_screenwidth()
+            w.geometry("+%d+%d" % (max(0, (sw - w.winfo_width()) // 2), 90))
+            self._blip_win = w
+            self.blip_at = time.time()
+        except Exception:
+            self._blip_win = None
+
     def flash_taskbar(self):
         try:
             import ctypes
@@ -2648,6 +2730,8 @@ class App(tk.Tk):
         snd.stop()
         self.stop_macro()          # 連射を止め忘れて暴走させない
         self.stop_egg()
+        if self.hold_watch is not None:
+            self.hold_watch.stop()
         if self.cancel_watch is not None:
             self.cancel_watch.stop()
         if self.egg_rec is not None:

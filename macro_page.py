@@ -57,6 +57,28 @@ class MacroPage(tk.Frame):
         conf.pack(fill="x", pady=(8, 0))
         c = conf.body
 
+        tk.Label(c, text="連打のしかた", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w")
+        self.v_mode = tk.StringVar(value=cfg.get("macro_mode")
+                                   or macro.DEFAULT_MODE)
+        for key, lbl in macro.MODES:
+            tk.Radiobutton(c, text=lbl, variable=self.v_mode, value=key,
+                           command=self.save_mode, bg=th.CARD, fg=th.INK,
+                           activebackground=th.CARD, activeforeground=th.INK,
+                           selectcolor=th.FIELD, font=F["cute"], bd=0,
+                           highlightthickness=0, anchor="w").pack(anchor="w")
+        self.lbl_mode = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
+                                 font=F["small"], wraplength=760,
+                                 justify="left")
+        self.lbl_mode.pack(anchor="w")
+        self.v_blip = tk.BooleanVar(value=bool(cfg.get("blip", True)))
+        tk.Checkbutton(c, text="入切したとき、画面の上に一瞬だけ出す",
+                       variable=self.v_blip, command=self.save_blip,
+                       bg=th.CARD, fg=th.INK, activebackground=th.CARD,
+                       activeforeground=th.INK, selectcolor=th.FIELD,
+                       font=F["cute"], bd=0, highlightthickness=0,
+                       anchor="w").pack(anchor="w", pady=(4, 10))
+
         tk.Label(c, text="なにを連打する？", bg=th.CARD, fg=th.INK,
                  font=F["cute_b"]).pack(anchor="w")
         arow = tk.Frame(c, bg=th.CARD)
@@ -317,6 +339,24 @@ class MacroPage(tk.Frame):
         c["macro_target"] = self.v_target.get().strip()
         c["macro_only_target"] = bool(self.v_only.get())
         c["macro_send_mode"] = self.v_send.get()
+        self.update_view()
+
+    def save_blip(self):
+        self.app.cfg["blip"] = bool(self.v_blip.get())
+        self.app.save_cfg()
+        if self.v_blip.get():
+            self.app.blip("こんな感じで出ます")
+
+    def save_mode(self):
+        """連打のしかたを変える。動いている最中なら、いったん止める。"""
+        was = self.app.macro_running()
+        if was:
+            self.app.stop_macro()
+        self.app.cfg["macro_mode"] = self.v_mode.get()
+        self.app.save_cfg()
+        self.app.sync_cancel_watch()
+        if was:
+            self.app.toggle_macro()      # 新しいしかたで構え直す
         self.update_view()
 
     def save_send(self):
@@ -603,7 +643,15 @@ class MacroPage(tk.Frame):
     def update_view(self, now=None):
         cfg = self.app.cfg
         running = self.app.macro_running()
-        self.btn.set_text("■ とめる" if running else "▶ はじめる")
+        hold = self.app.macro_mode() == "hold"
+        self.btn.set_text("■ とめる" if running
+                          else ("▶ かまえる" if hold else "▶ はじめる"))
+        self.lbl_mode.config(
+            text="左クリックを押しているあいだだけ連打します。"
+                 "ゲームが前に出ているときだけ効くので、ほかの作業中の"
+                 "クリックでは連打しません。指を離せば止まります"
+            if hold else
+            "入れたら、指を離していてもずっと送りつづけます")
 
         # キー指定ボタンの文字（アクションが「キー」のときだけ意味がある）
         vk = cfg.get("macro_key_vk") or 0
@@ -648,7 +696,10 @@ class MacroPage(tk.Frame):
                 what, cfg.get("macro_interval_ms", 100)))
             return
         r = self.app.macro
-        if r is not None and r.waiting:
+        if hold and r is not None and not r.holding:
+            self.lbl_state.config(text="かまえ中（左クリックを押しっぱなしで連打）",
+                                  fg=th.INK_SUB)
+        elif r is not None and r.waiting:
             # 直送りのときは前面待ちではなく「窓が見つからない」で止まっている
             why = ("が見つかるまで" if cfg.get("macro_send_mode", "input") != "input"
                    else "が前に出るまで")

@@ -36,6 +36,22 @@ ACTIONS = (
 )
 DEFAULT_ACTION = "left"
 
+# 連射のしかた。
+#   always … 入れたらずっと送りつづける（前からのやりかた）
+#   hold  … 左クリックを押しているあいだだけ送る（押しっぱなしで連打）
+MODES = (
+    ("hold", "押しっぱなしで連打"),
+    ("always", "入れたらずっと連射"),
+)
+DEFAULT_MODE = "hold"
+
+
+def mode_label(name):
+    for k, lbl in MODES:
+        if k == name:
+            return lbl
+    return name
+
 
 def action_label(name):
     for k, lbl in ACTIONS:
@@ -224,13 +240,17 @@ class Runner(threading.Thread):
     設定は get_cfg() で毎回読み直すので、動かしたまま間隔を変えられる。
     """
 
-    def __init__(self, get_cfg):
+    def __init__(self, get_cfg, gate=None):
         super().__init__(daemon=True)
         self.get_cfg = get_cfg
+        # gate を渡すと、それが True を返しているあいだだけ撃つ。
+        # 「左クリックを押しているあいだだけ連打」はこれで作る。
+        self.gate = gate
         # 名前を _stop にすると Thread の内部メソッドを潰して join() が壊れる
         self._halt = threading.Event()
         self.count = 0
         self.waiting = False    # 対象が前に出るのを待っている
+        self.holding = False    # 門が開いている＝いま撃っている
         self.finished = False   # 回数ぶん撃ち終わった
 
     def stop(self):
@@ -239,6 +259,12 @@ class Runner(threading.Thread):
     def run(self):
         while not self._halt.is_set():
             c = self.get_cfg()
+            if self.gate is not None and not self.gate():
+                # 指を離しているあいだ。すぐ拾えるように短く見に行く
+                self.holding = False
+                self._halt.wait(0.01)
+                continue
+            self.holding = True
             if c.get("only_target") and not afk.matches(c.get("target") or ""):
                 self.waiting = True
                 self._halt.wait(0.15)
@@ -381,7 +407,9 @@ class EggRunner(threading.Thread):
 # 低レベルフックなら注入された入力に印(LLMHF_INJECTED)が付くので、それで分ける。
 WH_MOUSE_LL = 14
 WM_LBUTTONDOWN_LL = 0x0201
+WM_LBUTTONUP_LL = 0x0202
 WM_RBUTTONDOWN_LL = 0x0204
+WM_RBUTTONUP_LL = 0x0205
 LLMHF_INJECTED = 0x00000001
 ULONG_PTR = wintypes.WPARAM
 
@@ -444,6 +472,62 @@ class CancelWatch(threading.Thread):
         self._hook = None
 
     def stop(self):
+        if self._tid:
+            user32.PostThreadMessageW(self._tid, WM_QUIT, 0, 0)
+
+
+class HoldWatch(threading.Thread):
+    """ボタンを押しているあいだ held を立てておく。
+
+    GetAsyncKeyState では駄目で、フックでないといけない。自分が送った
+    クリックも「押された」に見えてしまい、指を離しても連打が止まらなくなる。
+    低レベルフックなら注入された入力に印が付くので、本物だけを数えられる。
+
+    guard を渡すと、それが True のときに押した場合だけ立てる。ゲームを
+    見ているときだけ連打させるために使う。
+    """
+
+    def __init__(self, button="left", guard=None):
+        super().__init__(daemon=True)
+        self.button = button
+        self.guard = guard
+        self.down = (WM_LBUTTONDOWN_LL if button == "left"
+                     else WM_RBUTTONDOWN_LL)
+        self.up = WM_LBUTTONUP_LL if button == "left" else WM_RBUTTONUP_LL
+        self.held = False
+        self._tid = 0
+        self._hook = None
+        self._proc = None          # GCで消えると落ちるので持っておく
+        self.ready = threading.Event()
+        self.ok = False
+
+    def _on_event(self, code, wparam, lparam):
+        try:
+            if code >= 0 and not (lparam.contents.flags & LLMHF_INJECTED):
+                if wparam == self.down:
+                    self.held = bool(self.guard is None or self.guard())
+                elif wparam == self.up:
+                    self.held = False
+        except Exception:
+            pass
+        return user32.CallNextHookEx(None, code, wparam, lparam)
+
+    def run(self):
+        self._tid = kernel32.GetCurrentThreadId()
+        self._proc = HOOKPROC(self._on_event)
+        self._hook = user32.SetWindowsHookExW(WH_MOUSE_LL, self._proc, None, 0)
+        self.ok = bool(self._hook)
+        self.ready.set()
+        if not self.ok:
+            return
+        msg = MSG()
+        while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
+            pass
+        user32.UnhookWindowsHookEx(self._hook)
+        self._hook = None
+
+    def stop(self):
+        self.held = False
         if self._tid:
             user32.PostThreadMessageW(self._tid, WM_QUIT, 0, 0)
 
