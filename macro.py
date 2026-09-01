@@ -401,11 +401,15 @@ class CancelWatch(threading.Thread):
 
     callback はフックの中から呼ばれるので、**すぐ返ること**。
     （旗を立てるだけにして、画面はあとから見に行く）
+
+    guard を渡すと、それが True を返したときだけ呼ぶ。ゲームが最前面の
+    ときだけ効かせて、ほかの作業中の右クリックで止めないために使う。
     """
 
-    def __init__(self, callback, button="right"):
+    def __init__(self, callback, button="right", guard=None):
         super().__init__(daemon=True)
         self.callback = callback
+        self.guard = guard
         self.button = button
         self.msg = (WM_LBUTTONDOWN_LL if button == "left"
                     else WM_RBUTTONDOWN_LL)
@@ -418,7 +422,8 @@ class CancelWatch(threading.Thread):
     def _on_event(self, code, wparam, lparam):
         try:
             if (code >= 0 and wparam == self.msg
-                    and not (lparam.contents.flags & LLMHF_INJECTED)):
+                    and not (lparam.contents.flags & LLMHF_INJECTED)
+                    and (self.guard is None or self.guard())):
                 self.callback()
         except Exception:
             pass

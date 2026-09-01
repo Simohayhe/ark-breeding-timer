@@ -45,7 +45,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.56.0"
+APP_VERSION = "1.56.1"
 
 
 def _res_dir():
@@ -1927,6 +1927,17 @@ class App(tk.Tk):
         self.stop_macro()
         self.stop_egg()
 
+    def _game_in_front(self):
+        """ゲームが最前面か。フックの中から呼ばれるので軽く。
+
+        ほかの作業をしている最中の右クリックで止まってしまわないように、
+        キャンセルはゲームを見ているあいだだけ効かせる。
+        """
+        try:
+            return afk.matches(self.cfg.get("macro_target") or "")
+        except Exception:
+            return True
+
     def cancel_button(self):
         """止めるのに使うボタン。
 
@@ -1953,7 +1964,8 @@ class App(tk.Tk):
             self.cancel_watch.stop()
             self.cancel_watch = None
         if want and self.cancel_watch is None:
-            w = macro.CancelWatch(self._on_right_cancel, btn)
+            w = macro.CancelWatch(self._on_right_cancel, btn,
+                                  guard=self._game_in_front)
             w.start()
             w.ready.wait(0.5)
             self.cancel_watch = w if w.ok else None

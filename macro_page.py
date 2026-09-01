@@ -150,8 +150,10 @@ class MacroPage(tk.Frame):
                        font=F["cute"], bd=0, highlightthickness=0,
                        anchor="w")
         self.chk_rcancel.pack(anchor="w", pady=(6, 0))
-        tk.Label(c, text="動かしているあいだだけ見張ります。クリックそのものは"
-                         "ゲームに届きますし、マクロが送ったクリックでは止まりません。"
+        tk.Label(c, text="動かしているあいだだけ見張ります。ゲームが前に出ている"
+                         "ときだけ効くので、ほかの作業中のクリックでは止まりません。"
+                         "クリックそのものはゲームに届きますし、マクロが送った"
+                         "クリックでも止まりません。"
                          "連射が右クリックのときは、代わりに左クリックで止まります",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
                  justify="left").pack(anchor="w", pady=(0, 8))
