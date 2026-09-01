@@ -84,7 +84,18 @@ class MacroPage(tk.Frame):
                        bg=th.CARD, fg=th.INK, activebackground=th.CARD,
                        activeforeground=th.INK, selectcolor=th.FIELD,
                        font=F["cute"], bd=0, highlightthickness=0,
-                       anchor="w").pack(anchor="w", pady=(4, 10))
+                       anchor="w").pack(anchor="w", pady=(4, 0))
+        self.v_badge = tk.BooleanVar(value=bool(cfg.get("macro_badge", True)))
+        tk.Checkbutton(c, text="連射が入っているあいだ、画面の左上に出しっぱなしにする",
+                       variable=self.v_badge, command=self.save_badge,
+                       bg=th.CARD, fg=th.INK, activebackground=th.CARD,
+                       activeforeground=th.INK, selectcolor=th.FIELD,
+                       font=F["cute"], bd=0, highlightthickness=0,
+                       anchor="w").pack(anchor="w")
+        tk.Label(c, text="切っているあいだは何も出ません。札はクリックを吸わないので、"
+                         "ゲームの邪魔にはなりません",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
+                 justify="left").pack(anchor="w", pady=(0, 10))
 
         tk.Label(c, text="なにを連打する？", bg=th.CARD, fg=th.INK,
                  font=F["cute_b"]).pack(anchor="w")
@@ -373,6 +384,11 @@ class MacroPage(tk.Frame):
         c["macro_only_target"] = bool(self.v_only.get())
         c["macro_send_mode"] = self.v_send.get()
         self.update_view()
+
+    def save_badge(self):
+        self.app.cfg["macro_badge"] = bool(self.v_badge.get())
+        self.app.save_cfg()
+        self.app._badge_tick()
 
     def save_blip(self):
         self.app.cfg["blip"] = bool(self.v_blip.get())

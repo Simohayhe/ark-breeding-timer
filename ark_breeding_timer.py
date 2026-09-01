@@ -45,7 +45,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.59.0"
+APP_VERSION = "1.60.0"
 
 
 def _res_dir():
@@ -93,6 +93,8 @@ DEFAULT_CONFIG = {
     "popup_close_done": 0,
     "snooze_button": True,     # 通知に「完了 / 保留」を出す
     "snooze_sec": 180,         # 「保留」を押したとき、もう一度知らせるまでの秒
+    "macro_badge": True,       # 連射が入っているあいだ、左上に出しっぱなしにする
+    "macro_badge_pos": [16, 16],   # その札の場所（画面の左上からの距離）
     "blip": True,              # 切り替えたときに一瞬だけ出る小さな知らせ
     "blip_sec": 1.4,           # それが消えるまでの秒
     "watch_popup_close": 10,   # サーバーの知らせが自分で消えるまで（秒）
@@ -197,6 +199,30 @@ DEFAULT_CONFIG = {
 
 
 # ---------------------------------------------------------------- 小道具
+# 出しっぱなしの札や一瞬の知らせは、ゲームの上に浮かべるもの。
+# クリックを吸ってしまうと邪魔なので、素通しにして、焦点も奪わないようにする。
+GWL_EXSTYLE = -20
+WS_EX_TRANSPARENT = 0x00000020      # クリックが下の窓へ素通しになる
+WS_EX_TOOLWINDOW = 0x00000080       # Alt+Tab とタスクバーに出さない
+WS_EX_LAYERED = 0x00080000
+WS_EX_NOACTIVATE = 0x08000000       # 押しても前に出てこない
+
+
+def no_focus(win):
+    """浮かべた窓を「見えるだけ」にする。押しても反応せず、焦点も取らない。"""
+    try:
+        win.update_idletasks()
+        u = ctypes.windll.user32
+        hwnd = u.GetParent(win.winfo_id()) or win.winfo_id()
+        get = getattr(u, "GetWindowLongPtrW", u.GetWindowLongW)
+        put = getattr(u, "SetWindowLongPtrW", u.SetWindowLongW)
+        put(hwnd, GWL_EXSTYLE,
+            get(hwnd, GWL_EXSTYLE) | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW
+            | WS_EX_LAYERED | WS_EX_NOACTIVATE)
+    except Exception:
+        pass        # Windows でなければ、ただの窓のままでかまわない
+
+
 def fmt_dur(sec: float) -> str:
     neg = sec < 0
     sec = abs(int(round(sec)))
@@ -1440,6 +1466,8 @@ class App(tk.Tk):
         self.macro_kind = macro.DEFAULT_MODE   # いま動いているほうの出しかた
         self.hotkey2 = None
         self._hotkey2_err = ""
+        self.badge_win = None          # 連射中の札（入っているあいだだけ出す）
+        self.badge_text = ""
         self.blip_at = 0.0             # 一瞬の知らせを出した時刻
         self._blip = None              # (文字, 色) ／ 別スレッドから置かれる
         self._blip_win = None
@@ -1953,6 +1981,7 @@ class App(tk.Tk):
         if self.macro is not None:
             self.macro.stop()
             self.macro = None
+        self._close_badge()
         if self.hold_watch is not None:
             self.hold_watch.stop()
             self.hold_watch = None
@@ -2145,10 +2174,85 @@ class App(tk.Tk):
                 "登録中はほかのアプリでもこの組み合わせは効かなくなります"
                 % (name, what))
 
+    def _badge_text(self):
+        """左上の札に出す文字。連射が入っていなければ空。"""
+        if not self.macro_running():
+            return ""
+        r = self.macro
+        if self.macro_kind == "hold":
+            if r is not None and r.holding:
+                return "🔥 連射中"
+            return "🖱 連射かまえ中（左クリック長押し）"
+        if r is not None and r.waiting:
+            return "⏸ 連射まちうけ（%s が前に出るまで）" % (
+                self.cfg.get("macro_target") or "対象")
+        return "🔥 連射中（ずっと）"
+
+    def _badge_tick(self):
+        """連射が入っているあいだだけ、左上に出しっぱなしにする。
+
+        切れているときは何も出さない（消す）。
+        """
+        want = self._badge_text() if self.cfg.get("macro_badge", True) else ""
+        if not want:
+            self._close_badge()
+            return
+        if self.badge_win is None or not self.badge_win.winfo_exists():
+            self._open_badge()
+        if self.badge_win is None:
+            return
+        if want != self.badge_text:
+            self.badge_text = want
+            hot = want.startswith("🔥")
+            try:
+                self.badge_lbl.config(text=want,
+                                      fg=th.PINK_DK if hot else th.INK_SUB)
+                self.badge_box.config(highlightbackground=th.PINK if hot
+                                      else th.LINE,
+                                      highlightcolor=th.PINK if hot else th.LINE)
+            except tk.TclError:
+                self._close_badge()
+
+    def _open_badge(self):
+        try:
+            w = tk.Toplevel(self)
+            w.overrideredirect(True)
+            w.attributes("-topmost", True)
+            try:
+                w.attributes("-alpha", 0.88)
+            except tk.TclError:
+                pass
+            self.badge_box = tk.Frame(w, bg=th.CARD, highlightthickness=2,
+                                      highlightbackground=th.LINE,
+                                      highlightcolor=th.LINE)
+            self.badge_box.pack()
+            self.badge_lbl = tk.Label(self.badge_box, text="", bg=th.CARD,
+                                      fg=th.INK_SUB, font=self.F["small"],
+                                      padx=14, pady=6)
+            self.badge_lbl.pack()
+            pos = self.cfg.get("macro_badge_pos") or [16, 16]
+            w.update_idletasks()
+            w.geometry("+%d+%d" % (int(pos[0]), int(pos[1])))
+            no_focus(w)
+            self.badge_win = w
+            self.badge_text = ""
+        except tk.TclError:
+            self.badge_win = None
+
+    def _close_badge(self):
+        win, self.badge_win = self.badge_win, None
+        self.badge_text = ""
+        if win is not None:
+            try:
+                win.destroy()
+            except tk.TclError:
+                pass
+
     def _macro_tick(self):
         # 撃ち終わったスレッドは残しておく（回数の表示に使うため）。
         # macro_running() が is_alive() を見ているので、止まった扱いになる。
         self.sync_cancel_watch()
+        self._badge_tick()
         if getattr(self, "page", "") == "macro":
             self.page_macro.update_view()
 
@@ -2751,6 +2855,7 @@ class App(tk.Tk):
             box.pack()
             tk.Label(box, text=text, bg=th.CARD, fg=fg, font=self.F["cute"],
                      padx=22, pady=10).pack()
+            no_focus(w)
             w.update_idletasks()
             sw = w.winfo_screenwidth()
             w.geometry("+%d+%d" % (max(0, (sw - w.winfo_width()) // 2), 90))
