@@ -45,7 +45,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.57.0"
+APP_VERSION = "1.58.0"
 
 
 def _res_dir():
@@ -138,7 +138,9 @@ DEFAULT_CONFIG = {
     "macro_hold_ms": 20,
     "macro_limit": 0,                  # 0 = ずっと
     "macro_send_mode": macro.DEFAULT_SEND_MODE,  # input / post / swap
-    "macro_mode": macro.DEFAULT_MODE,  # hold（押しっぱなし）/ always（ずっと）
+    "macro2_hotkey_on": True,          # ずっと連射のほう
+    "macro2_hotkey_mods": macro.MOD_CONTROL,
+    "macro2_hotkey_vk": 0x54,          # T
     "macro_target": "ArkAscended.exe",
     "macro_only_target": True,
     "macro_hotkey_on": True,
@@ -1426,6 +1428,9 @@ class App(tk.Tk):
         self._egg_kill_hotkey_err = ""
         self.cancel_watch = None       # 右クリック見張り
         self.hold_watch = None         # 押しっぱなし見張り
+        self.macro_kind = macro.DEFAULT_MODE   # いま動いているほうの出しかた
+        self.hotkey2 = None
+        self._hotkey2_err = ""
         self.blip_at = 0.0             # 一瞬の知らせを出した時刻
         self._blip = None              # (文字, 色) ／ 別スレッドから置かれる
         self._blip_win = None
@@ -1891,23 +1896,28 @@ class App(tk.Tk):
         }
 
     def macro_mode(self):
-        return self.cfg.get("macro_mode") or macro.DEFAULT_MODE
+        """いま動いている（または最後に動かした）出しかた。"""
+        return self.macro_kind
 
-    def toggle_macro(self):
+    def toggle_macro(self, mode="hold"):
         """入切。ホットキーのスレッドから呼ばれてもいいように Tk は触らない。
 
-        「押しっぱなしで連打」のときは、ここでは構えるだけ。実際に撃つのは
-        左クリックを押しているあいだだけになる。
+        出しかたは2つ。どちらもいつでも使えて、設定で選ぶものではない。
+          hold   … 構えるだけ。撃つのは左クリックを押しているあいだだけ
+          always … 入れたらずっと撃つ
+        動いている最中に別のほうを押したら、そちらに乗り換える。
         """
         if self.macro_running():
+            same = self.macro_kind == mode
             self.stop_macro()
-            self.blip("連射 とめました", "sub")
-            return
+            if same:
+                self.blip("連射 とめました", "sub")
+                return          # 同じほうをもう一度＝とめる
         if (self.cfg.get("macro_action") == "key"
                 and not self.cfg.get("macro_key_vk")):
             return       # 送るキーが決まっていないので始めない
         gate = None
-        if self.macro_mode() == "hold":
+        if mode == "hold":
             w = macro.HoldWatch("left", guard=self._game_in_front)
             w.start()
             w.ready.wait(0.5)
@@ -1915,10 +1925,12 @@ class App(tk.Tk):
                 return   # フックを掛けられないので構えない
             self.hold_watch = w
             gate = lambda: w.held
+        self.macro_kind = mode
         self.macro = macro.Runner(self._macro_cfg, gate=gate)
         self.macro.start()
         self.blip("連射 %s" % ("かまえました（左クリック長押しで連打）"
-                               if gate is not None else "はじめました"), "mint")
+                               if gate is not None else "はじめました（ずっと）"),
+                  "mint")
 
     def stop_macro(self):
         if self.macro is not None:
@@ -1930,22 +1942,29 @@ class App(tk.Tk):
 
     def apply_hotkey(self):
         """設定に合わせてグローバルホットキーを登録し直す。"""
-        if self.hotkey is not None:
-            self.hotkey.stop()
-            self.hotkey = None
-        self._hotkey_err = ""
-        if not self.cfg.get("macro_hotkey_on", True):
-            return
-        hk = macro.Hotkey(self.cfg.get("macro_hotkey_mods", macro.MOD_CONTROL),
-                          self.cfg.get("macro_hotkey_vk", 0x52),
-                          self.toggle_macro)
-        hk.start()
-        hk.ready.wait(1.0)
-        if not hk.ok:
-            self._hotkey_err = hk.error or "登録できませんでした"
-            self.hotkey = None
-        else:
-            self.hotkey = hk
+        # 2本ある。押しっぱなし連打（Ctrl+R）と、ずっと連射（Ctrl+T）。
+        # 片方を切っても、もう片方はちゃんと立てる。
+        for which, head, on_key, hk_id, mode, dflt in (
+                ("hotkey", "macro_hotkey", "macro_hotkey_on", 1, "hold", 0x52),
+                ("hotkey2", "macro2_hotkey", "macro2_hotkey_on", 4,
+                 "always", 0x54)):
+            old = getattr(self, which)
+            if old is not None:
+                old.stop()
+            setattr(self, which, None)
+            setattr(self, "_%s_err" % which, "")
+            if not self.cfg.get(on_key, True):
+                continue
+            hk = macro.Hotkey(self.cfg.get(head + "_mods", macro.MOD_CONTROL),
+                              self.cfg.get(head + "_vk", dflt),
+                              lambda m=mode: self.toggle_macro(m), hk_id=hk_id)
+            hk.start()
+            hk.ready.wait(1.0)
+            if hk.ok:
+                setattr(self, which, hk)
+            else:
+                setattr(self, "_%s_err" % which,
+                        hk.error or "登録できませんでした")
 
     # ---------------- 右クリックで止める ----------------
     def _on_right_cancel(self):
@@ -1962,6 +1981,8 @@ class App(tk.Tk):
         ほかの作業をしている最中の右クリックで止まってしまわないように、
         キャンセルはゲームを見ているあいだだけ効かせる。
         """
+        if not self.cfg.get("macro_only_target", True):
+            return True         # 最前面しばりを外している
         try:
             return afk.matches(self.cfg.get("macro_target") or "")
         except Exception:
@@ -2085,16 +2106,27 @@ class App(tk.Tk):
         else:
             self.egg_kill_hotkey = hk2
 
-    def hotkey_status(self):
-        name = macro.hotkey_name(self.cfg.get("macro_hotkey_mods", macro.MOD_CONTROL),
-                                 self.cfg.get("macro_hotkey_vk", 0x52))
-        if not self.cfg.get("macro_hotkey_on", True):
-            return "ショートカットは使いません（この画面のボタンで入切します）"
-        if self._hotkey_err:
-            return "⚠ %s が使えません（%s）。別の組み合わせにしてください" % (
-                name, self._hotkey_err)
-        return ("%s でどこからでも入切できます。"
-                "登録中はほかのアプリでもこの組み合わせは効かなくなります" % name)
+    def hotkey_status(self, which="hold"):
+        """ショートカットが使える状態か、一文で。"""
+        if which == "always":
+            on, err = self.cfg.get("macro2_hotkey_on", True), self._hotkey2_err
+            name = macro.hotkey_name(
+                self.cfg.get("macro2_hotkey_mods", macro.MOD_CONTROL),
+                self.cfg.get("macro2_hotkey_vk", 0x54))
+            what = "ずっと連射"
+        else:
+            on, err = self.cfg.get("macro_hotkey_on", True), self._hotkey_err
+            name = macro.hotkey_name(
+                self.cfg.get("macro_hotkey_mods", macro.MOD_CONTROL),
+                self.cfg.get("macro_hotkey_vk", 0x52))
+            what = "押しっぱなし連打"
+        if not on:
+            return "%s のショートカットは使いません（上のボタンで入切します）" % what
+        if err:
+            return "⚠ %s が使えません（%s）。別の組み合わせにしてください" % (name, err)
+        return ("%s … %s をどこからでも入切。"
+                "登録中はほかのアプリでもこの組み合わせは効かなくなります"
+                % (name, what))
 
     def _macro_tick(self):
         # 撃ち終わったスレッドは残しておく（回数の表示に使うため）。
@@ -2743,6 +2775,8 @@ class App(tk.Tk):
             self.hud_reader.stop()
         if self.hotkey is not None:
             self.hotkey.stop()
+        if self.hotkey2 is not None:
+            self.hotkey2.stop()
         self.destroy()
 
 
