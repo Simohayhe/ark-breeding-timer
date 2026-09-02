@@ -51,6 +51,10 @@ class MacroPage(tk.Frame):
                                          kind="accent", bg=th.CARD,
                                          font=F["cute_b"], padx=20)
         self.btn_always.pack(side="left", padx=8)
+        self.btn_press = th.RoundButton(row, "⬇ 長押し", self.toggle_hold,
+                                        kind="soft", bg=th.CARD,
+                                        font=F["cute_b"], padx=20)
+        self.btn_press.pack(side="left")
         self.lbl_state = tk.Label(row, text="", bg=th.CARD, fg=th.INK,
                                   font=F["cute"], anchor="w")
         self.lbl_state.pack(side="left", padx=14)
@@ -252,6 +256,25 @@ class MacroPage(tk.Frame):
                                 wraplength=760)
         self.lbl_hk2.pack(fill="x")
 
+        h3 = tk.Frame(c, bg=th.CARD)
+        h3.pack(fill="x", pady=(6, 2))
+        self.btn_hotkey3 = th.RoundButton(h3, "", self.capture_hotkey3,
+                                          kind="soft", bg=th.CARD,
+                                          font=F["small"], padx=12, pady=5,
+                                          width=190)
+        self.btn_hotkey3.pack(side="left")
+        self.v_hk3_on = tk.BooleanVar(
+            value=bool(cfg.get("macro_hold_hotkey_on", True)))
+        tk.Checkbutton(h3, text="使う", variable=self.v_hk3_on,
+                       command=self.save_hotkey, bg=th.CARD, fg=th.INK,
+                       activebackground=th.CARD, activeforeground=th.INK,
+                       selectcolor=th.FIELD, font=F["cute"], bd=0,
+                       highlightthickness=0).pack(side="left", padx=8)
+        self.lbl_hk3 = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
+                                font=F["small"], anchor="w", justify="left",
+                                wraplength=760)
+        self.lbl_hk3.pack(fill="x")
+
         # ---------------- たまごマクロ（孵化器）----------------
         egg = th.Card(self.inner, bg=th.BG)
         egg.pack(fill="x", pady=(10, 0))
@@ -407,7 +430,12 @@ class MacroPage(tk.Frame):
         self.update_view()
 
     def save_hotkey(self):
-        self.app.cfg["macro_hotkey_on"] = bool(self.v_hk_on.get())
+        """3本のショートカットの「使う／使わない」をまとめて入れ直す。"""
+        c = self.app.cfg
+        c["macro_hotkey_on"] = bool(self.v_hk_on.get())
+        c["macro2_hotkey_on"] = bool(self.v_hk2_on.get())
+        c["macro_hold_hotkey_on"] = bool(self.v_hk3_on.get())
+        self.app.save_cfg()
         self.app.apply_hotkey()
         self.update_view()
 
@@ -432,13 +460,16 @@ class MacroPage(tk.Frame):
     def capture_hotkey2(self):
         self._capture("hotkey2")
 
+    def capture_hotkey3(self):
+        self._capture("hotkey3")
+
     def _capture(self, what):
         if self._capturing:
             self._end_capture()        # もう一度押したらやめる
             return
         self._capturing = what
         btn = {"key": self.btn_key, "hotkey": self.btn_hotkey,
-               "hotkey2": self.btn_hotkey2,
+               "hotkey2": self.btn_hotkey2, "hotkey3": self.btn_hotkey3,
                "egg_hotkey": self.btn_ehk, "kill_hotkey": self.btn_khk}[what]
         btn.set_text("キーを押してください…（Escでやめる）")
         top = self.winfo_toplevel()
@@ -491,7 +522,9 @@ class MacroPage(tk.Frame):
                 self.app.save_cfg()
                 self.app.apply_egg_hotkey()
             else:
-                head = "macro2_hotkey" if what == "hotkey2" else "macro_hotkey"
+                head = {"hotkey2": "macro2_hotkey",
+                        "hotkey3": "macro_hold_hotkey"}.get(what,
+                                                            "macro_hotkey")
                 self.app.cfg[head + "_mods"] = mods
                 self.app.cfg[head + "_vk"] = vk
                 self.app.save_cfg()
@@ -677,6 +710,11 @@ class MacroPage(tk.Frame):
             text=("✅ %s を1回送りました" % what) if ok else "⚠ 送れませんでした")
 
     # ---------------- 入切 ----------------
+    def toggle_hold(self):
+        self.save()
+        self.app.toggle_hold()
+        self.update_view()
+
     def toggle(self, mode="hold"):
         self.save()
         self.app.toggle_macro(mode)
@@ -689,10 +727,13 @@ class MacroPage(tk.Frame):
         always = running and not hold
         self.btn.set_text("■ とめる" if hold else "▶ かまえる")
         self.btn_always.set_text("■ とめる" if always else "▶ ずっと連射")
+        pressing = self.app.holder_running()
+        self.btn_press.set_text("■ 離す" if pressing else "⬇ 長押し")
         only = cfg.get("macro_only_target", True)
         self.lbl_mode.config(text=" ／ ".join((
             "かまえる … 左クリックを押しているあいだだけ連打",
             "ずっと連射 … 手を離していても送りつづける",
+            "長押し … 連打せず、押したままにする（採取や走りっぱなしに）",
             ("下で決めたアプリが前に出ているときだけ動きます" if only
              else "⚠ 最前面しばりを外しているので、どの画面でも動きます"),
         )))
@@ -711,6 +752,10 @@ class MacroPage(tk.Frame):
             self.btn_hotkey2.set_text("%s ▸ 変える" % macro.hotkey_name(
                 cfg.get("macro2_hotkey_mods", macro.MOD_CONTROL),
                 cfg.get("macro2_hotkey_vk", 0x54)))
+        if self._capturing != "hotkey3":
+            self.btn_hotkey3.set_text("%s ▸ 変える" % macro.hotkey_name(
+                cfg.get("macro_hold_hotkey_mods", macro.MOD_CONTROL),
+                cfg.get("macro_hold_hotkey_vk", 0x4B)))
 
         self.chk_rcancel.config(
             text="%sクリックでとめる（連射・たまごの両方）"
@@ -721,6 +766,9 @@ class MacroPage(tk.Frame):
         st2 = self.app.hotkey_status("always")
         self.lbl_hk2.config(text=st2,
                             fg=th.PINK_DK if st2.startswith("⚠") else th.INK_SUB)
+        st3 = self.app.hotkey_status("press")
+        self.lbl_hk3.config(text=st3,
+                            fg=th.PINK_DK if st3.startswith("⚠") else th.INK_SUB)
         self.update_egg_view()
 
         act = cfg.get("macro_action") or macro.DEFAULT_ACTION
@@ -738,6 +786,16 @@ class MacroPage(tk.Frame):
         else:
             self.lbl_found.config(text="  ⚠ 見つかりません", fg=th.PINK_DK)
 
+        if pressing:
+            h = self.app.holder
+            if h is not None and h.waiting:
+                self.lbl_state.config(text="待機中（%s が前に出るまで）"
+                                           % (target or "対象"), fg=th.INK_SUB)
+            else:
+                self.lbl_state.config(text="長押し中！", fg=th.MINT)
+            self.lbl_sub.config(text="%s を押したままにしています。"
+                                     "もう一度押すと離します" % what)
+            return
         if not running:
             just = (self.app.cancelled_at
                     and time.time() - self.app.cancelled_at < 6)

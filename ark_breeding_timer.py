@@ -45,7 +45,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.60.0"
+APP_VERSION = "1.61.0"
 
 
 def _res_dir():
@@ -143,6 +143,9 @@ DEFAULT_CONFIG = {
     "macro_limit": 0,                  # 0 = ずっと
     "macro_send_mode": macro.DEFAULT_SEND_MODE,  # input / post / swap
     "macro_hold_delay_ms": 300,        # 何ミリ秒押しつづけたら連射しはじめるか
+    "macro_hold_hotkey_on": True,      # 長押しのほう
+    "macro_hold_hotkey_mods": macro.MOD_CONTROL,
+    "macro_hold_hotkey_vk": 0x4B,      # K
     "macro2_hotkey_on": True,          # ずっと連射のほう
     "macro2_hotkey_mods": macro.MOD_CONTROL,
     "macro2_hotkey_vk": 0x54,          # T
@@ -1464,6 +1467,9 @@ class App(tk.Tk):
         self.cancel_watch = None       # 右クリック見張り
         self.hold_watch = None         # 押しっぱなし見張り
         self.macro_kind = macro.DEFAULT_MODE   # いま動いているほうの出しかた
+        self.holder = None             # 長押し
+        self.hotkey3 = None
+        self._hotkey3_err = ""
         self.hotkey2 = None
         self._hotkey2_err = ""
         self.badge_win = None          # 連射中の札（入っているあいだだけ出す）
@@ -1970,12 +1976,47 @@ class App(tk.Tk):
             self.hold_watch = w
             # ちょっと押しただけでは撃たない。ふつうのクリックと分けるため
             gate = lambda: w.held_for() >= self.hold_delay()
+        self.stop_hold()                   # 長押しとは同時に動かさない
         self.macro_kind = mode
         self.macro = macro.Runner(self._macro_cfg, gate=gate)
         self.macro.start()
         self.blip("連射 %s" % ("かまえました（左クリック長押しで連打）"
                                if gate is not None else "はじめました（ずっと）"),
                   "mint")
+
+    def holder_running(self):
+        return self.holder is not None and self.holder.is_alive()
+
+    def toggle_hold(self):
+        """長押しの入切。押したままにして、もう一度押すと離す。
+
+        連射とはいっしょに動かさない。押しっぱなしのうえに連打すると、
+        どちらの操作なのかゲームに伝わらなくなる。
+        """
+        if self.holder_running():
+            self.stop_hold()
+            self.blip("長押し 離しました", "sub")
+            return
+        if (self.cfg.get("macro_action") == "key"
+                and not self.cfg.get("macro_key_vk")):
+            return       # 送るキーが決まっていないので始めない
+        self.stop_macro()                  # 連射とは同時に動かさない
+        self.holder = macro.Holder(self._macro_cfg)
+        self.holder.start()
+        self.blip("⬇ %s を押しっぱなしにします" % self.macro_what(), "mint")
+
+    def stop_hold(self):
+        if self.holder is not None:
+            self.holder.stop()
+            self.holder.join(1.0)          # 離し終わるまで待つ
+            self.holder = None
+
+    def macro_what(self):
+        """いま送るもの（左クリック／E など）の名前。"""
+        act = self.cfg.get("macro_action") or macro.DEFAULT_ACTION
+        if act == "key":
+            return macro.vk_name(self.cfg.get("macro_key_vk") or 0)
+        return macro.action_label(act)
 
     def stop_macro(self):
         if self.macro is not None:
@@ -1993,7 +2034,9 @@ class App(tk.Tk):
         for which, head, on_key, hk_id, mode, dflt in (
                 ("hotkey", "macro_hotkey", "macro_hotkey_on", 1, "hold", 0x52),
                 ("hotkey2", "macro2_hotkey", "macro2_hotkey_on", 4,
-                 "always", 0x54)):
+                 "always", 0x54),
+                ("hotkey3", "macro_hold_hotkey", "macro_hold_hotkey_on", 5,
+                 "press", 0x4B)):
             old = getattr(self, which)
             if old is not None:
                 old.stop()
@@ -2001,9 +2044,11 @@ class App(tk.Tk):
             setattr(self, "_%s_err" % which, "")
             if not self.cfg.get(on_key, True):
                 continue
+            act = (self.toggle_hold if mode == "press"
+                   else (lambda m=mode: self.toggle_macro(m)))
             hk = macro.Hotkey(self.cfg.get(head + "_mods", macro.MOD_CONTROL),
-                              self.cfg.get(head + "_vk", dflt),
-                              lambda m=mode: self.toggle_macro(m), hk_id=hk_id)
+                              self.cfg.get(head + "_vk", dflt), act,
+                              hk_id=hk_id)
             hk.start()
             hk.ready.wait(1.0)
             if hk.ok:
@@ -2015,9 +2060,11 @@ class App(tk.Tk):
     # ---------------- 右クリックで止める ----------------
     def _on_right_cancel(self):
         """フックの中から呼ばれる。旗を立てて止めるだけにする。"""
-        if not (self.macro_running() or self.egg_running()):
+        if not (self.macro_running() or self.egg_running()
+                or self.holder_running()):
             return
         self.cancelled_at = time.time()
+        self.stop_hold()
         self.stop_macro()
         self.stop_egg()
 
@@ -2055,7 +2102,7 @@ class App(tk.Tk):
         # 押しっぱなしのときは、指を離せば止まるので見張らない。
         # むしろ右クリック（＝ゲーム内の照準など）で構えが解けてしまう。
         want = (self.cfg.get("macro_cancel_rclick", True)
-                and (self.egg_running()
+                and (self.egg_running() or self.holder_running()
                      or (self.macro_running() and self.macro_mode() != "hold")))
         btn = self.cancel_button()
         if (self.cancel_watch is not None
@@ -2154,7 +2201,13 @@ class App(tk.Tk):
 
     def hotkey_status(self, which="hold"):
         """ショートカットが使える状態か、一文で。"""
-        if which == "always":
+        if which == "press":
+            on, err = self.cfg.get("macro_hold_hotkey_on", True), self._hotkey3_err
+            name = macro.hotkey_name(
+                self.cfg.get("macro_hold_hotkey_mods", macro.MOD_CONTROL),
+                self.cfg.get("macro_hold_hotkey_vk", 0x4B))
+            what = "長押し"
+        elif which == "always":
             on, err = self.cfg.get("macro2_hotkey_on", True), self._hotkey2_err
             name = macro.hotkey_name(
                 self.cfg.get("macro2_hotkey_mods", macro.MOD_CONTROL),
@@ -2176,6 +2229,12 @@ class App(tk.Tk):
 
     def _badge_text(self):
         """左上の札に出す文字。連射が入っていなければ空。"""
+        if self.holder_running():
+            h = self.holder
+            if h.waiting:
+                return "⏸ 長押しまちうけ（%s が前に出るまで）" % (
+                    self.cfg.get("macro_target") or "対象")
+            return "⬇ %s を長押し中" % self.macro_what()
         if not self.macro_running():
             return ""
         r = self.macro
@@ -2933,6 +2992,7 @@ class App(tk.Tk):
         self.save_cfg()
         self.save_timers()
         snd.stop()
+        self.stop_hold()           # 押しっぱなしのまま終わらせない
         self.stop_macro()          # 連射を止め忘れて暴走させない
         self.stop_egg()
         if self.hold_watch is not None:
@@ -2950,6 +3010,8 @@ class App(tk.Tk):
             self.hotkey.stop()
         if self.hotkey2 is not None:
             self.hotkey2.stop()
+        if self.hotkey3 is not None:
+            self.hotkey3.stop()
         self.destroy()
 
 

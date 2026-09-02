@@ -70,6 +70,15 @@ def _mouse_input(flag):
                                             dwFlags=flag, time=0, dwExtraInfo=0)))
 
 
+def mouse_hold(button="left", down=True):
+    """マウスのボタンを押しっぱなしにする／離す。"""
+    pair = MOUSEEVENTF.get(button)
+    if not pair:
+        return False
+    a = _mouse_input(pair[0] if down else pair[1])
+    return user32.SendInput(1, ctypes.byref(a), ctypes.sizeof(afk.INPUT)) == 1
+
+
 def click(button="left", hold_ms=20):
     """いまカーソルがある場所でクリックする。"""
     pair = MOUSEEVENTF.get(button)
@@ -94,6 +103,17 @@ MAPVK_VK_TO_VSC = 0
 
 def scancode_of(vk):
     return user32.MapVirtualKeyW(int(vk), MAPVK_VK_TO_VSC)
+
+
+def key_hold(vk, scan=None, down=True):
+    """キーを押しっぱなしにする／離す。"""
+    vk = int(vk)
+    if not scan:
+        scan = scancode_of(vk)
+    if not scan:
+        return False
+    a = afk._make(scan, vk in EXTENDED_VKS, not down)
+    return user32.SendInput(1, ctypes.byref(a), ctypes.sizeof(afk.INPUT)) == 1
 
 
 def press_vk(vk, scan=None, hold_ms=20):
@@ -184,6 +204,39 @@ def post_click(hwnd, button="left", hold_ms=20):
     _sleep(max(0.0, hold_ms / 1000.0))
     user32.PostMessageW(hwnd, up_msg, 0, lp)
     return True
+
+
+def post_mouse_hold(hwnd, button="left", down=True):
+    """ウィンドウに、押しっぱなし／離す のマウスメッセージを投げる。"""
+    got = POST_BUTTON.get(button)
+    if not got or not hwnd:
+        return False
+    down_msg, up_msg, mk = got
+    x, y = _cursor_in_client(hwnd)
+    lp = (int(y) & 0xFFFF) << 16 | (int(x) & 0xFFFF)
+    if down:
+        user32.PostMessageW(hwnd, WM_MOUSEMOVE, mk, lp)
+        return bool(user32.PostMessageW(hwnd, down_msg, mk, lp))
+    return bool(user32.PostMessageW(hwnd, up_msg, 0, lp))
+
+
+def post_key_hold(hwnd, vk, scan=None, down=True, again=False):
+    """ウィンドウに、押しっぱなし／離す のキーメッセージを投げる。
+
+    押しつづけているあいだ Windows は WM_KEYDOWN を繰り返し送るので、
+    こちらも again=True で送り直す（30ビット目が「前も押されていた」印）。
+    """
+    if not hwnd or not vk:
+        return False
+    if not scan:
+        scan = scancode_of(vk)
+    lp = 1 | ((scan or 0) << 16)
+    if down:
+        if again:
+            lp |= (1 << 30)
+        return bool(user32.PostMessageW(hwnd, afk.WM_KEYDOWN, int(vk), lp))
+    return bool(user32.PostMessageW(hwnd, afk.WM_KEYUP, int(vk),
+                                    lp | (1 << 30) | (1 << 31)))
 
 
 def post_vk(hwnd, vk, scan=None, hold_ms=20):
@@ -287,6 +340,73 @@ class Runner(threading.Thread):
                 self.finished = True
                 break
             self._halt.wait(max(0.001, int(c.get("interval_ms") or 100) / 1000.0))
+
+
+class Holder(threading.Thread):
+    """止めるまで押しっぱなしにする。
+
+    連射とちがって、押して離してをくり返さない。押したまま置いておく。
+    採取をずっと続けたいときや、走りっぱなしにしたいときのもの。
+
+    大事なのは**必ず離すこと**。押したままスレッドが終わると、キーが
+    押されっぱなしのまま残って他のアプリまで巻き添えになる。
+    対象が裏に回ったときも、いったん離す。
+    """
+
+    def __init__(self, get_cfg):
+        super().__init__(daemon=True)
+        self.get_cfg = get_cfg
+        self._halt = threading.Event()
+        self.down = False          # いま押していることになっているか
+        self.waiting = False       # 対象が前に出るのを待っている
+        self.error = ""
+
+    def stop(self):
+        self._halt.set()
+
+    def _send(self, c, hwnd, down, again=False):
+        act = c.get("action") or DEFAULT_ACTION
+        mode = c.get("send_mode") or DEFAULT_SEND_MODE
+        vk, scan = c.get("key_vk") or 0, c.get("key_scan") or 0
+        if mode == "post":
+            if act == "key":
+                return post_key_hold(hwnd, vk, scan, down, again)
+            return post_mouse_hold(hwnd, act, down)
+        if act == "key":
+            return key_hold(vk, scan, down)
+        return mouse_hold(act, down)
+
+    def _release(self, c, hwnd):
+        if self.down:
+            self._send(c, hwnd, False)
+            self.down = False
+
+    def run(self):
+        c, hwnd = self.get_cfg(), None
+        try:
+            while not self._halt.is_set():
+                c = self.get_cfg()
+                mode = c.get("send_mode") or DEFAULT_SEND_MODE
+                if c.get("only_target") and not afk.matches(c.get("target") or ""):
+                    self._release(c, hwnd)      # 裏に回ったら離しておく
+                    self.waiting = True
+                    self._halt.wait(0.15)
+                    continue
+                hwnd = None
+                if mode != "input":
+                    hwnd = afk.find_window_cached(c.get("target") or "")
+                    if not hwnd:
+                        self._release(c, hwnd)
+                        self.waiting = True
+                        self._halt.wait(0.5)
+                        continue
+                self.waiting = False
+                # 押しつづけているあいだ、本物のキーは繰り返し届く。同じにする
+                if self._send(c, hwnd, True, again=self.down):
+                    self.down = True
+                self._halt.wait(0.05)
+        finally:
+            self._release(c, hwnd)              # なにがあっても離す
 
 
 # ------------------------------------------------- たまごマクロ（孵化器）
