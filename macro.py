@@ -27,12 +27,19 @@ MOUSEEVENTF = {
     "left": (0x0002, 0x0004),
     "right": (0x0008, 0x0010),
     "middle": (0x0020, 0x0040),
+    # サイドボタンは押す/離すの旗が共通で、どちらのボタンかは mouseData で渡す
+    "x1": (0x0080, 0x0100),
+    "x2": (0x0080, 0x0100),
 }
+# サイドボタンの番号。1=手前（戻る）、2=奥（進む）
+MOUSE_DATA = {"x1": 1, "x2": 2}
 
 ACTIONS = (
     ("left", "左クリック"),
     ("right", "右クリック"),
     ("middle", "中クリック"),
+    ("x1", "サイドボタン1（戻る）"),
+    ("x2", "サイドボタン2（進む）"),
     ("key", "キー（下で指定）"),
 )
 DEFAULT_ACTION = "left"
@@ -129,10 +136,10 @@ def action_label(name):
 
 
 # ---------------------------------------------------------------- 送信
-def _mouse_input(flag):
+def _mouse_input(flag, data=0):
     return afk.INPUT(
         type=INPUT_MOUSE,
-        u=afk._INPUTUNION(mi=afk.MOUSEINPUT(dx=0, dy=0, mouseData=0,
+        u=afk._INPUTUNION(mi=afk.MOUSEINPUT(dx=0, dy=0, mouseData=int(data),
                                             dwFlags=flag, time=0, dwExtraInfo=0)))
 
 
@@ -141,7 +148,7 @@ def mouse_hold(button="left", down=True):
     pair = MOUSEEVENTF.get(button)
     if not pair:
         return False
-    a = _mouse_input(pair[0] if down else pair[1])
+    a = _mouse_input(pair[0] if down else pair[1], MOUSE_DATA.get(button, 0))
     return user32.SendInput(1, ctypes.byref(a), ctypes.sizeof(afk.INPUT)) == 1
 
 
@@ -151,8 +158,9 @@ def click(button="left", hold_ms=20):
     if not pair:
         return False
     down, up = pair
+    data = MOUSE_DATA.get(button, 0)
     size = ctypes.sizeof(afk.INPUT)
-    a, b = _mouse_input(down), _mouse_input(up)
+    a, b = _mouse_input(down, data), _mouse_input(up, data)
     if user32.SendInput(1, ctypes.byref(a), size) != 1:
         return False
     if hold_ms > 0:
@@ -214,14 +222,25 @@ def _sleep(sec):
 WM_LBUTTONDOWN, WM_LBUTTONUP = 0x0201, 0x0202
 WM_RBUTTONDOWN, WM_RBUTTONUP = 0x0204, 0x0205
 WM_MBUTTONDOWN, WM_MBUTTONUP = 0x0207, 0x0208
+WM_XBUTTONDOWN, WM_XBUTTONUP = 0x020B, 0x020C
 WM_MOUSEMOVE = 0x0200
 MK_LBUTTON, MK_RBUTTON, MK_MBUTTON = 0x0001, 0x0002, 0x0010
+MK_XBUTTON1, MK_XBUTTON2 = 0x0020, 0x0040
 
+# (押す, 離す, 押されている印, サイドボタンの番号)
+# サイドボタンだけは wParam の上位16ビットに番号を入れる決まり
 POST_BUTTON = {
-    "left": (WM_LBUTTONDOWN, WM_LBUTTONUP, MK_LBUTTON),
-    "right": (WM_RBUTTONDOWN, WM_RBUTTONUP, MK_RBUTTON),
-    "middle": (WM_MBUTTONDOWN, WM_MBUTTONUP, MK_MBUTTON),
+    "left": (WM_LBUTTONDOWN, WM_LBUTTONUP, MK_LBUTTON, 0),
+    "right": (WM_RBUTTONDOWN, WM_RBUTTONUP, MK_RBUTTON, 0),
+    "middle": (WM_MBUTTONDOWN, WM_MBUTTONUP, MK_MBUTTON, 0),
+    "x1": (WM_XBUTTONDOWN, WM_XBUTTONUP, MK_XBUTTON1, 1),
+    "x2": (WM_XBUTTONDOWN, WM_XBUTTONUP, MK_XBUTTON2, 2),
 }
+
+
+def _wparam(mk, xb):
+    """サイドボタンは上位に番号、下位に押されている印。"""
+    return ((int(xb) & 0xFFFF) << 16) | (int(mk) & 0xFFFF)
 
 SEND_MODES = (
     ("input", "ふつうに送る（最前面のアプリに届きます）"),
@@ -261,14 +280,14 @@ def post_click(hwnd, button="left", hold_ms=20):
     got = POST_BUTTON.get(button)
     if not got or not hwnd:
         return False
-    down_msg, up_msg, mk = got
+    down_msg, up_msg, mk, xb = got
     x, y = _cursor_in_client(hwnd)
     lp = (int(y) & 0xFFFF) << 16 | (int(x) & 0xFFFF)
     user32.PostMessageW(hwnd, WM_MOUSEMOVE, 0, lp)
-    if not user32.PostMessageW(hwnd, down_msg, mk, lp):
+    if not user32.PostMessageW(hwnd, down_msg, _wparam(mk, xb), lp):
         return False
     _sleep(max(0.0, hold_ms / 1000.0))
-    user32.PostMessageW(hwnd, up_msg, 0, lp)
+    user32.PostMessageW(hwnd, up_msg, _wparam(0, xb), lp)
     return True
 
 
@@ -277,13 +296,13 @@ def post_mouse_hold(hwnd, button="left", down=True):
     got = POST_BUTTON.get(button)
     if not got or not hwnd:
         return False
-    down_msg, up_msg, mk = got
+    down_msg, up_msg, mk, xb = got
     x, y = _cursor_in_client(hwnd)
     lp = (int(y) & 0xFFFF) << 16 | (int(x) & 0xFFFF)
     if down:
         user32.PostMessageW(hwnd, WM_MOUSEMOVE, mk, lp)
-        return bool(user32.PostMessageW(hwnd, down_msg, mk, lp))
-    return bool(user32.PostMessageW(hwnd, up_msg, 0, lp))
+        return bool(user32.PostMessageW(hwnd, down_msg, _wparam(mk, xb), lp))
+    return bool(user32.PostMessageW(hwnd, up_msg, _wparam(0, xb), lp))
 
 
 def post_key_hold(hwnd, vk, scan=None, down=True, again=False):

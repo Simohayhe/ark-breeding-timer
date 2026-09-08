@@ -47,7 +47,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.65.0"
+APP_VERSION = "1.66.0"
 
 
 def _res_dir():
@@ -2016,7 +2016,8 @@ class App(tk.Tk):
         self.stop_macro()                  # 連射とは同時に動かさない
         self.holder = macro.Holder(self._macro_cfg)
         self.holder.start()
-        self.blip("⬇ %s を押しっぱなしにします" % self.macro_what(), "mint")
+        self.blip("⬇ %s を押しっぱなしにします" % self.macro_what(first=True),
+                  "mint")
 
     def stop_hold(self):
         if self.holder is not None:
@@ -2031,10 +2032,15 @@ class App(tk.Tk):
                 return False
         return True
 
-    def macro_what(self):
-        """いま送るもの（左クリック／E など）の名前。"""
+    def macro_what(self, first=False):
+        """いま送るもの（左クリック／E など）の名前。
+
+        長押しは1つ目だけを押しつづけるので、そのときは first=True。
+        """
         got = []
         for st in macro.steps_of(self._macro_cfg()):
+            if first and got:
+                break
             act = st.get("action")
             got.append(macro.vk_name(st.get("key_vk") or 0) if act == "key"
                        else macro.action_label(act))
@@ -2256,7 +2262,7 @@ class App(tk.Tk):
             if h.waiting:
                 return "⏸ 長押しまちうけ（%s が前に出るまで）" % (
                     self.cfg.get("macro_target") or "対象")
-            return "⬇ %s を長押し中" % self.macro_what()
+            return "⬇ %s を長押し中" % self.macro_what(first=True)
         if not self.macro_running():
             return ""
         r = self.macro
