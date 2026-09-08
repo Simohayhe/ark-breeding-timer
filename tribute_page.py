@@ -9,8 +9,11 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
+import hudread
+import macro
 import theme as th
 import tribute as tb
+import tribute_read as tr
 
 
 class TributePage(tk.Frame):
@@ -92,6 +95,34 @@ class TributePage(tk.Frame):
                          "自分の書き方で足してもらってかまいません",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
                  justify="left").pack(anchor="w", pady=(4, 0))
+
+        # ---- スクショから ----
+        cap = th.Card(self, bg=th.BG)
+        cap.pack(fill="x", pady=(8, 0))
+        p = cap.body
+        tk.Label(p, text="📷 スクショから取り込む", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w")
+        tk.Label(p, text="ARKで箱を開けて、品名が出る表示にしてから範囲をおしえて"
+                         "ください。読んだ結果は、入れる前に確かめられます",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
+                 justify="left").pack(anchor="w", pady=(0, 6))
+        cr = tk.Frame(p, bg=th.CARD)
+        cr.pack(fill="x")
+        self.btn_area = th.RoundButton(cr, "🖱 範囲をおしえる", self.learn_area,
+                                       kind="soft", bg=th.CARD,
+                                       font=F["small"], padx=14, pady=5,
+                                       width=180)
+        self.btn_area.pack(side="left")
+        self.btn_read = th.RoundButton(cr, "📷 いま読む", self.read_now,
+                                       kind="primary", bg=th.CARD,
+                                       font=F["small"], padx=14, pady=5)
+        self.btn_read.pack(side="left", padx=6)
+        self.lbl_cap = tk.Label(p, text="", bg=th.CARD, fg=th.INK_SUB,
+                                font=F["small"], anchor="w", wraplength=760,
+                                justify="left")
+        self.lbl_cap.pack(fill="x", pady=(4, 0))
+        self.rec = None
+        self.show_area()
 
         # ---- 一覧 ----
         wrap = tk.Frame(self, bg=th.BG)
@@ -262,6 +293,86 @@ class TributePage(tk.Frame):
                        bg=th.CARD, font=F["small"], padx=10,
                        pady=3).pack(side="right")
 
+    # ------------------------------------------------ スクショ
+    def area(self):
+        got = self.app.cfg.get("tribute_rect")
+        if got and len(got) == 4 and got[2] > 20 and got[3] > 20:
+            return [int(v) for v in got]
+        return None
+
+    def show_area(self, msg=None, warn=False):
+        if msg is None:
+            r = self.area()
+            msg = ("いまの範囲: 左%d 上%d ／ %d×%d" % tuple(r) if r
+                   else "まだ範囲を教わっていません")
+        self.lbl_cap.config(text=msg, fg=th.PINK_DK if warn else th.INK_SUB)
+
+    def learn_area(self):
+        """箱の中身が出ている所を、左上と右下のクリックで教えてもらう。"""
+        if self.rec is not None:
+            self.rec.stop()
+            self.rec = None
+            self.btn_area.set_text("🖱 範囲をおしえる")
+            self.show_area("やめました")
+            return
+        self.rec = macro.ClickRecorder(2)
+        self.rec.start()
+        self.btn_area.set_text("やめる")
+        self.show_area("ARKへ行って、品名が並んでいる所の「左上」→「右下」の順に"
+                       "クリックしてください")
+        self._poll_area()
+
+    def _poll_area(self):
+        rec = self.rec
+        if rec is None:
+            return
+        if rec.done and len(rec.points) >= 2:
+            self.rec = None
+            self.btn_area.set_text("🖱 範囲をおしえなおす")
+            (x1, y1), (x2, y2) = rec.points[0], rec.points[1]
+            left, top = min(x1, x2), min(y1, y2)
+            w, h = abs(x2 - x1), abs(y2 - y1)
+            if w < 40 or h < 40:
+                self.show_area("範囲が小さすぎます。もう一度おしえてください",
+                               warn=True)
+                return
+            self.app.cfg["tribute_rect"] = [left, top, w, h]
+            self.app.save_cfg()
+            self.show_area()
+            return
+        self.after(150, self._poll_area)
+
+    def read_now(self):
+        if not self.map_name:
+            self.show_area("さきにマップを足してください", warn=True)
+            return
+        r = self.area()
+        if not r:
+            self.show_area("さきに範囲をおしえてください", warn=True)
+            return
+        self.btn_read.set_text("読んでいます…")
+        self.show_area("読んでいます。少しかかります…")
+        self.after(60, lambda: self._read_go(r))
+
+    def _read_go(self, r):
+        try:
+            boxes, rows, used = tr.read_area(r)
+        except hudread.HudError as e:
+            self.btn_read.set_text("📷 いま読む")
+            self.show_area("読めませんでした（%s）" % e, warn=True)
+            return
+        except Exception as e:                     # 予想外でも画面は戻す
+            self.btn_read.set_text("📷 いま読む")
+            self.show_area("読めませんでした（%s）" % e, warn=True)
+            return
+        self.btn_read.set_text("📷 いま読む")
+        if not rows:
+            self.show_area("品名を1つも取れませんでした。範囲と、品名が出る"
+                           "表示になっているかを確かめてください", warn=True)
+            return
+        self.show_area("%d品目を読みました" % len(rows))
+        ImportDialog(self.app, self, rows, used, len(boxes))
+
     def _wheel(self, e):
         try:
             if self.winfo_ismapped():
@@ -329,3 +440,108 @@ def gametime_label(name):
         return gametime.map_label(name)
     except Exception:
         return name
+
+
+class ImportDialog(tk.Toplevel):
+    """スクショから読んだ結果を見せて、直してから入れてもらう窓。
+
+    誤読を黙って持ち物帳に書き込むほうが、読めないより始末が悪い。
+    かならず目を通せる形にしておく。
+    """
+
+    def __init__(self, app, page, rows, used=None, count=0):
+        super().__init__(app)
+        self.app, self.page = app, page
+        F = app.F
+        self.title("スクショから取り込む")
+        self.configure(bg=th.BG)
+        self.transient(app)
+        self.geometry("640x620")
+        self.vars = []
+
+        card = th.Card(self, bg=th.BG)
+        card.pack(fill="both", expand=True, padx=10, pady=10)
+        c = card.body
+        tk.Label(c, text="読めたもの", bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w")
+        note = "%d品目（文字 %d個から）" % (len(rows), count)
+        if used:
+            note += "　濃さ%d・拡大%d倍" % used
+        tk.Label(c, text=note + "　✔ の付いたものだけ入ります。名前も数も直せます",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=580,
+                 justify="left").pack(anchor="w", pady=(0, 6))
+
+        wrap = tk.Frame(c, bg=th.CARD)
+        wrap.pack(fill="both", expand=True)
+        cv = tk.Canvas(wrap, bg=th.CARD, highlightthickness=0, bd=0, height=380)
+        cv.pack(side="left", fill="both", expand=True)
+        sb = ttk.Scrollbar(wrap, orient="vertical", command=cv.yview)
+        sb.pack(side="right", fill="y")
+        cv.configure(yscrollcommand=sb.set)
+        box = tk.Frame(cv, bg=th.CARD)
+        win = cv.create_window((0, 0), window=box, anchor="nw")
+        box.bind("<Configure>",
+                 lambda e: cv.configure(scrollregion=cv.bbox("all")))
+        cv.bind("<Configure>", lambda e: cv.itemconfigure(win, width=e.width))
+
+        known = {i.name for i in page.book().items(page.map_name)}
+        for name, n in rows:
+            fixed, hit = tr.snap(name, known)
+            self._row(box, fixed, n, hit)
+
+        bar = tk.Frame(c, bg=th.CARD)
+        bar.pack(fill="x", pady=(8, 0))
+        th.RoundButton(bar, "この数にする", lambda: self.apply("set"),
+                       kind="primary", bg=th.CARD, font=F["cute"],
+                       padx=18).pack(side="left")
+        th.RoundButton(bar, "いまの数に足す", lambda: self.apply("add"),
+                       kind="soft", bg=th.CARD, font=F["cute"],
+                       padx=18).pack(side="left", padx=8)
+        th.RoundButton(bar, "やめる", self.destroy, kind="ghost", bg=th.CARD,
+                       font=F["cute"], padx=14).pack(side="right")
+        tk.Label(c, text="「この数にする」は、スクショのとおりに置きかえます。"
+                         "箱を1つずつ写して足していくときは「足す」を使ってください",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=580,
+                 justify="left").pack(anchor="w", pady=(6, 0))
+
+    def _row(self, box, name, n, hit):
+        F = self.app.F
+        row = tk.Frame(box, bg=th.CARD)
+        row.pack(fill="x", pady=1)
+        v_on = tk.BooleanVar(value=True)
+        tk.Checkbutton(row, variable=v_on, bg=th.CARD, activebackground=th.CARD,
+                       selectcolor=th.FIELD, bd=0,
+                       highlightthickness=0).pack(side="left")
+        v_name = tk.StringVar(value=name)
+        th.soft_entry(row, v_name, width=30).pack(side="left", ipady=2)
+        tk.Label(row, text="  ×", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left")
+        v_n = tk.StringVar(value=str(n))
+        th.soft_entry(row, v_n, width=6).pack(side="left", padx=4, ipady=2)
+        tk.Label(row, text="  もとからある品目に寄せました" if hit else "",
+                 bg=th.CARD, fg=th.MINT, font=F["small"]).pack(side="left")
+        self.vars.append((v_on, v_name, v_n))
+
+    def apply(self, how):
+        book, mp = self.page.book(), self.page.map_name
+        done = 0
+        for v_on, v_name, v_n in self.vars:
+            if not v_on.get():
+                continue
+            name = v_name.get().strip()
+            if not name:
+                continue
+            try:
+                n = max(0, int(float(v_n.get())))
+            except (TypeError, ValueError):
+                continue
+            if how == "add":
+                book.put(mp, name, add=n)
+            else:
+                book.put(mp, name, have=n)
+            done += 1
+        book.sort(mp)
+        self.app.save_book()
+        self.page.rebuild()
+        self.app.blip("🏺 %d品目を取り込みました" % done, "mint")
+        self.destroy()

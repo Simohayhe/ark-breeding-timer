@@ -116,6 +116,7 @@ def common_args(ver):
         "--hidden-import", "hudread",
         "--hidden-import", "calc_page", "--hidden-import", "theme",
         "--hidden-import", "tribute", "--hidden-import", "tribute_page",
+        "--hidden-import", "tribute_read",
         "ark_breeding_timer.py",
     ]
 

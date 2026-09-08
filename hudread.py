@@ -33,7 +33,7 @@ DEFAULT_RECT = (0.0, 0.0, 0.30, 0.14)
 
 _PS = r'''
 param([string]$Out, [int]$L, [int]$T, [int]$W, [int]$H, [int]$Scale,
-      [int]$Thr = 225, [string]$Src = "")
+      [int]$Thr = 225, [string]$Src = "", [switch]$Boxes)
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
@@ -56,12 +56,46 @@ $g2.DrawImage($bmp, 0, 0, ($W * $Scale), ($H * $Scale))
 $g2.Dispose()
 # HUDの字は「ほぼ真っ白」。しきい値を高めに取らないと、明るい地面や
 # 金属の反射まで拾ってしまい、字が埋もれて読めなくなる。
-for ($y = 0; $y -lt $bw.Height; $y++) {
-  for ($x = 0; $x -lt $bw.Width; $x++) {
-    $c = $bw.GetPixel($x, $y)
-    $v = ($c.R * 0.299 + $c.G * 0.587 + $c.B * 0.114)
-    if ($v -gt $Thr) { $bw.SetPixel($x, $y, [System.Drawing.Color]::Black) }
-    else { $bw.SetPixel($x, $y, [System.Drawing.Color]::White) }
+#
+# 1画素ずつ GetPixel/SetPixel を呼ぶと、インベントリくらいの広さでは
+# 何分もかかる。まとめて取り出して回すために、小さな C# を借りる。
+# 借りられない環境のために、元の遅いやりかたも残しておく。
+$fast = $false
+try {
+  Add-Type -TypeDefinition @"
+using System;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
+public static class MeridianThr {
+  public static void Apply(Bitmap bmp, int thr) {
+    Rectangle r = new Rectangle(0, 0, bmp.Width, bmp.Height);
+    BitmapData d = bmp.LockBits(r, ImageLockMode.ReadWrite,
+                                PixelFormat.Format24bppRgb);
+    int n = Math.Abs(d.Stride) * bmp.Height;
+    byte[] buf = new byte[n];
+    Marshal.Copy(d.Scan0, buf, 0, n);
+    for (int i = 0; i + 2 < n; i += 3) {
+      double v = buf[i + 2] * 0.299 + buf[i + 1] * 0.587 + buf[i] * 0.114;
+      byte o = (byte)(v > thr ? 0 : 255);
+      buf[i] = o; buf[i + 1] = o; buf[i + 2] = o;
+    }
+    Marshal.Copy(buf, 0, d.Scan0, n);
+    bmp.UnlockBits(d);
+  }
+}
+"@ -ReferencedAssemblies System.Drawing -ErrorAction Stop
+  [MeridianThr]::Apply($bw, $Thr)
+  $fast = $true
+} catch { $fast = $false }
+if (-not $fast) {
+  for ($y = 0; $y -lt $bw.Height; $y++) {
+    for ($x = 0; $x -lt $bw.Width; $x++) {
+      $c = $bw.GetPixel($x, $y)
+      $v = ($c.R * 0.299 + $c.G * 0.587 + $c.B * 0.114)
+      if ($v -gt $Thr) { $bw.SetPixel($x, $y, [System.Drawing.Color]::Black) }
+      else { $bw.SetPixel($x, $y, [System.Drawing.Color]::White) }
+    }
   }
 }
 $bw.Save($Out, [System.Drawing.Imaging.ImageFormat]::Png)
@@ -85,7 +119,23 @@ $sb = Await ($dec.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareB
 $engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages()
 if (-not $engine) { Write-Output "<<NOENGINE>>"; exit }
 $res = Await ($engine.RecognizeAsync($sb)) ([Windows.Media.Ocr.OcrResult])
-foreach ($line in $res.Lines) { Write-Output $line.Text }
+if ($Boxes) {
+  # 「左 上 幅 高さ<タブ>文字」。マス目に割り当てるのに位置が要る
+  foreach ($line in $res.Lines) {
+    # 変数名は $W（引数の[int]）と当たらないものにする。
+    # PowerShell は大文字小文字を区別しないので $w だと型が合わずに落ちる。
+    foreach ($wd in $line.Words) {
+      $r = $wd.BoundingRect
+      $bx = [int][math]::Round($r.X)
+      $by = [int][math]::Round($r.Y)
+      $bw2 = [int][math]::Round($r.Width)
+      $bh2 = [int][math]::Round($r.Height)
+      Write-Output ("$bx $by $bw2 $bh2`t" + $wd.Text)
+    }
+  }
+} else {
+  foreach ($line in $res.Lines) { Write-Output $line.Text }
+}
 '''
 
 
@@ -102,10 +152,12 @@ def _ps_path():
     return path
 
 
-def capture_text(rect, scale=3, timeout=25, src="", thr=225):
+def capture_text(rect, scale=3, timeout=25, src="", thr=225, boxes=False):
     """画面の (左, 上, 幅, 高さ) を写して、読めた行を返す。
 
     src に画像のパスを渡すと、画面ではなくその画像を読む（確認用）。
+    boxes=True なら、行ではなく (左, 上, 幅, 高さ, 文字) の並びを返す。
+    位置は拡大後の画像のもの。ならびを見るぶんには拡大率は関係ない。
     """
     left, top, w, h = (int(v) for v in rect)
     if not src and (w < 20 or h < 10):
@@ -117,6 +169,8 @@ def capture_text(rect, scale=3, timeout=25, src="", thr=225):
            "-Thr", str(thr)]
     if src:
         cmd += ["-Src", src]
+    if boxes:
+        cmd += ["-Boxes"]
     try:
         p = subprocess.run(cmd, capture_output=True, timeout=timeout,
                            creationflags=getattr(subprocess,
@@ -129,7 +183,20 @@ def capture_text(rect, scale=3, timeout=25, src="", thr=225):
     if p.returncode != 0 and not text.strip():
         err = (p.stderr or b"").decode("utf-8", "replace").strip()
         raise HudError(err[:120] or "読み取りに失敗しました")
-    return [ln.strip() for ln in text.splitlines() if ln.strip()]
+    if not boxes:
+        return [ln.strip() for ln in text.splitlines() if ln.strip()]
+    out = []
+    for ln in text.splitlines():
+        if "	" not in ln:
+            continue
+        pos, word = ln.split("	", 1)
+        try:
+            x, y, w2, h2 = (int(v) for v in pos.split())
+        except ValueError:
+            continue
+        if word.strip():
+            out.append((x, y, w2, h2, word.strip()))
+    return out
 
 
 # OCR は「05 : 53」のように空白を入れてくる。詰めてから探す。
