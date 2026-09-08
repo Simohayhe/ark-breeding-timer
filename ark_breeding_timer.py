@@ -38,6 +38,8 @@ import theme as th
 import updater
 from afk_page import AfkPage
 from calc_page import CalcPage
+import tribute as tb
+from tribute_page import TributePage
 from gametime_page import GameTimePage
 from macro_page import MacroPage
 
@@ -45,7 +47,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.61.0"
+APP_VERSION = "1.62.0"
 
 
 def _res_dir():
@@ -1598,6 +1600,7 @@ class App(tk.Tk):
                            ("afk", "🎮 AFK防止"),
                            ("macro", "🖱 マクロ"),
                            ("gametime", "🌙 ゲーム内時計"),
+                           ("tribute", "🏺 貢物"),
                            ("calc", "🧮 電卓")):
             self.tabs[key] = tabs.add(
                 Pill(tabs, label, lambda k=key: self.show_page(k), bg=th.BG,
@@ -1647,6 +1650,8 @@ class App(tk.Tk):
         # ---------------- ゲーム内時計のページ ----------------
         self.page_gametime = GameTimePage(self, self)
         self.page_calc = CalcPage(self, self)
+        self.book = tb.Book(self.cfg.get("tribute_book"))
+        self.page_tribute = TributePage(self, self)
         self.apply_hotkey()
         self.apply_egg_hotkey()
 
@@ -1701,7 +1706,7 @@ class App(tk.Tk):
     def show_page(self, name):
         """⏰タイマー / 🗒チェックリスト / 🎮AFK防止 / 🖱マクロ の切り替え。"""
         if name not in ("timers", "checklist", "afk", "macro", "gametime",
-                        "calc"):
+                        "tribute", "calc"):
             name = "timers"
         self.page = name
         for key, pill in self.tabs.items():
@@ -1712,6 +1717,7 @@ class App(tk.Tk):
         self.page_macro.pack_forget()
         self.page_gametime.pack_forget()
         self.page_calc.pack_forget()
+        self.page_tribute.pack_forget()
         if name == "checklist":
             self.page_check.pack(fill="both", expand=True, padx=18, pady=(0, 12))
         elif name == "afk":
@@ -1721,6 +1727,9 @@ class App(tk.Tk):
         elif name == "gametime":
             self.page_gametime.pack(fill="both", expand=True, padx=12,
                                     pady=(0, 12))
+        elif name == "tribute":
+            self.page_tribute.pack(fill="both", expand=True, padx=12,
+                                   pady=(0, 12))
         elif name == "calc":
             self.page_calc.pack(fill="both", expand=True, padx=12, pady=(0, 12))
         else:
@@ -1729,8 +1738,8 @@ class App(tk.Tk):
 
     def _on_wheel(self, e):
         page = getattr(self, "page", "timers")
-        if page in ("afk", "macro", "calc"):
-            return   # スクロールする一覧が無いページ
+        if page in ("afk", "macro", "calc", "tribute"):
+            return   # それぞれ自前でホイールを見ている
         if page == "gametime":
             cv = self.page_gametime.canvas
         else:
@@ -1773,6 +1782,10 @@ class App(tk.Tk):
                 bg=th.BG, font=F["small"]))
         if self.mini is not None and self.mini.winfo_exists():
             self.mini.refresh_quick()
+
+    def confirm_drop(self, name, parent=None):
+        """消す前のひとこと。設定でオフなら何も聞かずに True。"""
+        return self.ask_delete(name, parent)
 
     def ask_delete(self, name, parent=None):
         """✕ を押したときの確認。設定でオフなら何も聞かずに True。"""
@@ -2700,6 +2713,11 @@ class App(tk.Tk):
             msg = c.on_day_changed(prev_at)
             if msg:
                 self.watch_msg[name] = msg
+
+    def save_book(self):
+        """貢物の控えをしまう。数をいじるたび呼ばれるので、軽くしておく。"""
+        self.cfg["tribute_book"] = self.book.to_dict()
+        self.save_cfg()
 
     def save_clocks(self):
         self.cfg["game_clocks"] = self.clocks.to_dict()

@@ -115,6 +115,7 @@ def common_args(ver):
         "--hidden-import", "sounds",
         "--hidden-import", "hudread",
         "--hidden-import", "calc_page", "--hidden-import", "theme",
+        "--hidden-import", "tribute", "--hidden-import", "tribute_page",
         "ark_breeding_timer.py",
     ]
 
