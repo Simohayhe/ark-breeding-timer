@@ -47,7 +47,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.63.0"
+APP_VERSION = "1.64.0"
 
 
 def _res_dir():
@@ -144,6 +144,7 @@ DEFAULT_CONFIG = {
     "macro_hold_ms": 20,
     "macro_limit": 0,                  # 0 = ずっと
     "macro_send_mode": macro.DEFAULT_SEND_MODE,  # input / post / swap
+    "macro_steps": [],                 # 1回に続けて送る行動（最大3つ）
     "macro_hold_delay_ms": 300,        # 何ミリ秒押しつづけたら連射しはじめるか
     "macro_hold_hotkey_on": True,      # 長押しのほう
     "macro_hold_hotkey_mods": macro.MOD_CONTROL,
@@ -1943,6 +1944,7 @@ class App(tk.Tk):
             "action": c.get("macro_action") or macro.DEFAULT_ACTION,
             "key_vk": c.get("macro_key_vk") or 0,
             "key_scan": c.get("macro_key_scan") or 0,
+            "steps": c.get("macro_steps") or [],
             "interval_ms": c.get("macro_interval_ms", 100),
             "hold_ms": c.get("macro_hold_ms", 20),
             "limit": c.get("macro_limit", 0),
@@ -1976,8 +1978,7 @@ class App(tk.Tk):
             if same:
                 self.blip("連射 とめました", "sub")
                 return          # 同じほうをもう一度＝とめる
-        if (self.cfg.get("macro_action") == "key"
-                and not self.cfg.get("macro_key_vk")):
+        if not self.macro_ready():
             return       # 送るキーが決まっていないので始めない
         gate = None
         if mode == "hold":
@@ -2010,8 +2011,7 @@ class App(tk.Tk):
             self.stop_hold()
             self.blip("長押し 離しました", "sub")
             return
-        if (self.cfg.get("macro_action") == "key"
-                and not self.cfg.get("macro_key_vk")):
+        if not self.macro_ready():
             return       # 送るキーが決まっていないので始めない
         self.stop_macro()                  # 連射とは同時に動かさない
         self.holder = macro.Holder(self._macro_cfg)
@@ -2024,12 +2024,21 @@ class App(tk.Tk):
             self.holder.join(1.0)          # 離し終わるまで待つ
             self.holder = None
 
+    def macro_ready(self):
+        """送るものが決まっているか。キーの行動があるのに空なら始めない。"""
+        for st in macro.steps_of(self._macro_cfg()):
+            if st.get("action") == "key" and not st.get("key_vk"):
+                return False
+        return True
+
     def macro_what(self):
         """いま送るもの（左クリック／E など）の名前。"""
-        act = self.cfg.get("macro_action") or macro.DEFAULT_ACTION
-        if act == "key":
-            return macro.vk_name(self.cfg.get("macro_key_vk") or 0)
-        return macro.action_label(act)
+        got = []
+        for st in macro.steps_of(self._macro_cfg()):
+            act = st.get("action")
+            got.append(macro.vk_name(st.get("key_vk") or 0) if act == "key"
+                       else macro.action_label(act))
+        return " → ".join(got) if got else "?"
 
     def stop_macro(self):
         if self.macro is not None:

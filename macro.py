@@ -55,6 +55,72 @@ def mode_label(name):
     return name
 
 
+MAX_STEPS = 3        # 1回に続けて送れる行動の数
+
+
+# ------------------------------------------------- 秒・分の読み書き
+# ミリ秒で入れさせると桁を間違える。「0.5」「2秒」「1分30秒」「1:30」で書く。
+_UNITS = (("ミリ秒", 0.001), ("ミリ", 0.001), ("ms", 0.001),
+          ("分", 60.0), ("m", 60.0), ("秒", 1.0), ("s", 1.0))
+
+
+def parse_secs(text, default=None):
+    """「0.5」「2秒」「1分30秒」「1:30」を秒にする。読めなければ default。"""
+    t = (text or "").strip().lower()
+    if not t:
+        return default
+    t = t.translate(str.maketrans("０１２３４５６７８９．：",
+                                  "0123456789.:"))
+    if ":" in t:                       # 1:30 = 1分30秒
+        got = t.split(":")
+        try:
+            mm, ss = float(got[0] or 0), float(got[1] or 0)
+        except ValueError:
+            return default
+        return mm * 60.0 + ss
+    total, rest, hit = 0.0, t, False
+    for unit, mul in _UNITS:
+        i = rest.find(unit)
+        while i >= 0:
+            head = rest[:i]
+            num = "".join(c for c in head if c.isdigit() or c == ".")
+            if num:
+                try:
+                    total += float(num) * mul
+                    hit = True
+                except ValueError:
+                    pass
+            rest = rest[i + len(unit):]
+            i = rest.find(unit)
+    if hit:
+        # 「1分30」のように、最後の単位が抜けているぶんを秒として足す
+        num = "".join(c for c in rest if c.isdigit() or c == ".")
+        if num:
+            try:
+                total += float(num)
+            except ValueError:
+                pass
+        return total
+    try:
+        return float(t)                # 単位なしは秒とみなす
+    except ValueError:
+        return default
+
+
+def fmt_secs(sec):
+    """秒を、書き戻せる形の文字で。"""
+    try:
+        sec = float(sec)
+    except (TypeError, ValueError):
+        return "0"
+    if sec >= 60:
+        m, s = int(sec // 60), sec - int(sec // 60) * 60
+        if abs(s) < 0.0005:
+            return "%d分" % m
+        return "%d分%s秒" % (m, ("%.3f" % s).rstrip("0").rstrip("."))
+    return ("%.3f" % sec).rstrip("0").rstrip(".") or "0"
+
+
 def action_label(name):
     for k, lbl in ACTIONS:
         if k == name:
@@ -254,6 +320,56 @@ def post_vk(hwnd, vk, scan=None, hold_ms=20):
     return True
 
 
+def steps_of(cfg):
+    """設定から行動の並びを作る。空なら、昔ながらの1行動として読む。"""
+    got = []
+    for st in (cfg.get("steps") or []):
+        act = (st.get("action") or "").strip()
+        if not act or act == "none":
+            continue
+        got.append({"action": act,
+                    "key_vk": st.get("key_vk") or 0,
+                    "key_scan": st.get("key_scan") or 0,
+                    "hold_ms": st.get("hold_ms", cfg.get("hold_ms", 20)),
+                    "gap_ms": st.get("gap_ms", 120)})
+        if len(got) >= MAX_STEPS:
+            break
+    if got:
+        return got
+    return [{"action": cfg.get("action") or DEFAULT_ACTION,
+             "key_vk": cfg.get("key_vk") or 0,
+             "key_scan": cfg.get("key_scan") or 0,
+             "hold_ms": cfg.get("hold_ms", 20),
+             "gap_ms": 0}]
+
+
+def send_seq(cfg, hwnd=None, halt=None):
+    """行動の並びを、あいだを空けながら順に送る。
+
+    途中で止められるように halt（Event）を見る。3行動目まで送り終える前に
+    止めたいことのほうが多い。
+    """
+    steps = steps_of(cfg)
+    sent, why = 0, ""
+    for i, st in enumerate(steps):
+        if halt is not None and halt.is_set():
+            break
+        one = dict(cfg)
+        one.update(st)
+        ok, msg = send_once(one, hwnd)
+        if ok:
+            sent += 1
+        elif msg:
+            why = msg
+        if i + 1 < len(steps):
+            gap = max(0.0, float(st.get("gap_ms") or 0) / 1000.0)
+            if halt is not None:
+                halt.wait(gap)
+            elif gap:
+                _sleep(gap)
+    return sent > 0, why
+
+
 def send_once(cfg, hwnd=None):
     """設定どおりに1回送る。(送れたか, 説明) を返す。"""
     mode = cfg.get("send_mode") or DEFAULT_SEND_MODE
@@ -332,7 +448,7 @@ class Runner(threading.Thread):
                     self.waiting = True     # 窓が出るまで待つ
                     self._halt.wait(0.5)
                     continue
-            ok, _why = send_once(c, hwnd)
+            ok, _why = send_seq(c, hwnd, self._halt)
             if ok:
                 self.count += 1
             limit = int(c.get("limit") or 0)

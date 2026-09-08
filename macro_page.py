@@ -16,6 +16,7 @@ class MacroPage(tk.Frame):
         super().__init__(master, bg=th.BG)
         self.app = app
         self._capturing = False
+        self.F = app.F
         F = app.F
         cfg = app.cfg
 
@@ -101,40 +102,45 @@ class MacroPage(tk.Frame):
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
                  justify="left").pack(anchor="w", pady=(0, 10))
 
-        tk.Label(c, text="なにを連打する？", bg=th.CARD, fg=th.INK,
-                 font=F["cute_b"]).pack(anchor="w")
-        arow = tk.Frame(c, bg=th.CARD)
-        arow.pack(fill="x", pady=(4, 2))
-        self.v_action = tk.StringVar(
-            value=macro.action_label(cfg.get("macro_action")))
-        self.cb_action = ttk.Combobox(arow, textvariable=self.v_action,
-                                      state="readonly", width=18,
-                                      style="Cute.TCombobox", font=F["ui"])
-        self.cb_action["values"] = [lbl for _k, lbl in macro.ACTIONS]
-        self.cb_action.pack(side="left")
-        self.cb_action.bind("<<ComboboxSelected>>", lambda e: self.save())
-        self.btn_key = th.RoundButton(arow, "", self.capture_key, kind="soft",
-                                      bg=th.CARD, font=F["small"], padx=12,
-                                      pady=5, width=190)
-        self.btn_key.pack(side="left", padx=6)
-        th.RoundButton(arow, "▶ 1回ためす", self.test_once, kind="soft", bg=th.CARD,
-                       font=F["small"], padx=12, pady=5).pack(side="left")
-        tk.Label(c, text="「キー」を選んだときは、右のボタンを押してから"
-                         "使いたいキーを押してください",
-                 bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
-                                                                  pady=(0, 10))
+        tk.Label(c, text="なにを連打する？（3つまで続けて送れます）",
+                 bg=th.CARD, fg=th.INK, font=F["cute_b"]).pack(anchor="w")
+        tk.Label(c, text="上から順に送ります。2つ目・3つ目が「なし」なら、"
+                         "1つ目だけをくり返します",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
+                 justify="left").pack(anchor="w", pady=(0, 4))
+        self.steps = []
+        saved = list(cfg.get("macro_steps") or [])
+        if not saved:      # 前のかたち（1行動だけ）から引き継ぐ
+            saved = [{"action": cfg.get("macro_action") or macro.DEFAULT_ACTION,
+                      "key_vk": cfg.get("macro_key_vk") or 0,
+                      "key_scan": cfg.get("macro_key_scan") or 0,
+                      "gap_ms": 120}]
+        for i in range(macro.MAX_STEPS):
+            self.steps.append(self._step_row(
+                c, i, saved[i] if i < len(saved) else {}))
+
+        trow = tk.Frame(c, bg=th.CARD)
+        trow.pack(fill="x", pady=(6, 10))
+        th.RoundButton(trow, "▶ ひと通りためす", self.test_once, kind="soft",
+                       bg=th.CARD, font=F["small"], padx=12,
+                       pady=5).pack(side="left")
+        tk.Label(trow, text="「キー」を選んだときは、となりのボタンを押してから"
+                           "使いたいキーを押してください",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"]).pack(side="left",
+                                                                  padx=6)
 
         n1 = tk.Frame(c, bg=th.CARD)
         n1.pack(fill="x", pady=2)
-        tk.Label(n1, text="間隔", bg=th.CARD, fg=th.INK, font=F["cute"],
+        tk.Label(n1, text="くり返す間隔", bg=th.CARD, fg=th.INK, font=F["cute"],
                  width=14, anchor="w").pack(side="left")
         self.v_interval = tk.StringVar(
-            value=str(int(cfg.get("macro_interval_ms") or 100)))
-        th.soft_entry(n1, self.v_interval, width=7).pack(side="left", ipady=3)
-        tk.Label(n1, text=" ミリ秒ごと", bg=th.CARD, fg=th.INK_SUB,
-                 font=F["small"]).pack(side="left")
-        for txt, ms in (("50", 50), ("100", 100), ("200", 200), ("500", 500),
-                        ("1000", 1000)):
+            value=macro.fmt_secs(float(cfg.get("macro_interval_ms") or 100)
+                                 / 1000.0))
+        th.soft_entry(n1, self.v_interval, width=8).pack(side="left", ipady=3)
+        tk.Label(n1, text=" ごと（0.5 / 2秒 / 1分30秒）", bg=th.CARD,
+                 fg=th.INK_SUB, font=F["small"]).pack(side="left")
+        for txt, ms in (("0.05", 50), ("0.1", 100), ("0.5", 500),
+                        ("1秒", 1000), ("5秒", 5000), ("1分", 60000)):
             th.Chip(n1, txt, lambda v=ms: self._set_interval(v), bg=th.CARD,
                     font=F["small"]).pack(side="left", padx=2)
 
@@ -315,14 +321,16 @@ class MacroPage(tk.Frame):
                                                       ipady=3)
         tk.Label(r2, text="個（枠は%d個まで）　あいだ" % macro.MAX_EGGS,
                  bg=th.CARD, fg=th.INK, font=F["cute"]).pack(side="left")
-        self.v_mid = tk.StringVar(value=str(cfg.get("egg_mid_ms", 150)))
-        th.soft_entry(r2, self.v_mid, width=5).pack(side="left", padx=4, ipady=3)
-        tk.Label(r2, text="ms　次まで", bg=th.CARD, fg=th.INK,
+        self.v_mid = tk.StringVar(
+            value=macro.fmt_secs(float(cfg.get("egg_mid_ms", 150)) / 1000.0))
+        th.soft_entry(r2, self.v_mid, width=7).pack(side="left", padx=4, ipady=3)
+        tk.Label(r2, text="秒　次まで", bg=th.CARD, fg=th.INK,
                  font=F["cute"]).pack(side="left")
-        self.v_egap = tk.StringVar(value=str(cfg.get("egg_gap_ms", 300)))
-        th.soft_entry(r2, self.v_egap, width=5).pack(side="left", padx=4,
+        self.v_egap = tk.StringVar(
+            value=macro.fmt_secs(float(cfg.get("egg_gap_ms", 300)) / 1000.0))
+        th.soft_entry(r2, self.v_egap, width=7).pack(side="left", padx=4,
                                                      ipady=3)
-        tk.Label(r2, text="ms", bg=th.CARD, fg=th.INK,
+        tk.Label(r2, text="秒", bg=th.CARD, fg=th.INK,
                  font=F["cute"]).pack(side="left")
 
         r3 = tk.Frame(e, bg=th.CARD)
@@ -376,6 +384,53 @@ class MacroPage(tk.Frame):
         self.update_view()
 
     # ---------------- 設定 ----------------
+    def _step_row(self, parent, i, st):
+        """行動ひとつぶんの列。種類・キー・次までの間隔。"""
+        F = self.F
+        row = tk.Frame(parent, bg=th.CARD)
+        row.pack(fill="x", pady=2)
+        tk.Label(row, text="%d つ目" % (i + 1), bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"], width=6, anchor="w").pack(side="left")
+        v_act = tk.StringVar()
+        cb = ttk.Combobox(row, textvariable=v_act, state="readonly", width=16,
+                          style="Cute.TCombobox", font=F["ui"])
+        vals = [lbl for _k, lbl in macro.ACTIONS]
+        if i > 0:
+            vals = ["なし"] + vals      # 2つ目からは「使わない」が選べる
+        cb["values"] = vals
+        act = (st.get("action") or "").strip()
+        if i > 0 and not act:
+            v_act.set("なし")
+        else:
+            v_act.set(macro.action_label(act or macro.DEFAULT_ACTION))
+        cb.pack(side="left")
+        cb.bind("<<ComboboxSelected>>", lambda e: self.save())
+
+        btn = th.RoundButton(row, "", lambda n=i: self.capture_key(n),
+                             kind="soft", bg=th.CARD, font=F["small"],
+                             padx=12, pady=5, width=170)
+        btn.pack(side="left", padx=6)
+        tk.Label(row, text="次まで", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left")
+        v_gap = tk.StringVar(
+            value=macro.fmt_secs(float(st.get("gap_ms", 120)) / 1000.0))
+        e = th.soft_entry(row, v_gap, width=8)
+        e.pack(side="left", padx=4, ipady=3)
+        e.bind("<FocusOut>", lambda ev: self.save())
+        return {"act": v_act, "cb": cb, "btn": btn, "gap": v_gap,
+                "vk": int(st.get("key_vk") or 0),
+                "scan": int(st.get("key_scan") or 0)}
+
+    def step_name(self, i):
+        """i つ目に選ばれている種類。「なし」なら空。"""
+        want = self.steps[i]["act"].get()
+        if want == "なし":
+            return ""
+        for k, lbl in macro.ACTIONS:
+            if lbl == want:
+                return k
+        return macro.DEFAULT_ACTION
+
     def _int(self, var, default, lo, hi):
         try:
             return max(lo, min(hi, int(float(var.get()))))
@@ -383,19 +438,45 @@ class MacroPage(tk.Frame):
             return default
 
     def _set_interval(self, ms):
-        self.v_interval.set(str(ms))
+        self.v_interval.set(macro.fmt_secs(ms / 1000.0))
 
-    def action_name(self):
-        label = self.v_action.get()
-        for k, lbl in macro.ACTIONS:
-            if lbl == label:
-                return k
-        return macro.DEFAULT_ACTION
+    def _secs_ms(self, var, key, default_ms, lo_ms, hi_ms):
+        """秒で書かれた欄を、ミリ秒にして返す。
+
+        読めない字が入っていたら、**いまの設定のまま**にする。
+        工場出荷の値に戻してしまうと、打ち間違いで設定が消える。
+        """
+        now = self.app.cfg.get(key, default_ms) if key else default_ms
+        got = macro.parse_secs(var.get(), None)
+        if got is None:
+            return now
+        return max(lo_ms, min(hi_ms, int(round(got * 1000))))
+
+    def steps_cfg(self):
+        """画面の3列を、しまえるかたちにする。「なし」は落とす。"""
+        out = []
+        for i, st in enumerate(self.steps):
+            act = self.step_name(i)
+            if not act:
+                continue
+            gap = self._secs_ms(st["gap"], "",
+                                int(st.get("gap_ms") or 120), 0, 600000)
+            st["gap_ms"] = gap          # 打ち間違えても前の値に戻れるように
+            out.append({"action": act, "key_vk": st["vk"],
+                        "key_scan": st["scan"], "gap_ms": gap})
+        return out
 
     def save(self):
         c = self.app.cfg
-        c["macro_action"] = self.action_name()
-        c["macro_interval_ms"] = self._int(self.v_interval, 100, 1, 600000)
+        steps = self.steps_cfg()
+        c["macro_steps"] = steps
+        # 1つ目は、前のかたちの設定にも書いておく（他の画面がまだ見ている）
+        head = steps[0] if steps else {}
+        c["macro_action"] = head.get("action") or macro.DEFAULT_ACTION
+        c["macro_key_vk"] = head.get("key_vk") or 0
+        c["macro_key_scan"] = head.get("key_scan") or 0
+        c["macro_interval_ms"] = self._secs_ms(
+            self.v_interval, "macro_interval_ms", 100, 1, 3600000)
         c["macro_hold_ms"] = self._int(self.v_hold, 20, 0, 5000)
         try:
             c["macro_hold_delay_ms"] = max(0, min(
@@ -451,8 +532,8 @@ class MacroPage(tk.Frame):
         self.update_view()
 
     # ---------------- キーの取り込み ----------------
-    def capture_key(self):
-        self._capture("key")
+    def capture_key(self, i=0):
+        self._capture("key%d" % i)
 
     def capture_hotkey(self):
         self._capture("hotkey")
@@ -468,9 +549,12 @@ class MacroPage(tk.Frame):
             self._end_capture()        # もう一度押したらやめる
             return
         self._capturing = what
-        btn = {"key": self.btn_key, "hotkey": self.btn_hotkey,
-               "hotkey2": self.btn_hotkey2, "hotkey3": self.btn_hotkey3,
-               "egg_hotkey": self.btn_ehk, "kill_hotkey": self.btn_khk}[what]
+        if what.startswith("key"):
+            btn = self.steps[int(what[3:])]["btn"]
+        else:
+            btn = {"hotkey": self.btn_hotkey, "hotkey2": self.btn_hotkey2,
+                   "hotkey3": self.btn_hotkey3, "egg_hotkey": self.btn_ehk,
+                   "kill_hotkey": self.btn_khk}[what]
         btn.set_text("キーを押してください…（Escでやめる）")
         top = self.winfo_toplevel()
         # Alt の組み合わせは Windows がシステムキー扱いにするので、
@@ -505,9 +589,10 @@ class MacroPage(tk.Frame):
             return "break"
         what = self._capturing
         self._end_capture()
-        if what == "key":
-            self.app.cfg["macro_key_vk"] = vk
-            self.app.cfg["macro_key_scan"] = macro.scancode_of(vk)
+        if what.startswith("key"):
+            st = self.steps[int(what[3:])]
+            st["vk"], st["scan"] = vk, macro.scancode_of(vk)
+            self.save()
             self.app.save_cfg()
         else:
             # 押しているキーそのものを見る（NumLock を Alt と読み違えない）
@@ -612,8 +697,8 @@ class MacroPage(tk.Frame):
         c = self.app.cfg
         c["egg_slots"] = self._int(self.v_slots, macro.MAX_EGGS, 1,
                                    macro.MAX_EGGS)
-        c["egg_mid_ms"] = self._int(self.v_mid, 150, 0, 10000)
-        c["egg_gap_ms"] = self._int(self.v_egap, 300, 0, 10000)
+        c["egg_mid_ms"] = self._secs_ms(self.v_mid, "egg_mid_ms", 150, 0, 60000)
+        c["egg_gap_ms"] = self._secs_ms(self.v_egap, "egg_gap_ms", 300, 0, 60000)
         self.app.save_cfg()
         self.update_view()
 
@@ -694,11 +779,9 @@ class MacroPage(tk.Frame):
         """設定どおりに1回だけ送る（対象チェックはしない）。"""
         self.save()
         c = self.app.cfg
-        act = self.action_name()
-        ok, why = macro.send_once({
+        ok, why = macro.send_seq({
             "send_mode": c.get("macro_send_mode") or macro.DEFAULT_SEND_MODE,
-            "action": act, "key_vk": c.get("macro_key_vk") or 0,
-            "key_scan": c.get("macro_key_scan") or 0,
+            "steps": c.get("macro_steps") or [],
             "hold_ms": c.get("macro_hold_ms", 20),
             "target": c.get("macro_target") or ""})
         if why:
@@ -738,12 +821,19 @@ class MacroPage(tk.Frame):
              else "⚠ 最前面しばりを外しているので、どの画面でも動きます"),
         )))
 
-        # キー指定ボタンの文字（アクションが「キー」のときだけ意味がある）
+        # キー指定ボタンの文字（その行が「キー」のときだけ意味がある）。
+        # キー待ちのあいだは書き換えない。毎秒ここが走るので、上書きすると
+        # 「押した瞬間に戻る」ように見えてしまう。
         vk = cfg.get("macro_key_vk") or 0
-        # キー待ちのあいだは、ボタンの文字を書き換えない。
-        # 毎秒この処理が走るので、上書きすると「押した瞬間に戻る」ように見える。
-        if self._capturing != "key":
-            self.btn_key.set_text("キー: %s" % macro.vk_name(vk))
+        for i, st in enumerate(self.steps):
+            if self._capturing == "key%d" % i:
+                continue
+            if self.step_name(i) == "key":
+                st["btn"].set_text("キー: %s" % macro.vk_name(st["vk"]))
+            elif self.step_name(i):
+                st["btn"].set_text("（キーのときだけ）")
+            else:
+                st["btn"].set_text("")
         if self._capturing != "hotkey":
             self.btn_hotkey.set_text("%s ▸ 変える" % macro.hotkey_name(
                 cfg.get("macro_hotkey_mods", macro.MOD_CONTROL),
