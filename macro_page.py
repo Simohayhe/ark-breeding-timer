@@ -105,7 +105,9 @@ class MacroPage(tk.Frame):
         tk.Label(c, text="なにを連打する？（3つまで続けて送れます）",
                  bg=th.CARD, fg=th.INK, font=F["cute_b"]).pack(anchor="w")
         tk.Label(c, text="上から順に送ります。2つ目・3つ目が「なし」なら、"
-                         "1つ目だけをくり返します",
+                         "1つ目だけをくり返します。"
+                         "「◯回に1度」にすると、そのぶんだけ間を空けて混ざります"
+                         "（10 なら、10回に1度だけ）",
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
                  justify="left").pack(anchor="w", pady=(0, 4))
         self.steps = []
@@ -376,11 +378,12 @@ class MacroPage(tk.Frame):
                                 font=F["small"], anchor="w", justify="left",
                                 wraplength=760)
         self.lbl_egg.pack(fill="x", pady=(4, 0))
-        for v in (self.v_slots, self.v_mid, self.v_egap):
-            v.trace_add("write", lambda *a: self.save_egg())
-
-        for v in (self.v_interval, self.v_hold, self.v_limit, self.v_target):
-            v.trace_add("write", lambda *a: self.save())
+        # いじったら、手が止まったところで勝手に入る。動かしたままでも効く。
+        # 1文字ごとに入れると「10」を打つ途中の「1」で走ってしまう。
+        self.live(self.v_slots, self.v_mid, self.v_egap,
+                  self.v_interval, self.v_hold, self.v_limit, self.v_target)
+        for st in self.steps:
+            self.live(st["gap"], st["every"])
         self.update_view()
 
     # ---------------- 設定 ----------------
@@ -417,7 +420,19 @@ class MacroPage(tk.Frame):
         e = th.soft_entry(row, v_gap, width=8)
         e.pack(side="left", padx=4, ipady=3)
         e.bind("<FocusOut>", lambda ev: self.save())
+
+        # 2つ目からは「1つ目を◯回やったら1度」にできる
+        v_every = tk.StringVar(value=str(max(1, int(st.get("every") or 1))))
+        if i > 0:
+            tk.Label(row, text="　", bg=th.CARD, fg=th.INK_SUB,
+                     font=F["small"]).pack(side="left")
+            e2 = th.soft_entry(row, v_every, width=4)
+            e2.pack(side="left", ipady=3)
+            e2.bind("<FocusOut>", lambda ev: self.save())
+            tk.Label(row, text="回に1度", bg=th.CARD, fg=th.INK_SUB,
+                     font=F["small"]).pack(side="left")
         return {"act": v_act, "cb": cb, "btn": btn, "gap": v_gap,
+                "every": v_every,
                 "vk": int(st.get("key_vk") or 0),
                 "scan": int(st.get("key_scan") or 0)}
 
@@ -439,6 +454,32 @@ class MacroPage(tk.Frame):
 
     def _set_interval(self, ms):
         self.v_interval.set(macro.fmt_secs(ms / 1000.0))
+
+    def live(self, *vars_):
+        """欄をいじったら、少し待ってからひとりでに保存する。
+
+        連射が動いているあいだも設定は読み直されるので、これだけで
+        「入れ直さないと間隔が変わらない」がなくなる。
+        打っている途中の半端な値で走らないよう、手が止まってから入れる。
+        """
+        for v in vars_:
+            v.trace_add("write", lambda *a: self._live_soon())
+
+    def _live_soon(self):
+        got = getattr(self, "_live_job", None)
+        if got is not None:
+            try:
+                self.after_cancel(got)
+            except Exception:
+                pass
+        self._live_job = self.after(450, self._live_now)
+
+    def _live_now(self):
+        self._live_job = None
+        if self._capturing:
+            return              # キー待ちの最中はさわらない
+        self.save()
+        self.save_egg()
 
     def _secs_ms(self, var, key, default_ms, lo_ms, hi_ms):
         """秒で書かれた欄を、ミリ秒にして返す。
@@ -462,8 +503,13 @@ class MacroPage(tk.Frame):
             gap = self._secs_ms(st["gap"], "",
                                 int(st.get("gap_ms") or 120), 0, 600000)
             st["gap_ms"] = gap          # 打ち間違えても前の値に戻れるように
+            try:
+                ev = max(1, min(9999, int(float(st["every"].get()))))
+            except (TypeError, ValueError):
+                ev = max(1, int(st.get("every_n") or 1))
+            st["every_n"] = ev
             out.append({"action": act, "key_vk": st["vk"],
-                        "key_scan": st["scan"], "gap_ms": gap})
+                        "key_scan": st["scan"], "gap_ms": gap, "every": ev})
         return out
 
     def save(self):
@@ -779,11 +825,12 @@ class MacroPage(tk.Frame):
         """設定どおりに1回だけ送る（対象チェックはしない）。"""
         self.save()
         c = self.app.cfg
+        # ためし打ちは「◯回に1度」も含めて、ぜんぶ送ってみせる
         ok, why = macro.send_seq({
             "send_mode": c.get("macro_send_mode") or macro.DEFAULT_SEND_MODE,
             "steps": c.get("macro_steps") or [],
             "hold_ms": c.get("macro_hold_ms", 20),
-            "target": c.get("macro_target") or ""})
+            "target": c.get("macro_target") or ""}, cycle=None)
         if why:
             self.lbl_sub.config(text="⚠ " + why)
             return

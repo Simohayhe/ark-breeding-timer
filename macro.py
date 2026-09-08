@@ -331,7 +331,8 @@ def steps_of(cfg):
                     "key_vk": st.get("key_vk") or 0,
                     "key_scan": st.get("key_scan") or 0,
                     "hold_ms": st.get("hold_ms", cfg.get("hold_ms", 20)),
-                    "gap_ms": st.get("gap_ms", 120)})
+                    "gap_ms": st.get("gap_ms", 120),
+                    "every": max(1, int(st.get("every") or 1))})
         if len(got) >= MAX_STEPS:
             break
     if got:
@@ -340,16 +341,28 @@ def steps_of(cfg):
              "key_vk": cfg.get("key_vk") or 0,
              "key_scan": cfg.get("key_scan") or 0,
              "hold_ms": cfg.get("hold_ms", 20),
-             "gap_ms": 0}]
+             "gap_ms": 0, "every": 1}]
 
 
-def send_seq(cfg, hwnd=None, halt=None):
+def due(step, cycle):
+    """この回に、その行動を混ぜるか。
+
+    every=3 なら「3回に1度」。cycle=None は、ためし打ち用の全部入り。
+    """
+    ev = max(1, int(step.get("every") or 1))
+    if ev <= 1 or cycle is None:
+        return True
+    return cycle % ev == 0
+
+
+def send_seq(cfg, hwnd=None, halt=None, cycle=None):
     """行動の並びを、あいだを空けながら順に送る。
 
+    cycle はこれが何回目のくり返しか。「3回に1度」の行動は、その回だけ混ぜる。
     途中で止められるように halt（Event）を見る。3行動目まで送り終える前に
     止めたいことのほうが多い。
     """
-    steps = steps_of(cfg)
+    steps = [st for st in steps_of(cfg) if due(st, cycle)]
     sent, why = 0, ""
     for i, st in enumerate(steps):
         if halt is not None and halt.is_set():
@@ -420,6 +433,7 @@ class Runner(threading.Thread):
         # 名前を _stop にすると Thread の内部メソッドを潰して join() が壊れる
         self._halt = threading.Event()
         self.count = 0
+        self.cycle = 0          # 何回目のくり返しか（「3回に1度」に使う）
         self.waiting = False    # 対象が前に出るのを待っている
         self.holding = False    # 門が開いている＝いま撃っている
         self.finished = False   # 回数ぶん撃ち終わった
@@ -448,14 +462,24 @@ class Runner(threading.Thread):
                     self.waiting = True     # 窓が出るまで待つ
                     self._halt.wait(0.5)
                     continue
-            ok, _why = send_seq(c, hwnd, self._halt)
+            self.cycle += 1
+            ok, _why = send_seq(c, hwnd, self._halt, self.cycle)
             if ok:
                 self.count += 1
             limit = int(c.get("limit") or 0)
             if limit and self.count >= limit:
                 self.finished = True
                 break
-            self._halt.wait(max(0.001, int(c.get("interval_ms") or 100) / 1000.0))
+            # 待っているあいだも設定を見に行く。5分待ちの最中に1秒へ変えても、
+            # 前の5分を待ち切らずに済む（止めて入れ直さなくていい）
+            waited = 0.0
+            while not self._halt.is_set():
+                want = max(0.001,
+                           int(self.get_cfg().get("interval_ms") or 100) / 1000.0)
+                if waited >= want:
+                    break
+                self._halt.wait(min(0.2, want - waited))
+                waited += min(0.2, want - waited)
 
 
 class Holder(threading.Thread):
