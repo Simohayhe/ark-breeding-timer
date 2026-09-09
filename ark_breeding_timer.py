@@ -47,7 +47,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.77.0"
+APP_VERSION = "1.78.0"
 
 
 def _res_dir():
@@ -1653,6 +1653,7 @@ class App(tk.Tk):
         self.page_calc = CalcPage(self, self)
         tb.load_known(os.path.join(DATA_DIR, "tributes.json"))
         self.book = tb.Book(self.cfg.get("tribute_book"))
+        self.clean_book()
         self.page_tribute = TributePage(self, self)
         self.apply_hotkey()
         self.apply_egg_hotkey()
@@ -2729,6 +2730,26 @@ class App(tk.Tk):
             msg = c.on_day_changed(prev_at)
             if msg:
                 self.watch_msg[name] = msg
+
+    def clean_book(self):
+        """古い名前の品目を捨てる。
+
+        トロフィーが難易度ごとに分かれる前の「ブルードマザーの
+        ハンティングトロフィー」などが、帳面に残ったままになっている。
+        いまは難易度つきのものが別に並ぶので、二重に出てしまう。
+        """
+        gone = 0
+        for mp in list(self.book.order):
+            stale = tb.stale_names(mp)
+            if not stale:
+                continue
+            for it in list(self.book.items(mp)):
+                if it.name in stale:
+                    self.book.drop(mp, it)
+                    gone += 1
+        if gone:
+            self.save_book()
+        return gone
 
     def save_book(self):
         """貢物の控えをしまう。数をいじるたび呼ばれるので、軽くしておく。"""

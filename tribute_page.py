@@ -123,6 +123,16 @@ class TributePage(tk.Frame):
         cbs.pack(side="left")
         cbs.bind("<<ComboboxSelected>>", lambda e: self.pick_sort())
 
+        tk.Label(br, text="　区分", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(0, 6))
+        self.v_group = tk.StringVar(value=tb.group_label(
+            self.app.cfg.get("tribute_group") or ""))
+        cbg = ttk.Combobox(br, textvariable=self.v_group, state="readonly",
+                           width=9, style="Cute.TCombobox", font=F["ui"])
+        cbg["values"] = [lbl for _k, lbl in tb.GROUPS]
+        cbg.pack(side="left")
+        cbg.bind("<<ComboboxSelected>>", lambda e: self.pick_group())
+
         tk.Label(br, text="　🔍", bg=th.CARD, fg=th.INK_SUB,
                  font=F["small"]).pack(side="left", padx=(0, 4))
         self.v_find = tk.StringVar()
@@ -131,7 +141,7 @@ class TributePage(tk.Frame):
         e_find.bind("<Escape>", lambda e: self.v_find.set(""))
         # 打っている途中で作り直すと重いので、手が止まってから
         self.v_find.trace_add("write", lambda *a: self._find_soon())
-        self.btn_clear = th.RoundButton(br, "✕", lambda: self.v_find.set(""),
+        self.btn_clear = th.RoundButton(br, "✕", self.clear_filters,
                                         kind="ghost", bg=th.CARD,
                                         font=F["small"], padx=8, pady=4)
         th.RoundButton(br, "＋ 在庫追加", self.add_stock, kind="primary",
@@ -348,11 +358,32 @@ class TributePage(tk.Frame):
     def find_text(self):
         return tb.search_key(self.v_find.get())
 
-    def keep(self, rows):
-        """検索の字が入っていれば、名前で絞る。
+    def clear_filters(self):
+        """区分と検索を、まとめて元に戻す。"""
+        self.v_find.set("")
+        self.v_group.set(tb.group_label(""))
+        self.pick_group()
 
-        ひらがなで打っても、ローマ字で打っても当たる。
+    def group_key(self):
+        want = self.v_group.get()
+        for k, lbl in tb.GROUPS:
+            if lbl == want:
+                return k
+        return ""
+
+    def pick_group(self):
+        self.app.cfg["tribute_group"] = self.group_key()
+        self.rebuild()
+
+    def keep(self, rows):
+        """区分と検索で絞る。
+
+        検索はひらがなでも、ローマ字でも、漢字の読みでも当たる。
         """
+        grp = self.group_key()
+        if grp:
+            rows = [(it, need) for it, need in rows
+                    if tb.group_of(it) == grp]
         want = self.v_find.get()
         if not tb.search_key(want):
             return rows
@@ -452,14 +483,15 @@ class TributePage(tk.Frame):
         allrows = self.view_rows()
         rows = self.keep(allrows)
         self.head_text(allrows, len(rows))
-        if self.find_text():
+        if self.find_text() or self.group_key():
             self.btn_clear.pack(side="left", padx=(2, 0))
         else:
             self.btn_clear.pack_forget()
         if not rows:
             tk.Label(self.inner,
-                     text=("「%s」に当たるものがありません" % self.v_find.get()
-                           if self.find_text() else "出すものがありません"),
+                     text=("この区分・検索に当たるものがありません"
+                           if (self.find_text() or self.group_key())
+                           else "出すものがありません"),
                      bg=th.BG, fg=th.INK_SUB, font=F["small"]).grid(
                          row=0, column=0, pady=24)
             self.inner.columnconfigure(0, weight=1)
@@ -522,8 +554,12 @@ class TributePage(tk.Frame):
         art = sum(1 for it, _n in rows if it.kind == "artifact")
         head = "%s … %d品目（うちアーティファクト %d）" % (who, len(rows), art)
         if showing is not None and showing != len(rows):
-            head += "　🔍「%s」に当たる %d件を出しています" % (
-                self.v_find.get().strip(), showing)
+            why = []
+            if self.group_key():
+                why.append("区分「%s」" % self.v_group.get())
+            if tb.search_key(self.v_find.get()):
+                why.append("🔍「%s」" % self.v_find.get().strip())
+            head += "　%s で %d件を出しています" % ("＋".join(why), showing)
         self.lbl_sum.config(text=head)
         short = [(it, need - it.have) for it, need in rows
                  if need > 0 and it.have < need]

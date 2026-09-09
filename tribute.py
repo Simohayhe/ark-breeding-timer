@@ -236,6 +236,7 @@ def load_known(path):
                 _KNOWN = json.load(f)
         except Exception:
             _KNOWN = {}
+        _build_en()
     return _KNOWN
 
 
@@ -531,3 +532,86 @@ def reading_keys(name):
             continue
         keys = [k.replace(run, y) for k in keys for y in yomi][:MAX_KEYS]
     return [search_key(k) for k in keys if k != name]
+
+
+# ------------------------------------------------ 区分け
+# 何を集めているのかで分けたい。英語名を見れば分かる。
+#   遺物     Artifact of ...
+#   ボス     ... Trophy（アルファのボストロフィーもこちら）
+#   アルファ  Alpha ... （アルファ生物からのもの。ボスは上で拾うので入らない）
+#   野生     それ以外
+GROUPS = (("", "ぜんぶ"), ("artifact", "遺物"), ("boss", "ボス"),
+          ("alpha", "アルファ"), ("wild", "野生"))
+_EN = {}          # 日本語名 -> 英語名
+
+
+def group_label(key):
+    for k, lbl in GROUPS:
+        if k == key:
+            return lbl
+    return "ぜんぶ"
+
+
+def group_of_en(en):
+    en = en or ""
+    if "Artifact of" in en:
+        return "artifact"
+    if "Trophy" in en:
+        return "boss"
+    if en.startswith("Alpha "):
+        return "alpha"
+    return "wild"
+
+
+def group_of(item):
+    """持ち物の1つが、どの区分か。
+
+    データに載っている品目は英語名から決める。手で足したものや
+    スクショから取り込んだものは、名前で当たりを付ける。
+    """
+    en = _EN.get(item.name)
+    if en:
+        return group_of_en(en)
+    name = item.name or ""
+    if item.kind == "artifact" or "アーティファクト" in name:
+        return "artifact"
+    if "トロフィー" in name:
+        return "boss"
+    if name.startswith("アルファ"):
+        return "alpha"
+    return "wild"
+
+
+def _build_en():
+    _EN.clear()
+    for box in (_KNOWN or {}).values():
+        for b in box.get("bosses", []):
+            for row in b.get("items", []):
+                if row.get("name") and row.get("en"):
+                    _EN[row["name"]] = row["en"]
+
+
+# ------------------------------------------------ 古い名前の掃除
+TIER_MARKS = ("（ガンマ）", "（ベータ）", "（アルファ）")
+
+
+def stale_names(map_name):
+    """難易度が付く前の古い名前。
+
+    v1.70.1 より前は、ボスのトロフィーが難易度ごとに分かれておらず、
+    「ブルードマザーのハンティングトロフィー」1つになっていた。
+    いまのデータには無い名前なので、そのぶんだけ拾って捨てる。
+    """
+    mp = known_map(map_name)
+    if not mp:
+        return set()
+    have = set()
+    for b in _KNOWN[mp].get("bosses", []):
+        for row in b.get("items", []):
+            have.add(row.get("name") or "")
+    out = set()
+    for name in have:
+        for mark in TIER_MARKS:
+            if name.endswith(mark):
+                out.add(name[:-len(mark)])
+    return out - have
