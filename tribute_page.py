@@ -118,6 +118,18 @@ class TributePage(tk.Frame):
         cbs.pack(side="left")
         cbs.bind("<<ComboboxSelected>>", lambda e: self.pick_sort())
 
+        tk.Label(br, text="　🔍", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(0, 4))
+        self.v_find = tk.StringVar()
+        e_find = th.soft_entry(br, self.v_find, width=16)
+        e_find.pack(side="left", ipady=3)
+        e_find.bind("<Escape>", lambda e: self.v_find.set(""))
+        # 打っている途中で作り直すと重いので、手が止まってから
+        self.v_find.trace_add("write", lambda *a: self._find_soon())
+        self.btn_clear = th.RoundButton(br, "✕", lambda: self.v_find.set(""),
+                                        kind="ghost", bg=th.CARD,
+                                        font=F["small"], padx=8, pady=4)
+
         # 行ってきたら、使ったぶんを引く。押し間違えても戻せるようにする
         self.spend_box = tk.Frame(br, bg=th.CARD)
         self.spend_box.pack(side="left", padx=(12, 0))
@@ -289,6 +301,29 @@ class TributePage(tk.Frame):
              ("kind", "種類順（🏺が先）"),
              ("have", "持っている数が多い順"))
 
+    def _find_soon(self):
+        got = getattr(self, "_find_job", None)
+        if got is not None:
+            try:
+                self.after_cancel(got)
+            except Exception:
+                pass
+        self._find_job = self.after(250, self._find_now)
+
+    def _find_now(self):
+        self._find_job = None
+        self.rebuild()
+
+    def find_text(self):
+        return tb.norm(self.v_find.get())
+
+    def keep(self, rows):
+        """検索の字が入っていれば、名前で絞る。"""
+        want = self.find_text()
+        if not want:
+            return rows
+        return [(it, need) for it, need in rows if want in tb.norm(it.name)]
+
     def sort_label(self, key):
         for k, lbl in self.SORTS:
             if k == key:
@@ -369,12 +404,19 @@ class TributePage(tk.Frame):
                      bg=th.BG, fg=th.INK_SUB, font=F["small"]).pack()
             return
 
-        rows = self.view_rows()
-        self.head_text(rows)
+        allrows = self.view_rows()
+        rows = self.keep(allrows)
+        self.head_text(allrows, len(rows))
+        if self.find_text():
+            self.btn_clear.pack(side="left", padx=(2, 0))
+        else:
+            self.btn_clear.pack_forget()
         if not rows:
-            tk.Label(self.inner, text="出すものがありません", bg=th.BG,
-                     fg=th.INK_SUB, font=F["small"]).grid(row=0, column=0,
-                                                          pady=24)
+            tk.Label(self.inner,
+                     text=("「%s」に当たるものがありません" % self.v_find.get()
+                           if self.find_text() else "出すものがありません"),
+                     bg=th.BG, fg=th.INK_SUB, font=F["small"]).grid(
+                         row=0, column=0, pady=24)
             self.inner.columnconfigure(0, weight=1)
             self.sync_spend()
             return
@@ -415,18 +457,27 @@ class TributePage(tk.Frame):
         """
         self.app.save_book()
         self._paint_row(it)
-        self.head_text(self.view_rows())
+        rows = self.view_rows()
+        self.head_text(rows, len(self.keep(rows)))
         self.sync_spend()
 
-    def head_text(self, rows):
-        """上の2行。なにを出しているかと、あと何が足りないか。"""
+    def head_text(self, rows, showing=None):
+        """上の2行。なにを出しているかと、あと何が足りないか。
+
+        showing を渡すと、検索で絞ったあと何件出ているかも書く。
+        足りない数は、絞る前のぜんぶで数える（絞って減ったように
+        見えると、そろったのかと勘違いする）。
+        """
         boss = self.boss_key()
         who = ("このマップの貢物ぜんぶ" if boss == tb.ALL_BOSSES
                else "%s（%s）に挑むのに要るもの"
                     % (self.v_boss.get(), tb.diff_label(self.diff_key())))
         art = sum(1 for it, _n in rows if it.kind == "artifact")
-        self.lbl_sum.config(
-            text="%s … %d品目（うちアーティファクト %d）" % (who, len(rows), art))
+        head = "%s … %d品目（うちアーティファクト %d）" % (who, len(rows), art)
+        if showing is not None and showing != len(rows):
+            head += "　🔍「%s」に当たる %d件を出しています" % (
+                self.v_find.get().strip(), showing)
+        self.lbl_sum.config(text=head)
         short = [(it, need - it.have) for it, need in rows
                  if need > 0 and it.have < need]
         if not short:
