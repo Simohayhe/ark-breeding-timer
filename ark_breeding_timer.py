@@ -47,7 +47,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.69.0"
+APP_VERSION = "1.70.0"
 
 
 def _res_dir():
