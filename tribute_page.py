@@ -112,6 +112,9 @@ class TributePage(tk.Frame):
         cbd["values"] = [lbl for _k, lbl in tb.DIFFS]
         cbd.pack(side="left")
         cbd.bind("<<ComboboxSelected>>", lambda e: self.pick_boss())
+        # 難易度を出し入れするときの、差し込み位置の目印
+        self.after_diff = tk.Frame(br, bg=th.CARD, width=1)
+        self.after_diff.pack(side="left")
 
         tk.Label(br, text="　並び", bg=th.CARD, fg=th.INK_SUB,
                  font=F["small"]).pack(side="left", padx=(0, 6))
@@ -148,9 +151,10 @@ class TributePage(tk.Frame):
                        bg=th.CARD, font=F["small"], padx=14,
                        pady=5).pack(side="left", padx=(10, 0))
 
-        # 行ってきたら、使ったぶんを引く。押し間違えても戻せるようにする
-        self.spend_box = tk.Frame(br, bg=th.CARD)
-        self.spend_box.pack(side="left", padx=(12, 0))
+        # 行ってきたら、使ったぶんを引く。押し間違えても戻せるように。
+        # 上の行に詰めると右にはみ出して、もどすボタンが切れてしまう
+        self.spend_box = tk.Frame(c, bg=th.CARD)
+        self.spend_box.pack(fill="x", pady=(6, 0))
         self.btn_spend = th.RoundButton(self.spend_box, "🗡 ボスに行った",
                                         self.spend_boss, kind="primary",
                                         bg=th.CARD, font=F["small"],
@@ -634,7 +638,7 @@ class TributePage(tk.Frame):
         if self.boss_key() == tb.ALL_BOSSES:
             self.diff_box.pack_forget()
         else:
-            self.diff_box.pack(side="left", before=self.spend_box)
+            self.diff_box.pack(side="left", before=self.after_diff)
 
     def sync_spend(self):
         """「行った」ボタンの出し入れ。ボスを選んでいるときだけ出す。"""
@@ -648,32 +652,39 @@ class TributePage(tk.Frame):
         else:
             self.btn_undo.pack_forget()
 
-    def spend_boss(self):
-        """挑みに行ったぶんを、持ち物から引く。
-
-        足りないものは、あるだけ引く（マイナスにはしない）。
-        引いた中身は覚えておいて、押し間違えたら戻せるようにする。
-        """
-        rows = self.view_rows()
-        if not rows:
-            return
-        spent, short = [], []
-        for it, need in rows:
+    def spend_plan(self):
+        """引くとどうなるか。(引くもの, 足りないもの) を返す。まだ引かない。"""
+        take, short = [], []
+        for it, need in self.view_rows():
             if need <= 0:
                 continue
-            take = min(it.have, need)
-            if take:
-                it.set_have(it.have - take)
-                spent.append((it, take))
-            if need > take:
-                short.append((it.name, need - take))
-        if not spent and not short:
+            n = min(it.have, need)
+            if n:
+                take.append((it, n))
+            if need > n:
+                short.append((it.name, need - n))
+        return take, short
+
+    def spend_boss(self):
+        """挑みに行ったぶんを引く。引く前に、中身を見せて確かめる。"""
+        take, short = self.spend_plan()
+        if not take and not short:
             return
-        self._spent = spent
+        who = "%s（%s）" % (self.v_boss.get(), tb.diff_label(self.diff_key()))
+        SpendConfirm(self.app, self, who, take, short)
+
+    def do_spend(self, take, short=()):
+        """確かめたので、実際に引く。戻せるように覚えておく。
+
+        足りなかったぶんは、引く**前**に数えたものを使う。引いたあとに
+        数え直すと、全部0になっているので何もかも足りない扱いになる。
+        """
+        for it, n in take:
+            it.set_have(it.have - n)
+        self._spent = list(take)
         self.app.save_book()
         self.rebuild()
-        who = "%s（%s）" % (self.v_boss.get(), tb.diff_label(self.diff_key()))
-        msg = "🗡 %s に行きました。%d品目を引きました" % (who, len(spent))
+        msg = "🗡 %d品目を引きました" % len(take)
         if short:
             msg += "　⚠ 足りなかったぶん: " + "、".join(
                 "%s %d" % (n, c) for n, c in short[:5])
@@ -1284,3 +1295,71 @@ class AddStockDialog(tk.Toplevel):
         if bad:
             msg += "　⚠ 数として読めなかった: " + "、".join(bad[:3])
         self.lbl_msg.config(text=msg, fg=th.PINK_DK if bad else th.MINT)
+
+
+class SpendConfirm(tk.Toplevel):
+    """引く前に、何がいくつ減るのかを見せる窓。
+
+    ここを飛ばして引いてしまうと、押し間違えたときに何が減ったのか
+    分からなくなる。減る中身をそのまま並べて、押してもらう。
+    """
+
+    def __init__(self, app, page, who, take, short):
+        super().__init__(app)
+        self.app, self.page = app, page
+        self.take, self.short = take, list(short)
+        F = app.F
+        self.title("ボスに行った")
+        self.configure(bg=th.BG)
+        self.transient(app)
+        self.resizable(False, False)
+        card = th.Card(self, bg=th.BG)
+        card.pack(fill="both", expand=True, padx=10, pady=10)
+        c = card.body
+        tk.Label(c, text="🗡 %s に行きます" % who, bg=th.CARD, fg=th.INK,
+                 font=F["cute_b"]).pack(anchor="w")
+        tk.Label(c, text="これだけ持ち物から引きます", bg=th.CARD,
+                 fg=th.INK_SUB, font=F["small"]).pack(anchor="w",
+                                                      pady=(0, 6))
+        box = tk.Frame(c, bg=th.CARD)
+        box.pack(fill="x")
+        if not take:
+            tk.Label(box, text="引けるものがありません（どれも0個です）",
+                     bg=th.CARD, fg=th.PINK_DK, font=F["cute"]).pack(anchor="w")
+        for it, n in take:
+            line = tk.Frame(box, bg=th.CARD)
+            line.pack(fill="x", pady=1)
+            mark = "🏺" if it.kind == "artifact" else "🦴"
+            tk.Label(line, text=mark, bg=th.CARD,
+                     font=(th.JP, 10)).pack(side="left")
+            tk.Label(line, text=it.name, bg=th.CARD, fg=th.INK, font=F["cute"],
+                     anchor="w").pack(side="left", padx=(3, 0))
+            # 減る量は右端に寄せる。名前の長さがまちまちなので、幅で
+            # 揃えようとすると、窓からはみ出して読めなくなる
+            tk.Label(line, text="−%d" % n, bg=th.CARD, fg=th.PINK_DK,
+                     font=F["cute"]).pack(side="right", padx=(6, 0))
+            tk.Label(line, text="%d → %d" % (it.have, it.have - n),
+                     bg=th.CARD, fg=th.INK_SUB,
+                     font=F["small"]).pack(side="right")
+        if short:
+            tk.Label(c, text="⚠ 足りないので、あるぶんだけ引きます", bg=th.CARD,
+                     fg=th.PINK_DK, font=F["cute"]).pack(anchor="w",
+                                                         pady=(8, 0))
+            tk.Label(c, text="、".join("%s あと%d" % (n, k) for n, k in short),
+                     bg=th.CARD, fg=th.INK_SUB, font=F["small"],
+                     wraplength=440, justify="left").pack(anchor="w")
+        bar = tk.Frame(c, bg=th.CARD)
+        bar.pack(fill="x", pady=(10, 0))
+        btn = th.RoundButton(bar, "🗡 引く", self.go, kind="primary",
+                             bg=th.CARD, font=F["cute"], padx=20)
+        btn.pack(side="left")
+        th.RoundButton(bar, "やめる", self.destroy, kind="ghost", bg=th.CARD,
+                       font=F["cute"], padx=14).pack(side="right")
+        self.bind("<Escape>", lambda e: self.destroy())
+        self.grab_set()
+        self.focus_set()
+
+    def go(self):
+        self.destroy()
+        if self.take:
+            self.page.do_spend(self.take, self.short)
