@@ -237,6 +237,42 @@ def ja_names(names):
     return out
 
 
+TIERS = (("Gamma", "ガンマ"), ("Beta", "ベータ"), ("Alpha", "アルファ"))
+
+
+def split_tier(en):
+    """英語名から、難易度の別を切り出す。無ければ ("", 名前)。
+
+    「Gamma Broodmother Trophy」「King Titan Trophy (Gamma)」の両方に効く。
+    """
+    for word, ja in TIERS:
+        if en.startswith(word + " "):
+            return ja, en[len(word) + 1:]
+        if en.endswith("(%s)" % word):
+            return ja, en[:-len(word) - 2].strip()
+    return "", en
+
+
+def unclash(ja):
+    """同じ日本語名に潰れたものを、見分けられるようにする。
+
+    ボスのトロフィーは Gamma / Beta / Alpha で別のアイテムなのに、
+    ja版ウィキではどれも同じ記事に飛ぶ。そのままだと画面で1つに見え、
+    持っている数まで混ざってしまう。難易度の別を後ろに足して分ける。
+    """
+    same = {}
+    for en, name in ja.items():
+        same.setdefault(name, []).append(en)
+    for name, ens in same.items():
+        if len(ens) < 2:
+            continue
+        for en in ens:
+            tier, _rest = split_tier(en)
+            if tier:
+                ja[en] = "%s（%s）" % (name, tier)
+    return ja
+
+
 def main():
     out = {}      # マップ -> {"src": .., "bosses": {ボス: {品目: {G,B,A}}}}
 
@@ -272,7 +308,7 @@ def main():
             bosses.update(boss.split("+"))
             every |= set(items)
     print("\n日本語名を引きます（品目 %d ／ ボス %d）…" % (len(every), len(bosses)))
-    ja = ja_names(every | bosses)
+    ja = unclash(ja_names(every | bosses))
     print("   %d件に日本語名がありました" % len(ja))
 
     def boss_ja(boss):
