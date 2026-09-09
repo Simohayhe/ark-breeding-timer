@@ -134,6 +134,9 @@ class TributePage(tk.Frame):
         self.btn_clear = th.RoundButton(br, "✕", lambda: self.v_find.set(""),
                                         kind="ghost", bg=th.CARD,
                                         font=F["small"], padx=8, pady=4)
+        th.RoundButton(br, "＋ 在庫追加", self.add_stock, kind="primary",
+                       bg=th.CARD, font=F["small"], padx=14,
+                       pady=5).pack(side="left", padx=(10, 0))
 
         # 行ってきたら、使ったぶんを引く。押し間違えても戻せるようにする
         self.spend_box = tk.Frame(br, bg=th.CARD)
@@ -305,6 +308,29 @@ class TributePage(tk.Frame):
              ("short", "足りない順"),
              ("kind", "種類順（🏺が先）"),
              ("have", "持っている数が多い順"))
+
+    def all_items(self):
+        """このマップの品目ぜんぶ。データにあるものは、無ければ作ってから。"""
+        mp = self.map_name
+        if not mp:
+            return []
+        made = False
+        for name, _need, kind in tb.known_items(mp, None, tb.ALL_BOSSES):
+            if self.book().find(mp, name) is None:
+                self.book().put(mp, name, kind=kind)
+                made = True
+        if made:
+            self.book().sort(mp)
+            self.app.save_book()
+        return self.book().items(mp)
+
+    def add_stock(self):
+        """在庫を足す窓を開く。"""
+        if not self.map_name:
+            self.lbl_short.config(text="さきにマップを足してください",
+                                  fg=th.PINK_DK)
+            return
+        AddStockDialog(self.app, self)
 
     def _find_soon(self):
         got = getattr(self, "_find_job", None)
@@ -1062,3 +1088,163 @@ class ImportDialog(tk.Toplevel):
         self.page.rebuild()
         self.app.blip("🏺 %d品目を取り込みました" % done, "mint")
         self.destroy()
+
+
+class AddStockDialog(tk.Toplevel):
+    """拾ってきたぶんを、まとめて足す窓。
+
+    一覧の欄は「いま何個あるか」を書き換えるもの。狩りから戻って
+    「これとこれが◯個増えた」と入れたいときは、足し算のほうが早い。
+    """
+
+    def __init__(self, app, page):
+        super().__init__(app)
+        self.app, self.page = app, page
+        F = app.F
+        self.title("在庫を足す — %s" % page.map_name)
+        self.configure(bg=th.BG)
+        self.transient(app)
+        self.geometry("560x620")
+        self.vars = {}          # 品目 -> 入れた数の入れ物
+        self.rows = page.all_items()
+
+        card = th.Card(self, bg=th.BG)
+        card.pack(fill="both", expand=True, padx=10, pady=10)
+        c = card.body
+        tk.Label(c, text="拾ってきたぶんを入れてください", bg=th.CARD,
+                 fg=th.INK, font=F["cute_b"]).pack(anchor="w")
+        tk.Label(c, text="入れた数だけ、いまの在庫に足します。"
+                         "空のままの品目は触りません",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"],
+                 wraplength=500, justify="left").pack(anchor="w", pady=(0, 6))
+
+        fr = tk.Frame(c, bg=th.CARD)
+        fr.pack(fill="x", pady=(0, 6))
+        tk.Label(fr, text="🔍", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(0, 4))
+        self.v_find = tk.StringVar()
+        e = th.soft_entry(fr, self.v_find, width=22)
+        e.pack(side="left", ipady=3)
+        e.bind("<Escape>", lambda ev: self.v_find.set(""))
+        e.bind("<Return>", lambda ev: self.first_focus())
+        self.v_find.trace_add("write", lambda *a: self.repaint())
+        self.lbl_n = tk.Label(fr, text="", bg=th.CARD, fg=th.INK_SUB,
+                              font=F["small"])
+        self.lbl_n.pack(side="left", padx=8)
+
+        wrap = tk.Frame(c, bg=th.CARD)
+        wrap.pack(fill="both", expand=True)
+        # 窓いっぱいに広がってくれないので、高さは自分で決めておく
+        self.cv = tk.Canvas(wrap, bg=th.CARD, highlightthickness=0, bd=0,
+                            height=430)
+        self.cv.pack(side="left", fill="both", expand=True)
+        sb = ttk.Scrollbar(wrap, orient="vertical", command=self.cv.yview)
+        sb.pack(side="right", fill="y")
+        self.cv.configure(yscrollcommand=sb.set)
+        self.box = tk.Frame(self.cv, bg=th.CARD)
+        win = self.cv.create_window((0, 0), window=self.box, anchor="nw")
+        self.box.bind("<Configure>",
+                      lambda ev: self.cv.configure(
+                          scrollregion=self.cv.bbox("all")))
+        self.cv.bind("<Configure>",
+                     lambda ev: self.cv.itemconfigure(win, width=ev.width))
+        self.bind("<MouseWheel>",
+                  lambda ev: self.cv.yview_scroll(int(-ev.delta / 120), "units"))
+
+        bar = tk.Frame(c, bg=th.CARD)
+        bar.pack(fill="x", pady=(8, 0))
+        th.RoundButton(bar, "✅ 確定して足す", self.commit, kind="primary",
+                       bg=th.CARD, font=F["cute"], padx=18).pack(side="left")
+        th.RoundButton(bar, "入れた数を消す", self.clear_all, kind="ghost",
+                       bg=th.CARD, font=F["small"], padx=12,
+                       pady=5).pack(side="left", padx=6)
+        th.RoundButton(bar, "とじる", self.destroy, kind="ghost", bg=th.CARD,
+                       font=F["small"], padx=12, pady=5).pack(side="right")
+        self.lbl_msg = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
+                                font=F["small"], anchor="w", wraplength=500,
+                                justify="left")
+        self.lbl_msg.pack(fill="x", pady=(4, 0))
+
+        self.repaint()
+        e.focus_set()
+
+    # ---------------- 中身 ----------------
+    def keep(self):
+        want = self.v_find.get()
+        if not tb.search_key(want):
+            return list(self.rows)
+        return [it for it in self.rows if tb.hit(want, it.name)]
+
+    def repaint(self):
+        for w in self.box.winfo_children():
+            w.destroy()
+        F = self.app.F
+        rows = self.keep()
+        self.lbl_n.config(text="%d件" % len(rows))
+        self.entries = []
+        if not rows:
+            tk.Label(self.box, text="当たるものがありません", bg=th.CARD,
+                     fg=th.INK_SUB, font=F["small"]).pack(pady=20)
+            return
+        for it in rows:
+            line = tk.Frame(self.box, bg=th.CARD)
+            line.pack(fill="x", pady=1)
+            mark = "🏺" if it.kind == "artifact" else "🦴"
+            tk.Label(line, text=mark, bg=th.CARD,
+                     font=(th.JP, 10)).pack(side="left")
+            tk.Label(line, text=it.name, bg=th.CARD, fg=th.INK, font=F["cute"],
+                     anchor="w", width=26, justify="left").pack(side="left",
+                                                                padx=(3, 0))
+            tk.Label(line, text="いま %d" % it.have, bg=th.CARD,
+                     fg=th.INK_SUB, font=F["small"], width=8,
+                     anchor="e").pack(side="left")
+            tk.Label(line, text="＋", bg=th.CARD, fg=th.INK_SUB,
+                     font=F["small"]).pack(side="left", padx=(6, 2))
+            v = self.vars.get(id(it))
+            if v is None:
+                v = tk.StringVar()
+                self.vars[id(it)] = v
+            ent = th.soft_entry(line, v, width=5)
+            ent.pack(side="left", ipady=2)
+            self.entries.append(ent)
+
+    def first_focus(self):
+        if getattr(self, "entries", None):
+            self.entries[0].focus_set()
+
+    def clear_all(self):
+        for v in self.vars.values():
+            v.set("")
+        self.lbl_msg.config(text="入れた数を消しました", fg=th.INK_SUB)
+
+    def commit(self):
+        """入れたぶんを足す。数として読めないものは飛ばす。"""
+        got, bad = [], []
+        for it in self.rows:
+            v = self.vars.get(id(it))
+            t = (v.get() if v else "").strip()
+            if not t:
+                continue
+            try:
+                n = int(float(t))
+            except (TypeError, ValueError):
+                bad.append(it.name)
+                continue
+            if n:
+                it.add(n)
+                got.append((it.name, n))
+        if not got and not bad:
+            self.lbl_msg.config(text="足す数が入っていません", fg=th.PINK_DK)
+            return
+        self.app.save_book()
+        self.page.rebuild()
+        for v in self.vars.values():
+            v.set("")
+        self.repaint()
+        msg = "✅ %d品目を足しました　" % len(got)
+        msg += "、".join("%s ＋%d" % (n, c) for n, c in got[:6])
+        if len(got) > 6:
+            msg += " ほか%d件" % (len(got) - 6)
+        if bad:
+            msg += "　⚠ 数として読めなかった: " + "、".join(bad[:3])
+        self.lbl_msg.config(text=msg, fg=th.PINK_DK if bad else th.MINT)
