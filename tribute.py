@@ -279,6 +279,7 @@ def known_items(map_name, diff="B", boss=None):
 
     boss を渡さない（または ALL_BOSSES）と、そのマップのボスぜんぶを
     まとめたものになる。同じ品目は、いちばん多く要るボスに合わせる。
+    diff に None を渡すと、難易度でも絞らない（ぜんぶ出す）。
     """
     mp = known_map(map_name)
     if not mp:
@@ -289,7 +290,10 @@ def known_items(map_name, diff="B", boss=None):
         if boss and boss != ALL_BOSSES and b.get("boss") != boss:
             continue
         for row in b.get("items", []):
-            n = int(row.get(diff) or 0)
+            if diff is None:
+                n = max(int(row.get(k) or 0) for k in "GBA")
+            else:
+                n = int(row.get(diff) or 0)
             if n <= 0:
                 continue
             name = row.get("name") or row.get("en") or ""

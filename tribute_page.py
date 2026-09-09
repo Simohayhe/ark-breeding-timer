@@ -98,12 +98,17 @@ class TributePage(tk.Frame):
         self.cb_boss.pack(side="left")
         self.cb_boss.bind("<<ComboboxSelected>>", lambda e: self.pick_boss())
         self.boss_keys = []
-        tk.Label(br, text="　難易度", bg=th.CARD, fg=th.INK_SUB,
+        # 難易度は、ボスを選んでいるときだけ意味がある。
+        # 「ぜんぶ」のときは、どの難易度のぶんも出すので隠す。
+        self.diff_box = tk.Frame(br, bg=th.CARD)
+        self.diff_box.pack(side="left")
+        tk.Label(self.diff_box, text="　難易度", bg=th.CARD, fg=th.INK_SUB,
                  font=F["small"]).pack(side="left", padx=(0, 6))
         self.v_diff = tk.StringVar(value=tb.diff_label(
             self.app.cfg.get("tribute_diff") or "B"))
-        cbd = ttk.Combobox(br, textvariable=self.v_diff, state="readonly",
-                           width=10, style="Cute.TCombobox", font=F["ui"])
+        cbd = ttk.Combobox(self.diff_box, textvariable=self.v_diff,
+                           state="readonly", width=10,
+                           style="Cute.TCombobox", font=F["ui"])
         cbd["values"] = [lbl for _k, lbl in tb.DIFFS]
         cbd.pack(side="left")
         cbd.bind("<<ComboboxSelected>>", lambda e: self.pick_boss())
@@ -371,7 +376,9 @@ class TributePage(tk.Frame):
         if not mp:
             return []
         boss = self.boss_key()
-        want = tb.known_items(mp, self.diff_key(), boss)
+        # 「ぜんぶ」は、どの難易度のぶんも出す（diff=None）
+        diff = None if boss == tb.ALL_BOSSES else self.diff_key()
+        want = tb.known_items(mp, diff, boss)
         if boss != tb.ALL_BOSSES and want:
             out = []
             for name, need, kind in want:
@@ -421,6 +428,7 @@ class TributePage(tk.Frame):
                      bg=th.BG, fg=th.INK_SUB, font=F["small"]).grid(
                          row=0, column=0, pady=24)
             self.inner.columnconfigure(0, weight=1)
+            self.sync_diff()
             self.sync_spend()
             return
         # 並べ直すのはここだけ。数をいじるたびに並べ替えると、
@@ -430,6 +438,7 @@ class TributePage(tk.Frame):
             self.inner.columnconfigure(c, weight=1, uniform="trib")
         for n, (it, need) in enumerate(rows):
             self._row(it, need, n // self.COLS, n % self.COLS)
+        self.sync_diff()
         self.sync_spend()
 
     def _paint_row(self, it):
@@ -549,6 +558,13 @@ class TributePage(tk.Frame):
         self._paint_row(it)
 
     # ------------------------------------------------ 行ってきた
+    def sync_diff(self):
+        """難易度の欄の出し入れ。ボスを選んでいるときだけ出す。"""
+        if self.boss_key() == tb.ALL_BOSSES:
+            self.diff_box.pack_forget()
+        else:
+            self.diff_box.pack(side="left", before=self.spend_box)
+
     def sync_spend(self):
         """「行った」ボタンの出し入れ。ボスを選んでいるときだけ出す。"""
         boss = self.boss_key() if self.map_name else tb.ALL_BOSSES
@@ -676,7 +692,10 @@ class TributePage(tk.Frame):
             self.lbl_auto.config(text="さきにマップを足してください",
                                  fg=th.PINK_DK)
             return
-        rows = tb.known_items(self.map_name, self.diff_key(), self.boss_key())
+        boss = self.boss_key()
+        rows = tb.known_items(
+            self.map_name, None if boss == tb.ALL_BOSSES else self.diff_key(),
+            boss)
         if not rows:
             self.show_auto()
             return
