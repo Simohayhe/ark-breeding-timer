@@ -47,7 +47,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.66.0"
+APP_VERSION = "1.67.0"
 
 
 def _res_dir():
@@ -1651,6 +1651,7 @@ class App(tk.Tk):
         # ---------------- ゲーム内時計のページ ----------------
         self.page_gametime = GameTimePage(self, self)
         self.page_calc = CalcPage(self, self)
+        tb.load_known(os.path.join(DATA_DIR, "tributes.json"))
         self.book = tb.Book(self.cfg.get("tribute_book"))
         self.page_tribute = TributePage(self, self)
         self.apply_hotkey()

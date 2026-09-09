@@ -96,6 +96,36 @@ class TributePage(tk.Frame):
                  bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
                  justify="left").pack(anchor="w", pady=(4, 0))
 
+        # ---- まとめて入れる ----
+        auto = th.Card(self, bg=th.BG)
+        auto.pack(fill="x", pady=(8, 0))
+        u = auto.body
+        tk.Label(u, text="📥 このマップの貢物をまとめて入れる", bg=th.CARD,
+                 fg=th.INK, font=F["cute_b"]).pack(anchor="w")
+        tk.Label(u, text="そのマップのボスに要るものが、いる数つきで入ります。"
+                         "持っている数はそのままです",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
+                 justify="left").pack(anchor="w", pady=(0, 6))
+        ar = tk.Frame(u, bg=th.CARD)
+        ar.pack(fill="x")
+        tk.Label(ar, text="難易度", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(0, 6))
+        self.v_diff = tk.StringVar(value=tb.diff_label(
+            self.app.cfg.get("tribute_diff") or "B"))
+        cb = ttk.Combobox(ar, textvariable=self.v_diff, state="readonly",
+                          width=10, style="Cute.TCombobox", font=F["ui"])
+        cb["values"] = [lbl for _k, lbl in tb.DIFFS]
+        cb.pack(side="left")
+        cb.bind("<<ComboboxSelected>>", lambda e: self.show_auto())
+        self.btn_auto = th.RoundButton(ar, "📥 入れる", self.fill_from_known,
+                                       kind="primary", bg=th.CARD,
+                                       font=F["small"], padx=16, pady=5)
+        self.btn_auto.pack(side="left", padx=8)
+        self.lbl_auto = tk.Label(u, text="", bg=th.CARD, fg=th.INK_SUB,
+                                 font=F["small"], anchor="w", wraplength=760,
+                                 justify="left")
+        self.lbl_auto.pack(fill="x", pady=(4, 0))
+
         # ---- スクショから ----
         cap = th.Card(self, bg=th.BG)
         cap.pack(fill="x", pady=(8, 0))
@@ -153,11 +183,14 @@ class TributePage(tk.Frame):
             self.map_name = names[0] if names else ""
         self.v_map.set(self.map_name)
         self.rebuild()
+        if hasattr(self, "lbl_auto"):
+            self.show_auto()
 
     def pick_map(self):
         self.map_name = self.v_map.get()
         self.app.cfg["tribute_map"] = self.map_name
         self.rebuild()
+        self.show_auto()
 
     def add_map(self):
         """見張っているマップから選ぶ。無ければ手で書く。"""
@@ -292,6 +325,62 @@ class TributePage(tk.Frame):
         th.RoundButton(line, "－", lambda i=it: self.bump(i, -1), kind="soft",
                        bg=th.CARD, font=F["small"], padx=10,
                        pady=3).pack(side="right")
+
+    # ------------------------------------------------ まとめて入れる
+    def diff_key(self):
+        want = self.v_diff.get()
+        for k, lbl in tb.DIFFS:
+            if lbl == want:
+                return k
+        return "B"
+
+    def show_auto(self):
+        """このマップのぶんが用意されているかを出す。"""
+        self.app.cfg["tribute_diff"] = self.diff_key()
+        if not self.map_name:
+            self.lbl_auto.config(text="", fg=th.INK_SUB)
+            return
+        rows = tb.known_items(self.map_name, self.diff_key())
+        if not rows:
+            if tb.known_map(self.map_name):
+                self.lbl_auto.config(
+                    text="%s には、この難易度で要るものがありません"
+                         % self.map_name, fg=th.INK_SUB)
+            else:
+                self.lbl_auto.config(
+                    text="「%s」の貢物は用意がありません。"
+                         "名前をゲームと同じ英語名（Ragnarok など）にすると"
+                         "見つかることがあります" % self.map_name,
+                    fg=th.PINK_DK)
+            return
+        art = sum(1 for _n, _c, k in rows if k == "artifact")
+        self.lbl_auto.config(
+            text="%s の %s … %d品目（うちアーティファクト %d）　出どころ: %s"
+                 % (self.map_name, tb.diff_label(self.diff_key()), len(rows),
+                    art, tb.known_src(self.map_name) or "?"),
+            fg=th.INK_SUB)
+
+    def fill_from_known(self):
+        """一覧から、このマップの貢物を入れる。持っている数は触らない。"""
+        if not self.map_name:
+            self.lbl_auto.config(text="さきにマップを足してください",
+                                 fg=th.PINK_DK)
+            return
+        rows = tb.known_items(self.map_name, self.diff_key())
+        if not rows:
+            self.show_auto()
+            return
+        added = 0
+        for name, need, kind in rows:
+            if self.book().find(self.map_name, name) is None:
+                added += 1
+            self.book().put(self.map_name, name, need=need, kind=kind)
+        self.book().sort(self.map_name)
+        self.app.save_book()
+        self.rebuild()
+        self.lbl_auto.config(
+            text="%d品目を入れました（新しく増えたのは %d）"
+                 % (len(rows), added), fg=th.MINT)
 
     # ------------------------------------------------ スクショ
     def area(self):

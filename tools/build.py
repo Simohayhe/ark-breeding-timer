@@ -112,6 +112,7 @@ def common_args(ver):
         "--version-file", write_version_info(ver),
         "--add-data", "data%sspecies.json%sdata" % (os.sep, os.pathsep),
         "--add-data", "data%staming.json%sdata" % (os.sep, os.pathsep),
+        "--add-data", "data%stributes.json%sdata" % (os.sep, os.pathsep),
         "--hidden-import", "sounds",
         "--hidden-import", "hudread",
         "--hidden-import", "calc_page", "--hidden-import", "theme",

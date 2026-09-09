@@ -11,7 +11,7 @@ a = Analysis(
     ['ark_breeding_timer.py'],
     pathex=[],
     binaries=[],
-    datas=[('data\\species.json', 'data'), ('data\\taming.json', 'data')],
+    datas=[('data\\species.json', 'data'), ('data\\taming.json', 'data'), ('data\\tributes.json', 'data')],
     hiddenimports=['sounds', 'hudread', 'calc_page', 'theme', 'tribute', 'tribute_page', 'tribute_read'],
     hookspath=[],
     hooksconfig={},

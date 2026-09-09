@@ -12,43 +12,50 @@
 """
 from __future__ import annotations
 
+import io
+import json
 import time
 
-# アーティファクトの英語名（コミュニティで通じるのはこの並び）。
-# 日本語名は人によって表記ゆれがあるので、こちらは目安として添えるだけ。
+# アーティファクト24種。日本語名は ja版ウィキの記事名＝ゲームの表記。
+# 推測で書いていたころは「暴食」を「捕食者」、「天帝」を「空の王」などと
+# 取り違えていた。tools/fetch_tributes.py と同じ引きかたで取り直したもの。
 ARTIFACTS = (
-    ("Brute", "猛者"),
-    ("Chaos", "混沌"),
-    ("Clever", "賢者"),
-    ("Crag", "岩山"),
-    ("Cunning", "狡猾"),
-    ("Depths", "深淵"),
-    ("Destroyer", "破壊者"),
-    ("Devious", "邪知"),
-    ("Devourer", "捕食者"),
-    ("Fallen", "堕天"),
-    ("Gatekeeper", "門番"),
-    ("Growth", "成長"),
-    ("Hunter", "狩人"),
-    ("Immune", "免疫"),
-    ("Lost", "喪失"),
-    ("Massive", "巨大"),
-    ("Mighty", "強大"),
-    ("Pack", "群れ"),
-    ("Seeking", "探求"),
-    ("Shadows", "影"),
-    ("Skylord", "空の王"),
-    ("Stalker", "追跡者"),
-    ("Strong", "剛力"),
-    ("Void", "虚無"),
+    ("Brute", "野獣のアーティファクト"),
+    ("Chaos", ""),
+    ("Clever", "賢者のアーティファクト"),
+    ("Crag", "岩山のアーティファクト"),
+    ("Cunning", "狡猾のアーティファクト"),
+    ("Depths", "落のアーティファクト"),
+    ("Destroyer", "破壊者のアーティファクト"),
+    ("Devious", "邪悪のアーティファクト"),
+    ("Devourer", "暴食のアーティファクト"),
+    ("Fallen", ""),
+    ("Gatekeeper", "門番のアーティファクト"),
+    ("Growth", ""),
+    ("Hunter", "狩人のアーティファクト"),
+    ("Immune", "免疫のアーティファクト"),
+    ("Lost", "迷人のアーティファクト"),
+    ("Massive", "大物のアーティファクト"),
+    ("Mighty", ""),
+    ("Pack", "群集のアーティファクト"),
+    ("Seeking", ""),
+    ("Shadows", "影のアーティファクト"),
+    ("Skylord", "天帝のアーティファクト"),
+    ("Stalker", "追跡者のアーティファクト"),
+    ("Strong", "強者のアーティファクト"),
+    ("Void", "虚無のアーティファクト"),
 )
 
 
 def artifact_name(key):
-    """アーティファクトの見せかたを1つに決める。"""
+    """アーティファクトの見せかたを1つに決める。
+
+    ゲームに出る日本語名をそのまま使う。スクショから読んだ名前と
+    突き合うので、こちらのほうが都合がよい。
+    """
     for en, ja in ARTIFACTS:
         if en == key:
-            return "Artifact of the %s（%s）" % (en, ja)
+            return ja or ("Artifact of the %s" % en)
     return key
 
 
@@ -203,3 +210,72 @@ def norm(s):
     t = t.translate(str.maketrans("０１２３４５６７８９（）",
                                   "0123456789()"))
     return "".join(t.split())
+
+
+# ------------------------------------------------ 知っている貢物
+# data/tributes.json は tools/fetch_tributes.py がウィキから作る。
+# 名前はゲームと同じ日本語（日本語ページが無いものは英語のまま）。
+DIFFS = (("G", "ガンマ"), ("B", "ベータ"), ("A", "アルファ"))
+_KNOWN = None
+
+
+def diff_label(key):
+    for k, lbl in DIFFS:
+        if k == key:
+            return lbl
+    return key
+
+
+def load_known(path):
+    """一覧を読み込む。無くても動くように、失敗したら空にする。"""
+    global _KNOWN
+    if _KNOWN is None:
+        try:
+            with io.open(path, encoding="utf-8") as f:
+                _KNOWN = json.load(f)
+        except Exception:
+            _KNOWN = {}
+    return _KNOWN
+
+
+def known_map(name):
+    """持ち物帳のマップ名から、一覧のどのマップかを見つける。
+
+    英語名でも日本語名でも引けるようにする。
+    """
+    if not _KNOWN:
+        return ""
+    if name in _KNOWN:
+        return name
+    key = norm(name)
+    for mp in _KNOWN:
+        if norm(mp) == key:
+            return mp
+    try:
+        import gametime
+        for mp in _KNOWN:
+            if norm(gametime.map_label(mp)) == key:
+                return mp
+    except Exception:
+        pass
+    return ""
+
+
+def known_items(map_name, diff="B"):
+    """そのマップ・その難易度で要る貢物。[(名前, 個数, 種類)]。"""
+    mp = known_map(map_name)
+    if not mp:
+        return []
+    out = []
+    for row in _KNOWN[mp].get("items", []):
+        n = int(row.get(diff) or 0)
+        if n <= 0:
+            continue
+        kind = "artifact" if "Artifact of" in (row.get("en") or "") else "tribute"
+        out.append((row.get("name") or row.get("en") or "", n, kind))
+    return out
+
+
+def known_src(map_name):
+    mp = known_map(map_name)
+    return _KNOWN.get(mp, {}).get("src", "") if mp else ""
