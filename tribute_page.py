@@ -117,6 +117,15 @@ class TributePage(tk.Frame):
         cb["values"] = [lbl for _k, lbl in tb.DIFFS]
         cb.pack(side="left")
         cb.bind("<<ComboboxSelected>>", lambda e: self.show_auto())
+        tk.Label(ar, text="　ボス", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(0, 6))
+        self.v_boss = tk.StringVar()
+        self.cb_boss = ttk.Combobox(ar, textvariable=self.v_boss,
+                                    state="readonly", width=26,
+                                    style="Cute.TCombobox", font=F["ui"])
+        self.cb_boss.pack(side="left")
+        self.cb_boss.bind("<<ComboboxSelected>>", lambda e: self.show_auto())
+        self.boss_keys = []
         self.btn_auto = th.RoundButton(ar, "📥 入れる", self.fill_from_known,
                                        kind="primary", bg=th.CARD,
                                        font=F["small"], padx=16, pady=5)
@@ -184,13 +193,32 @@ class TributePage(tk.Frame):
         self.v_map.set(self.map_name)
         self.rebuild()
         if hasattr(self, "lbl_auto"):
+            self.refresh_bosses()
+            self.auto_first_time()
             self.show_auto()
 
     def pick_map(self):
         self.map_name = self.v_map.get()
         self.app.cfg["tribute_map"] = self.map_name
         self.rebuild()
+        self.refresh_bosses()
+        self.auto_first_time()
         self.show_auto()
+
+    def auto_first_time(self):
+        """まだ何も入っていないマップなら、1度だけ勝手に入れる。
+
+        前のもので作ったマップは空のままなので、開いたときに埋める。
+        自分で全部消したあとに勝手に戻ってこないよう、入れたことは覚えておく。
+        """
+        mp = self.map_name
+        if not mp or self.book().items(mp):
+            return
+        done = self.app.cfg.setdefault("tribute_filled", [])
+        if mp in done or not tb.known_map(mp):
+            return
+        done.append(mp)
+        self.fill_from_known(quiet=True)
 
     def add_map(self):
         """見張っているマップから選ぶ。無ければ手で書く。"""
@@ -334,18 +362,36 @@ class TributePage(tk.Frame):
                 return k
         return "B"
 
+    def refresh_bosses(self):
+        """このマップのボスを、選べるように並べる。"""
+        got = tb.known_bosses(self.map_name)
+        self.boss_keys = [tb.ALL_BOSSES] + [key for _lbl, key in got]
+        labels = ["ぜんぶ（%d体）" % len(got) if got else "ぜんぶ"] \
+            + [lbl for lbl, _key in got]
+        self.cb_boss["values"] = labels
+        want = self.app.cfg.get("tribute_boss") or tb.ALL_BOSSES
+        i = self.boss_keys.index(want) if want in self.boss_keys else 0
+        self.cb_boss.current(i)
+
+    def boss_key(self):
+        i = self.cb_boss.current()
+        if 0 <= i < len(self.boss_keys):
+            return self.boss_keys[i]
+        return tb.ALL_BOSSES
+
     def show_auto(self):
         """このマップのぶんが用意されているかを出す。"""
         self.app.cfg["tribute_diff"] = self.diff_key()
+        self.app.cfg["tribute_boss"] = self.boss_key()
         if not self.map_name:
             self.lbl_auto.config(text="", fg=th.INK_SUB)
             return
-        rows = tb.known_items(self.map_name, self.diff_key())
+        boss = self.boss_key()
+        rows = tb.known_items(self.map_name, self.diff_key(), boss)
         if not rows:
             if tb.known_map(self.map_name):
                 self.lbl_auto.config(
-                    text="%s には、この難易度で要るものがありません"
-                         % self.map_name, fg=th.INK_SUB)
+                    text="この難易度で要るものがありません", fg=th.INK_SUB)
             else:
                 self.lbl_auto.config(
                     text="「%s」の貢物は用意がありません。"
@@ -354,19 +400,21 @@ class TributePage(tk.Frame):
                     fg=th.PINK_DK)
             return
         art = sum(1 for _n, _c, k in rows if k == "artifact")
+        who = "ボスぜんぶ" if boss == tb.ALL_BOSSES else self.v_boss.get()
         self.lbl_auto.config(
-            text="%s の %s … %d品目（うちアーティファクト %d）　出どころ: %s"
-                 % (self.map_name, tb.diff_label(self.diff_key()), len(rows),
-                    art, tb.known_src(self.map_name) or "?"),
+            text="%s の %s（%s） … %d品目（うちアーティファクト %d）"
+                 "　出どころ: %s"
+                 % (self.map_name, who, tb.diff_label(self.diff_key()),
+                    len(rows), art, tb.known_src(self.map_name) or "?"),
             fg=th.INK_SUB)
 
-    def fill_from_known(self):
+    def fill_from_known(self, quiet=False):
         """一覧から、このマップの貢物を入れる。持っている数は触らない。"""
         if not self.map_name:
             self.lbl_auto.config(text="さきにマップを足してください",
                                  fg=th.PINK_DK)
             return
-        rows = tb.known_items(self.map_name, self.diff_key())
+        rows = tb.known_items(self.map_name, self.diff_key(), self.boss_key())
         if not rows:
             self.show_auto()
             return
@@ -381,6 +429,8 @@ class TributePage(tk.Frame):
         self.lbl_auto.config(
             text="%d品目を入れました（新しく増えたのは %d）"
                  % (len(rows), added), fg=th.MINT)
+        if quiet:
+            self.show_auto()        # 足したときは、ふつうの案内に戻しておく
 
     # ------------------------------------------------ スクショ
     def area(self):
@@ -517,10 +567,15 @@ class AddMapDialog(tk.Toplevel):
         name = (name or "").strip()
         if not name:
             return
-        self.page.book().add_map(name)
+        page = self.page
+        page.book().add_map(name)
         self.app.save_book()
-        self.page.refresh_maps(pick=name)
+        page.refresh_maps(pick=name)
         self.destroy()
+        # 用意のあるマップなら、貢物とアーティファクトをそのまま入れておく。
+        # 足したそばから空の一覧を見せても、やることが増えるだけ。
+        if tb.known_map(name):
+            page.fill_from_known(quiet=True)
 
 
 def gametime_label(name):

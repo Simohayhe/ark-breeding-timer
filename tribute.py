@@ -261,19 +261,42 @@ def known_map(name):
     return ""
 
 
-def known_items(map_name, diff="B"):
-    """そのマップ・その難易度で要る貢物。[(名前, 個数, 種類)]。"""
+ALL_BOSSES = "＊"          # 「このマップのボスぜんぶ」
+
+
+def known_bosses(map_name):
+    """そのマップのボス。[(見出しの名前, 中の名前)]。"""
     mp = known_map(map_name)
     if not mp:
         return []
-    out = []
-    for row in _KNOWN[mp].get("items", []):
-        n = int(row.get(diff) or 0)
-        if n <= 0:
+    return [(b.get("ja") or b.get("boss"), b.get("boss"))
+            for b in _KNOWN[mp].get("bosses", [])]
+
+
+def known_items(map_name, diff="B", boss=None):
+    """そのマップ・そのボス・その難易度で要る貢物。
+
+    boss を渡さない（または ALL_BOSSES）と、そのマップのボスぜんぶを
+    まとめたものになる。同じ品目は、いちばん多く要るボスに合わせる。
+    """
+    mp = known_map(map_name)
+    if not mp:
+        return []
+    need = {}
+    kinds = {}
+    for b in _KNOWN[mp].get("bosses", []):
+        if boss and boss != ALL_BOSSES and b.get("boss") != boss:
             continue
-        kind = "artifact" if "Artifact of" in (row.get("en") or "") else "tribute"
-        out.append((row.get("name") or row.get("en") or "", n, kind))
-    return out
+        for row in b.get("items", []):
+            n = int(row.get(diff) or 0)
+            if n <= 0:
+                continue
+            name = row.get("name") or row.get("en") or ""
+            need[name] = max(need.get(name, 0), n)
+            kinds[name] = ("artifact"
+                           if "Artifact of" in (row.get("en") or "")
+                           else "tribute")
+    return [(name, need[name], kinds[name]) for name in sorted(need)]
 
 
 def known_src(map_name):

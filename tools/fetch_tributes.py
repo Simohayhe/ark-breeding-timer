@@ -109,7 +109,7 @@ def parse_wide(text):
     while i < len(lines) and head.match(lines[i]):
         groups.append(lines[i].split("|", 1)[1].strip())
         i += 1
-    got = {}
+    got = {}          # (マップ, ボス) -> {品目: {G,B,A}}
     for ln in lines:
         if not ln.startswith("| style=") or "ItemLink" not in ln:
             continue
@@ -123,11 +123,23 @@ def parse_wide(text):
             for k in range(span):
                 grp, diff = (col + k) // 3, "GBA"[(col + k) % 3]
                 if grp < len(groups) and n:
-                    mp = head_map(groups[grp])
-                    got.setdefault(mp, {}).setdefault(
+                    head = groups[grp]
+                    key = (head_map(head), head_boss(head))
+                    got.setdefault(key, {}).setdefault(
                         name, {"G": 0, "B": 0, "A": 0})[diff] = n
             col += span
     return got
+
+
+def head_boss(head):
+    """見出しから、ボスの名前を取り出す。「ドラゴン＋マンティコア」もある。"""
+    got = re.findall(r"\{\{(?:ItemLink|IconLink)\|([^}|]+)", head)
+    got = [g.strip() for g in got if g.strip()]
+    if got:
+        return "+".join(got)
+    t = re.sub(r"\{\{[^}]*\}\}", "", head)
+    t = re.sub(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]", r"\1", t)
+    return t.strip(" |") or "?"
 
 
 def parse_boss(text):
@@ -225,24 +237,24 @@ def ja_names(names):
     return out
 
 
-def merge(into, mp, items, src):
-    box = into.setdefault(mp, {"items": {}, "src": src})
-    for name, d in items.items():
-        cur = box["items"].setdefault(name, {"G": 0, "B": 0, "A": 0})
-        for k in "GBA":
-            cur[k] = max(cur[k], d[k])
-
-
 def main():
-    out = {}
+    out = {}      # マップ -> {"src": .., "bosses": {ボス: {品目: {G,B,A}}}}
+
+    def add(mp, boss, items, src):
+        box = out.setdefault(mp, {"src": src, "bosses": {}})
+        cur = box["bosses"].setdefault(boss, {})
+        for name, d in items.items():
+            row = cur.setdefault(name, {"G": 0, "B": 0, "A": 0})
+            for k in "GBA":
+                row[k] = max(row[k], d[k])
+
     for page in ("Table of story map tributes", "Table of official mod tributes"):
         got = parse_wide(fetch(page))
-        for mp, items in got.items():
-            merge(out, mp, items, page)
-        print("%-34s → %d マップ" % (page, len(got)))
+        for (mp, boss), items in got.items():
+            add(mp, boss, items, page)
+        print("%-34s → %d のボス" % (page, len(got)))
 
-    # アストレオスは、ボスのページを1体ずつ
-    ast = {}
+    # アストレオスは一覧に無いので、ボスのページを1体ずつ
     for boss in ASTRAEOS_BOSSES:
         try:
             items = parse_boss(fetch(boss))
@@ -250,33 +262,41 @@ def main():
             print("   %-14s 取れず（%s）" % (boss, e))
             continue
         print("   %-14s %d品目" % (boss, len(items)))
-        for name, d in items.items():
-            cur = ast.setdefault(name, {"G": 0, "B": 0, "A": 0})
-            for k in "GBA":
-                cur[k] = max(cur[k], d[k])
-    if ast:
-        merge(out, "Astraeos", ast, "各ボスのページ")
+        if items:
+            add("Astraeos", boss, items, "各ボスのページ")
 
-    every = set()
+    # 品名とボス名を日本語にする
+    every, bosses = set(), set()
     for box in out.values():
-        every |= set(box["items"])
-    print("\n日本語名を引きます（%d品目）…" % len(every))
-    ja = ja_names(every)
-    print("   %d品目に日本語名がありました" % len(ja))
+        for boss, items in box["bosses"].items():
+            bosses.update(boss.split("+"))
+            every |= set(items)
+    print("\n日本語名を引きます（品目 %d ／ ボス %d）…" % (len(every), len(bosses)))
+    ja = ja_names(every | bosses)
+    print("   %d件に日本語名がありました" % len(ja))
+
+    def boss_ja(boss):
+        return "＋".join(ja.get(b, b) for b in boss.split("+"))
 
     final = {}
     for mp, box in out.items():
         rows = []
-        for n, d in sorted(box["items"].items()):
-            rows.append(dict(name=ja.get(n, n), en=n, **d))
-        final[mp] = {"items": rows, "src": box["src"]}
+        for boss, items in sorted(box["bosses"].items()):
+            rows.append({
+                "boss": boss, "ja": boss_ja(boss),
+                "items": [dict(name=ja.get(n, n), en=n, **d)
+                          for n, d in sorted(items.items())]})
+        final[mp] = {"bosses": rows, "src": box["src"]}
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     io.open(OUT, "w", encoding="utf-8").write(
         json.dumps(final, ensure_ascii=False, indent=1, sort_keys=True))
     print("\n書き出し: %s（%d マップ）" % (OUT, len(final)))
     for mp in sorted(final):
-        print("   %-16s %d品目  (%s)"
-              % (mp, len(final[mp]["items"]), final[mp]["src"]))
+        n = sum(len(b["items"]) for b in final[mp]["bosses"])
+        print("   %-16s ボス%d体 / のべ%d品目  (%s)"
+              % (mp, len(final[mp]["bosses"]), n, final[mp]["src"]))
+        for b in final[mp]["bosses"]:
+            print("        %-34s %d品目" % (b["ja"], len(b["items"])))
 
 
 if __name__ == "__main__":
