@@ -107,6 +107,19 @@ class TributePage(tk.Frame):
         cbd.pack(side="left")
         cbd.bind("<<ComboboxSelected>>", lambda e: self.pick_boss())
 
+        # 行ってきたら、使ったぶんを引く。押し間違えても戻せるようにする
+        self.spend_box = tk.Frame(br, bg=th.CARD)
+        self.spend_box.pack(side="left", padx=(12, 0))
+        self.btn_spend = th.RoundButton(self.spend_box, "🗡 ボスに行った",
+                                        self.spend_boss, kind="primary",
+                                        bg=th.CARD, font=F["small"],
+                                        padx=16, pady=5)
+        self.btn_undo = th.RoundButton(self.spend_box, "🔙 もどす",
+                                       self.undo_spend, kind="ghost",
+                                       bg=th.CARD, font=F["small"],
+                                       padx=12, pady=5)
+        self._spent = None
+
         self.lbl_sum = tk.Label(c, text="", bg=th.CARD, fg=th.INK_SUB,
                                 font=F["small"], anchor="w")
         self.lbl_sum.pack(fill="x", pady=(6, 0))
@@ -313,6 +326,7 @@ class TributePage(tk.Frame):
                      fg=th.INK_SUB, font=F["small"]).grid(row=0, column=0,
                                                           pady=24)
             self.inner.columnconfigure(0, weight=1)
+            self.sync_spend()
             return
         # 足りないものを先に。あと何個かがすぐ目に入るように
         rows.sort(key=lambda r: (0 if r[1] > 0 and r[0].have < r[1] else 1,
@@ -322,6 +336,7 @@ class TributePage(tk.Frame):
             self.inner.columnconfigure(c, weight=1, uniform="trib")
         for n, (it, need) in enumerate(rows):
             self._row(it, need, n // self.COLS, n % self.COLS)
+        self.sync_spend()
 
     def head_text(self, rows):
         """上の2行。なにを出しているかと、あと何が足りないか。"""
@@ -400,6 +415,66 @@ class TributePage(tk.Frame):
             tk.Label(line, text="✔", bg=th.CARD, fg=th.MINT,
                      font=F["cute"]).pack(side="left", padx=(5, 0))
 
+    # ------------------------------------------------ 行ってきた
+    def sync_spend(self):
+        """「行った」ボタンの出し入れ。ボスを選んでいるときだけ出す。"""
+        boss = self.boss_key() if self.map_name else tb.ALL_BOSSES
+        if self.map_name and boss != tb.ALL_BOSSES and self.view_rows():
+            self.btn_spend.pack(side="left")
+        else:
+            self.btn_spend.pack_forget()
+        if self._spent:
+            self.btn_undo.pack(side="left", padx=(4, 0))
+        else:
+            self.btn_undo.pack_forget()
+
+    def spend_boss(self):
+        """挑みに行ったぶんを、持ち物から引く。
+
+        足りないものは、あるだけ引く（マイナスにはしない）。
+        引いた中身は覚えておいて、押し間違えたら戻せるようにする。
+        """
+        rows = self.view_rows()
+        if not rows:
+            return
+        spent, short = [], []
+        for it, need in rows:
+            if need <= 0:
+                continue
+            take = min(it.have, need)
+            if take:
+                it.set_have(it.have - take)
+                spent.append((it, take))
+            if need > take:
+                short.append((it.name, need - take))
+        if not spent and not short:
+            return
+        self._spent = spent
+        self.app.save_book()
+        self.rebuild()
+        who = "%s（%s）" % (self.v_boss.get(), tb.diff_label(self.diff_key()))
+        msg = "🗡 %s に行きました。%d品目を引きました" % (who, len(spent))
+        if short:
+            msg += "　⚠ 足りなかったぶん: " + "、".join(
+                "%s %d" % (n, c) for n, c in short[:5])
+            if len(short) > 5:
+                msg += " ほか%d件" % (len(short) - 5)
+        self.lbl_short.config(text=msg, fg=th.PINK_DK if short else th.MINT)
+        self.sync_spend()
+
+    def undo_spend(self):
+        """引いたぶんを戻す。"""
+        if not self._spent:
+            return
+        for it, take in self._spent:
+            it.set_have(it.have + take)
+        n = len(self._spent)
+        self._spent = None
+        self.app.save_book()
+        self.rebuild()
+        self.lbl_short.config(text="🔙 %d品目を戻しました" % n, fg=th.INK_SUB)
+        self.sync_spend()
+
     # ------------------------------------------------ まとめて入れる
     def diff_key(self):
         want = self.v_diff.get()
@@ -423,6 +498,7 @@ class TributePage(tk.Frame):
         """ボスや難易度を選び直した。出すものを入れ替える。"""
         self.app.cfg["tribute_diff"] = self.diff_key()
         self.app.cfg["tribute_boss"] = self.boss_key()
+        self._spent = None          # 別の話になるので、戻せるのはここまで
         self.rebuild()
         self.show_auto()
 
