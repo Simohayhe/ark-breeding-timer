@@ -370,7 +370,11 @@ class TributePage(tk.Frame):
 
         持っている数はマップごとに覚えたもの。いる数は、選んだボスと
         難易度から出す（ボスによって違うので、覚えたりはしない）。
-        「ぜんぶ」のときは、その帳面にあるもの全部。
+
+        「ぜんぶ」は、そのマップに要るものを**データから**ぜんぶ出す。
+        帳面にあるものだけを並べていたころは、前にベータで作った帳面に
+        アルファぶんが入っておらず、一覧から抜けていた。
+        手で足したものやスクショから取り込んだものは、後ろに足す。
         """
         mp = self.map_name
         if not mp:
@@ -379,17 +383,22 @@ class TributePage(tk.Frame):
         # 「ぜんぶ」は、どの難易度のぶんも出す（diff=None）
         diff = None if boss == tb.ALL_BOSSES else self.diff_key()
         want = tb.known_items(mp, diff, boss)
-        if boss != tb.ALL_BOSSES and want:
-            out = []
-            for name, need, kind in want:
-                it = self.book().find(mp, name)
-                if it is None:      # まだ帳面に無ければ、0個として作る
-                    it = self.book().put(mp, name, kind=kind)
-                out.append((it, need))
-            return out
-        need_of = {n: c for n, c, _k in want}
-        return [(it, need_of.get(it.name, it.need))
-                for it in self.book().items(mp)]
+        out, seen, added = [], set(), False
+        for name, need, kind in want:
+            it = self.book().find(mp, name)
+            if it is None:          # まだ帳面に無ければ、0個として作る
+                it = self.book().put(mp, name, kind=kind)
+                added = True
+            out.append((it, need))
+            seen.add(id(it))
+        if boss == tb.ALL_BOSSES:
+            for it in self.book().items(mp):
+                if id(it) not in seen:
+                    out.append((it, it.need))
+        if added:
+            self.book().sort(mp)
+            self.app.save_book()
+        return out
 
     def rebuild(self):
         for w in self.inner.winfo_children():
