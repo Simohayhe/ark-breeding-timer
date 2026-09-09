@@ -315,14 +315,17 @@ class TributePage(tk.Frame):
         self.rebuild()
 
     def find_text(self):
-        return tb.norm(self.v_find.get())
+        return tb.search_key(self.v_find.get())
 
     def keep(self, rows):
-        """検索の字が入っていれば、名前で絞る。"""
-        want = self.find_text()
-        if not want:
+        """検索の字が入っていれば、名前で絞る。
+
+        ひらがなで打っても、ローマ字で打っても当たる。
+        """
+        want = self.v_find.get()
+        if not tb.search_key(want):
             return rows
-        return [(it, need) for it, need in rows if want in tb.norm(it.name)]
+        return [(it, need) for it, need in rows if tb.hit(want, it.name)]
 
     def sort_label(self, key):
         for k, lbl in self.SORTS:
