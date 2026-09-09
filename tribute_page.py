@@ -16,6 +16,35 @@ import tribute as tb
 import tribute_read as tr
 
 
+class Fold(tk.Frame):
+    """見出しを押すと開け閉めするひとかたまり。
+
+    貢物の一覧が主役なので、入力まわりは普段たたんでおく。
+    """
+
+    def __init__(self, master, title, font, bg=th.CARD, opened=False):
+        super().__init__(master, bg=bg)
+        self.title = title
+        self.opened = bool(opened)
+        self.head = tk.Label(self, text="", bg=bg, fg=th.INK, font=font,
+                             anchor="w", cursor="hand2")
+        self.head.pack(fill="x")
+        self.head.bind("<Button-1>", lambda e: self.toggle())
+        self.body = tk.Frame(self, bg=bg)
+        self._paint()
+
+    def _paint(self):
+        self.head.config(text=("▼ " if self.opened else "▶ ") + self.title)
+        if self.opened:
+            self.body.pack(fill="x", pady=(4, 0))
+        else:
+            self.body.pack_forget()
+
+    def toggle(self):
+        self.opened = not self.opened
+        self._paint()
+
+
 class TributePage(tk.Frame):
     def __init__(self, master, app):
         super().__init__(master, bg=th.BG)
@@ -60,109 +89,6 @@ class TributePage(tk.Frame):
                                 font=F["small"], anchor="w")
         self.lbl_sum.pack(fill="x", pady=(6, 0))
 
-        # ---- 足す ----
-        add = th.Card(self, bg=th.BG)
-        add.pack(fill="x", pady=(8, 0))
-        a = add.body
-        tk.Label(a, text="品目を足す", bg=th.CARD, fg=th.INK,
-                 font=F["cute_b"]).pack(anchor="w")
-        r1 = tk.Frame(a, bg=th.CARD)
-        r1.pack(fill="x", pady=(4, 2))
-        self.v_new = tk.StringVar()
-        th.soft_entry(r1, self.v_new, width=30).pack(side="left", ipady=3)
-        tk.Label(r1, text=" いる数", bg=th.CARD, fg=th.INK_SUB,
-                 font=F["small"]).pack(side="left")
-        self.v_need = tk.StringVar(value="0")
-        th.soft_entry(r1, self.v_need, width=5).pack(side="left", padx=4,
-                                                     ipady=3)
-        th.RoundButton(r1, "＋ 足す", self.add_item, kind="primary",
-                       bg=th.CARD, font=F["small"], padx=14,
-                       pady=5).pack(side="left", padx=6)
-        r2 = tk.Frame(a, bg=th.CARD)
-        r2.pack(fill="x", pady=(2, 0))
-        tk.Label(r2, text="アーティファクトから選ぶ", bg=th.CARD, fg=th.INK_SUB,
-                 font=F["small"]).pack(side="left", padx=(0, 6))
-        self.v_art = tk.StringVar()
-        self.cb_art = ttk.Combobox(r2, textvariable=self.v_art,
-                                   state="readonly", width=30,
-                                   style="Cute.TCombobox", font=F["ui"])
-        self.cb_art["values"] = [tb.artifact_name(en) for en, _ja in tb.ARTIFACTS]
-        self.cb_art.pack(side="left")
-        th.RoundButton(r2, "これを足す", self.add_artifact, kind="soft",
-                       bg=th.CARD, font=F["small"], padx=12,
-                       pady=5).pack(side="left", padx=6)
-        tk.Label(a, text="日本語名はゲームによって表記がゆれるので、目安です。"
-                         "自分の書き方で足してもらってかまいません",
-                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
-                 justify="left").pack(anchor="w", pady=(4, 0))
-
-        # ---- まとめて入れる ----
-        auto = th.Card(self, bg=th.BG)
-        auto.pack(fill="x", pady=(8, 0))
-        u = auto.body
-        tk.Label(u, text="📥 このマップの貢物をまとめて入れる", bg=th.CARD,
-                 fg=th.INK, font=F["cute_b"]).pack(anchor="w")
-        tk.Label(u, text="そのマップのボスに要るものが、いる数つきで入ります。"
-                         "持っている数はそのままです",
-                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
-                 justify="left").pack(anchor="w", pady=(0, 6))
-        ar = tk.Frame(u, bg=th.CARD)
-        ar.pack(fill="x")
-        tk.Label(ar, text="難易度", bg=th.CARD, fg=th.INK_SUB,
-                 font=F["small"]).pack(side="left", padx=(0, 6))
-        self.v_diff = tk.StringVar(value=tb.diff_label(
-            self.app.cfg.get("tribute_diff") or "B"))
-        cb = ttk.Combobox(ar, textvariable=self.v_diff, state="readonly",
-                          width=10, style="Cute.TCombobox", font=F["ui"])
-        cb["values"] = [lbl for _k, lbl in tb.DIFFS]
-        cb.pack(side="left")
-        cb.bind("<<ComboboxSelected>>", lambda e: self.show_auto())
-        tk.Label(ar, text="　ボス", bg=th.CARD, fg=th.INK_SUB,
-                 font=F["small"]).pack(side="left", padx=(0, 6))
-        self.v_boss = tk.StringVar()
-        self.cb_boss = ttk.Combobox(ar, textvariable=self.v_boss,
-                                    state="readonly", width=26,
-                                    style="Cute.TCombobox", font=F["ui"])
-        self.cb_boss.pack(side="left")
-        self.cb_boss.bind("<<ComboboxSelected>>", lambda e: self.show_auto())
-        self.boss_keys = []
-        self.btn_auto = th.RoundButton(ar, "📥 入れる", self.fill_from_known,
-                                       kind="primary", bg=th.CARD,
-                                       font=F["small"], padx=16, pady=5)
-        self.btn_auto.pack(side="left", padx=8)
-        self.lbl_auto = tk.Label(u, text="", bg=th.CARD, fg=th.INK_SUB,
-                                 font=F["small"], anchor="w", wraplength=760,
-                                 justify="left")
-        self.lbl_auto.pack(fill="x", pady=(4, 0))
-
-        # ---- スクショから ----
-        cap = th.Card(self, bg=th.BG)
-        cap.pack(fill="x", pady=(8, 0))
-        p = cap.body
-        tk.Label(p, text="📷 スクショから取り込む", bg=th.CARD, fg=th.INK,
-                 font=F["cute_b"]).pack(anchor="w")
-        tk.Label(p, text="ARKで箱を開けて、品名が出る表示にしてから範囲をおしえて"
-                         "ください。読んだ結果は、入れる前に確かめられます",
-                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
-                 justify="left").pack(anchor="w", pady=(0, 6))
-        cr = tk.Frame(p, bg=th.CARD)
-        cr.pack(fill="x")
-        self.btn_area = th.RoundButton(cr, "🖱 範囲をおしえる", self.learn_area,
-                                       kind="soft", bg=th.CARD,
-                                       font=F["small"], padx=14, pady=5,
-                                       width=180)
-        self.btn_area.pack(side="left")
-        self.btn_read = th.RoundButton(cr, "📷 いま読む", self.read_now,
-                                       kind="primary", bg=th.CARD,
-                                       font=F["small"], padx=14, pady=5)
-        self.btn_read.pack(side="left", padx=6)
-        self.lbl_cap = tk.Label(p, text="", bg=th.CARD, fg=th.INK_SUB,
-                                font=F["small"], anchor="w", wraplength=760,
-                                justify="left")
-        self.lbl_cap.pack(fill="x", pady=(4, 0))
-        self.rec = None
-        self.show_area()
-
         # ---- 一覧 ----
         wrap = tk.Frame(self, bg=th.BG)
         wrap.pack(fill="both", expand=True, pady=(8, 0))
@@ -177,7 +103,27 @@ class TributePage(tk.Frame):
             self._win, width=e.width))
         self.bind_all("<MouseWheel>", self._wheel, add="+")
 
+
+        # ---- 下: 入力まわりは、たたんでおく ----
+        under = tk.Frame(self, bg=th.BG)
+        under.pack(fill="x", pady=(8, 0))
+        self.folds = []
+        for name, title, build, opened in (
+                ("add", "＋ 品目を足す", self._build_add, False),
+                ("auto", "📥 このマップの貢物をまとめて入れる",
+                 self._build_auto, False),
+                ("cap", "📷 スクショから取り込む", self._build_cap, False)):
+            card = th.Card(under, bg=th.BG)
+            card.pack(fill="x", pady=(0, 4))
+            fold = Fold(card.body, title, F["cute_b"], opened=opened)
+            fold.pack(fill="x")
+            build(fold.body)
+            self.folds.append(fold)
+
+        self.rec = None
+        self.show_area()
         self.refresh_maps()
+
 
     # ------------------------------------------------ マップ
     def book(self):
@@ -286,6 +232,8 @@ class TributePage(tk.Frame):
         self.rebuild()
 
     # ------------------------------------------------ 見た目
+    COLS = 3          # 一覧を何列に並べるか
+
     def rebuild(self):
         for w in self.inner.winfo_children():
             w.destroy()
@@ -298,7 +246,8 @@ class TributePage(tk.Frame):
         if not self.map_name:
             self.lbl_sum.config(text="")
             box = tk.Frame(self.inner, bg=th.BG)
-            box.pack(fill="x", pady=40)
+            box.grid(row=0, column=0, sticky="ew", pady=40)
+            self.inner.columnconfigure(0, weight=1)
             tk.Label(box, text="🏺", bg=th.BG, font=(th.JP, 34)).pack()
             tk.Label(box, text="まだマップがありません", bg=th.BG, fg=th.INK,
                      font=F["cute_b"]).pack(pady=(6, 2))
@@ -309,50 +258,59 @@ class TributePage(tk.Frame):
         rows = self.book().items(self.map_name)
         if not rows:
             tk.Label(self.inner, text="このマップにはまだ品目がありません",
-                     bg=th.BG, fg=th.INK_SUB, font=F["small"]).pack(pady=24)
+                     bg=th.BG, fg=th.INK_SUB, font=F["small"]).grid(
+                         row=0, column=0, pady=24)
+            self.inner.columnconfigure(0, weight=1)
             return
-        for it in rows:
-            self._row(it)
+        # 横に3つずつ。列は同じ幅にして、窓を広げたぶんだけ伸びるようにする
+        for c in range(self.COLS):
+            self.inner.columnconfigure(c, weight=1, uniform="trib")
+        for n, it in enumerate(rows):
+            self._row(it, n // self.COLS, n % self.COLS)
 
-    def _row(self, it):
+    def _row(self, it, row, col):
+        """品目ひとつぶんの札。狭いので、名前と数を2段に分ける。"""
         F = self.F
         card = th.Card(self.inner, bg=th.BG)
-        card.pack(fill="x", pady=3)
+        card.grid(row=row, column=col, sticky="nsew", padx=3, pady=3)
         b = card.body
-        line = tk.Frame(b, bg=th.CARD)
-        line.pack(fill="x")
+
+        top = tk.Frame(b, bg=th.CARD)
+        top.pack(fill="x")
+        mark = "🏺" if it.kind == "artifact" else "🦴"
+        tk.Label(top, text=mark, bg=th.CARD, font=(th.JP, 11)).pack(side="left")
+        tk.Label(top, text=it.name, bg=th.CARD, fg=th.INK, font=F["cute"],
+                 anchor="w", justify="left", wraplength=180).pack(
+                     side="left", padx=(3, 0))
+        th.RoundButton(top, "✕", lambda i=it: self.drop_item(i), kind="ghost",
+                       bg=th.CARD, font=F["small"], padx=6,
+                       pady=2).pack(side="right")
 
         left, txt = it.short()
-        mark = "🏺" if it.kind == "artifact" else "🦴"
-        tk.Label(line, text=mark, bg=th.CARD, font=(th.JP, 13)).pack(side="left")
-        tk.Label(line, text=it.name, bg=th.CARD, fg=th.INK, font=F["cute"],
-                 anchor="w").pack(side="left", padx=(4, 10))
-        tk.Label(line, text=txt, bg=th.CARD,
-                 fg=th.MINT if (it.need > 0 and left == 0) else th.INK_SUB,
-                 font=F["small"]).pack(side="left")
-
-        th.RoundButton(line, "✕", lambda i=it: self.drop_item(i), kind="ghost",
+        line = tk.Frame(b, bg=th.CARD)
+        line.pack(fill="x", pady=(4, 0))
+        th.RoundButton(line, "－", lambda i=it: self.bump(i, -1), kind="soft",
                        bg=th.CARD, font=F["small"], padx=8,
-                       pady=3).pack(side="right")
-        v_need = tk.StringVar(value=str(it.need))
-        e2 = th.soft_entry(line, v_need, width=4)
-        e2.pack(side="right", padx=(4, 8), ipady=2)
-        e2.bind("<Return>", lambda e, i=it, v=v_need: self.set_need(i, v))
-        e2.bind("<FocusOut>", lambda e, i=it, v=v_need: self.set_need(i, v))
-        tk.Label(line, text="いる数", bg=th.CARD, fg=th.INK_SUB,
-                 font=F["small"]).pack(side="right")
-
-        th.RoundButton(line, "＋", lambda i=it: self.bump(i, 1), kind="soft",
-                       bg=th.CARD, font=F["small"], padx=10,
-                       pady=3).pack(side="right", padx=(4, 12))
+                       pady=2).pack(side="left")
         v_have = tk.StringVar(value=str(it.have))
         e1 = th.soft_entry(line, v_have, width=4)
-        e1.pack(side="right", padx=4, ipady=2)
+        e1.pack(side="left", padx=3, ipady=1)
         e1.bind("<Return>", lambda e, i=it, v=v_have: self.set_have(i, v))
         e1.bind("<FocusOut>", lambda e, i=it, v=v_have: self.set_have(i, v))
-        th.RoundButton(line, "－", lambda i=it: self.bump(i, -1), kind="soft",
-                       bg=th.CARD, font=F["small"], padx=10,
-                       pady=3).pack(side="right")
+        th.RoundButton(line, "＋", lambda i=it: self.bump(i, 1), kind="soft",
+                       bg=th.CARD, font=F["small"], padx=8,
+                       pady=2).pack(side="left")
+        tk.Label(line, text=" / ", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left")
+        v_need = tk.StringVar(value=str(it.need))
+        e2 = th.soft_entry(line, v_need, width=4)
+        e2.pack(side="left", ipady=1)
+        e2.bind("<Return>", lambda e, i=it, v=v_need: self.set_need(i, v))
+        e2.bind("<FocusOut>", lambda e, i=it, v=v_need: self.set_need(i, v))
+        tk.Label(line, text=("✔" if (it.need > 0 and left == 0)
+                             else ("あと%d" % left if left else "")),
+                 bg=th.CARD, fg=th.MINT if left == 0 else th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(4, 0))
 
     # ------------------------------------------------ まとめて入れる
     def diff_key(self):
@@ -511,6 +469,106 @@ class TributePage(tk.Frame):
             return
         self.show_area("%d品目を読みました" % len(rows))
         ImportDialog(self.app, self, rows, used, len(boxes))
+
+    def _build_add(self, parent):
+        F = self.F
+        # ---- 足す ----
+        a = parent
+        r1 = tk.Frame(a, bg=th.CARD)
+        r1.pack(fill="x", pady=(4, 2))
+        self.v_new = tk.StringVar()
+        th.soft_entry(r1, self.v_new, width=30).pack(side="left", ipady=3)
+        tk.Label(r1, text=" いる数", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left")
+        self.v_need = tk.StringVar(value="0")
+        th.soft_entry(r1, self.v_need, width=5).pack(side="left", padx=4,
+                                                     ipady=3)
+        th.RoundButton(r1, "＋ 足す", self.add_item, kind="primary",
+                       bg=th.CARD, font=F["small"], padx=14,
+                       pady=5).pack(side="left", padx=6)
+        r2 = tk.Frame(a, bg=th.CARD)
+        r2.pack(fill="x", pady=(2, 0))
+        tk.Label(r2, text="アーティファクトから選ぶ", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(0, 6))
+        self.v_art = tk.StringVar()
+        self.cb_art = ttk.Combobox(r2, textvariable=self.v_art,
+                                   state="readonly", width=30,
+                                   style="Cute.TCombobox", font=F["ui"])
+        self.cb_art["values"] = [tb.artifact_name(en) for en, _ja in tb.ARTIFACTS]
+        self.cb_art.pack(side="left")
+        th.RoundButton(r2, "これを足す", self.add_artifact, kind="soft",
+                       bg=th.CARD, font=F["small"], padx=12,
+                       pady=5).pack(side="left", padx=6)
+        tk.Label(a, text="日本語名はゲームによって表記がゆれるので、目安です。"
+                         "自分の書き方で足してもらってかまいません",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
+                 justify="left").pack(anchor="w", pady=(4, 0))
+
+
+    def _build_auto(self, parent):
+        F = self.F
+        # ---- まとめて入れる ----
+        u = parent
+        tk.Label(u, text="そのマップのボスに要るものが、いる数つきで入ります。"
+                         "持っている数はそのままです",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
+                 justify="left").pack(anchor="w", pady=(0, 6))
+        ar = tk.Frame(u, bg=th.CARD)
+        ar.pack(fill="x")
+        tk.Label(ar, text="難易度", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(0, 6))
+        self.v_diff = tk.StringVar(value=tb.diff_label(
+            self.app.cfg.get("tribute_diff") or "B"))
+        cb = ttk.Combobox(ar, textvariable=self.v_diff, state="readonly",
+                          width=10, style="Cute.TCombobox", font=F["ui"])
+        cb["values"] = [lbl for _k, lbl in tb.DIFFS]
+        cb.pack(side="left")
+        cb.bind("<<ComboboxSelected>>", lambda e: self.show_auto())
+        tk.Label(ar, text="　ボス", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(0, 6))
+        self.v_boss = tk.StringVar()
+        self.cb_boss = ttk.Combobox(ar, textvariable=self.v_boss,
+                                    state="readonly", width=26,
+                                    style="Cute.TCombobox", font=F["ui"])
+        self.cb_boss.pack(side="left")
+        self.cb_boss.bind("<<ComboboxSelected>>", lambda e: self.show_auto())
+        self.boss_keys = []
+        self.btn_auto = th.RoundButton(ar, "📥 入れる", self.fill_from_known,
+                                       kind="primary", bg=th.CARD,
+                                       font=F["small"], padx=16, pady=5)
+        self.btn_auto.pack(side="left", padx=8)
+        self.lbl_auto = tk.Label(u, text="", bg=th.CARD, fg=th.INK_SUB,
+                                 font=F["small"], anchor="w", wraplength=760,
+                                 justify="left")
+        self.lbl_auto.pack(fill="x", pady=(4, 0))
+
+
+    def _build_cap(self, parent):
+        F = self.F
+        # ---- スクショから ----
+        p = parent
+        tk.Label(p, text="ARKで箱を開けて、品名が出る表示にしてから範囲をおしえて"
+                         "ください。読んだ結果は、入れる前に確かめられます",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=760,
+                 justify="left").pack(anchor="w", pady=(0, 6))
+        cr = tk.Frame(p, bg=th.CARD)
+        cr.pack(fill="x")
+        self.btn_area = th.RoundButton(cr, "🖱 範囲をおしえる", self.learn_area,
+                                       kind="soft", bg=th.CARD,
+                                       font=F["small"], padx=14, pady=5,
+                                       width=180)
+        self.btn_area.pack(side="left")
+        self.btn_read = th.RoundButton(cr, "📷 いま読む", self.read_now,
+                                       kind="primary", bg=th.CARD,
+                                       font=F["small"], padx=14, pady=5)
+        self.btn_read.pack(side="left", padx=6)
+        self.lbl_cap = tk.Label(p, text="", bg=th.CARD, fg=th.INK_SUB,
+                                font=F["small"], anchor="w", wraplength=760,
+                                justify="left")
+        self.lbl_cap.pack(fill="x", pady=(4, 0))
+        self.rec = None
+        self.show_area()
+
 
     def _wheel(self, e):
         try:
