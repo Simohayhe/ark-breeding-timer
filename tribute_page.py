@@ -53,6 +53,7 @@ class TributePage(tk.Frame):
         F = self.F
         self.map_name = ""
         self.rows = []
+        self.cards = {}
 
         # ---- 上: マップを選ぶ ----
         top = th.Card(self, bg=th.BG)
@@ -106,6 +107,16 @@ class TributePage(tk.Frame):
         cbd["values"] = [lbl for _k, lbl in tb.DIFFS]
         cbd.pack(side="left")
         cbd.bind("<<ComboboxSelected>>", lambda e: self.pick_boss())
+
+        tk.Label(br, text="　並び", bg=th.CARD, fg=th.INK_SUB,
+                 font=F["small"]).pack(side="left", padx=(0, 6))
+        self.v_sort = tk.StringVar(value=self.sort_label(
+            self.app.cfg.get("tribute_sort") or "name"))
+        cbs = ttk.Combobox(br, textvariable=self.v_sort, state="readonly",
+                           width=18, style="Cute.TCombobox", font=F["ui"])
+        cbs["values"] = [lbl for _k, lbl in self.SORTS]
+        cbs.pack(side="left")
+        cbs.bind("<<ComboboxSelected>>", lambda e: self.pick_sort())
 
         # 行ってきたら、使ったぶんを引く。押し間違えても戻せるようにする
         self.spend_box = tk.Frame(br, bg=th.CARD)
@@ -246,24 +257,25 @@ class TributePage(tk.Frame):
 
     def bump(self, item, d):
         item.add(d)
-        self.app.save_book()
-        self.rebuild()
+        self.touch(item)
 
     def set_have(self, item, var):
         try:
             item.set_have(int(float(var.get())))
         except (TypeError, ValueError):
-            pass
-        self.app.save_book()
-        self.rebuild()
+            var.set(str(item.have))     # 読めない字は書き戻す
+        self.touch(item)
 
     def set_need(self, item, var):
         try:
             item.need = max(0, int(float(var.get())))
         except (TypeError, ValueError):
-            pass
-        self.app.save_book()
-        self.rebuild()
+            var.set(str(item.need))
+            return self.touch(item)
+        got = self.cards.get(id(item))
+        if got:
+            got["need"] = item.need
+        self.touch(item)
 
     def drop_item(self, item):
         self.book().drop(self.map_name, item)
@@ -272,6 +284,43 @@ class TributePage(tk.Frame):
 
     # ------------------------------------------------ 見た目
     COLS = 3          # 一覧を何列に並べるか
+    SORTS = (("name", "名前順"),
+             ("short", "足りない順"),
+             ("kind", "種類順（🏺が先）"),
+             ("have", "持っている数が多い順"))
+
+    def sort_label(self, key):
+        for k, lbl in self.SORTS:
+            if k == key:
+                return lbl
+        return self.SORTS[0][1]
+
+    def sort_key(self):
+        want = self.v_sort.get()
+        for k, lbl in self.SORTS:
+            if lbl == want:
+                return k
+        return "name"
+
+    def pick_sort(self):
+        """並び順を変えた。ここでだけ並べ直す。"""
+        self.app.cfg["tribute_sort"] = self.sort_key()
+        self.rebuild()
+
+    def sorted_rows(self, rows):
+        """選ばれた並び順で。数をいじったときは並べ直さない。"""
+        how = self.sort_key()
+        if how == "short":
+            rows.sort(key=lambda r: (
+                -(max(0, r[1] - r[0].have)), r[0].name))
+        elif how == "kind":
+            rows.sort(key=lambda r: (0 if r[0].kind == "artifact" else 1,
+                                     r[0].name))
+        elif how == "have":
+            rows.sort(key=lambda r: (-r[0].have, r[0].name))
+        else:
+            rows.sort(key=lambda r: r[0].name)
+        return rows
 
     def view_rows(self):
         """いま出すもの。[(品目, いる数)]。
@@ -301,6 +350,7 @@ class TributePage(tk.Frame):
         for w in self.inner.winfo_children():
             w.destroy()
         self.rows = []
+        self.cards = {}
         F = self.F
         if self.map_name:
             self.btn_drop_map.pack(side="left")
@@ -328,14 +378,44 @@ class TributePage(tk.Frame):
             self.inner.columnconfigure(0, weight=1)
             self.sync_spend()
             return
-        # 足りないものを先に。あと何個かがすぐ目に入るように
-        rows.sort(key=lambda r: (0 if r[1] > 0 and r[0].have < r[1] else 1,
-                                 0 if r[0].kind == "artifact" else 1,
-                                 r[0].name))
+        # 並べ直すのはここだけ。数をいじるたびに並べ替えると、
+        # 押した札が目の前から飛んでいって「消えた」ように見える。
+        self.sorted_rows(rows)
         for c in range(self.COLS):
             self.inner.columnconfigure(c, weight=1, uniform="trib")
         for n, (it, need) in enumerate(rows):
             self._row(it, need, n // self.COLS, n % self.COLS)
+        self.sync_spend()
+
+    def _paint_row(self, it):
+        """その札の「あと何個」と色だけを塗り直す。"""
+        got = self.cards.get(id(it))
+        if not got:
+            return
+        need = got["need"]
+        left = max(0, need - it.have) if need > 0 else 0
+        try:
+            got["have"].set(str(it.have))
+            got["name"].config(fg=th.PINK_DK if left else th.INK)
+            if left:
+                got["left"].config(text="あと%d" % left, fg=th.PINK_DK)
+            elif need > 0:
+                got["left"].config(text="✔", fg=th.MINT)
+            else:
+                got["left"].config(text="")
+        except tk.TclError:
+            pass
+
+    def touch(self, it):
+        """数が変わった。その札と、上の見出しだけを直す。
+
+        一覧ごと作り直すと、押した札が動いたり、下まで見ていた場所が
+        戻ったりする。数をいじるだけなら、そこだけ直せばよい。
+        並べ直すのは、並び順を選んだときと、マップやボスを変えたとき。
+        """
+        self.app.save_book()
+        self._paint_row(it)
+        self.head_text(self.view_rows())
         self.sync_spend()
 
     def head_text(self, rows):
@@ -374,10 +454,10 @@ class TributePage(tk.Frame):
         top.pack(fill="x")
         mark = "🏺" if it.kind == "artifact" else "🦴"
         tk.Label(top, text=mark, bg=th.CARD, font=(th.JP, 11)).pack(side="left")
-        tk.Label(top, text=it.name, bg=th.CARD,
-                 fg=th.PINK_DK if left else th.INK, font=F["cute"],
-                 anchor="w", justify="left", wraplength=180).pack(
-                     side="left", padx=(3, 0))
+        lbl_name = tk.Label(top, text=it.name, bg=th.CARD,
+                            fg=th.PINK_DK if left else th.INK, font=F["cute"],
+                            anchor="w", justify="left", wraplength=180)
+        lbl_name.pack(side="left", padx=(3, 0))
         th.RoundButton(top, "✕", lambda i=it: self.drop_item(i), kind="ghost",
                        bg=th.CARD, font=F["small"], padx=6,
                        pady=2).pack(side="right")
@@ -408,12 +488,11 @@ class TributePage(tk.Frame):
             e2.pack(side="left", ipady=1)
             e2.bind("<Return>", lambda e, i=it, v=v_need: self.set_need(i, v))
             e2.bind("<FocusOut>", lambda e, i=it, v=v_need: self.set_need(i, v))
-        if left:
-            tk.Label(line, text="あと%d" % left, bg=th.CARD, fg=th.PINK_DK,
-                     font=F["cute"]).pack(side="left", padx=(5, 0))
-        elif need > 0:
-            tk.Label(line, text="✔", bg=th.CARD, fg=th.MINT,
-                     font=F["cute"]).pack(side="left", padx=(5, 0))
+        lbl_left = tk.Label(line, text="", bg=th.CARD, font=F["cute"])
+        lbl_left.pack(side="left", padx=(5, 0))
+        self.cards[id(it)] = {"need": need, "name": lbl_name,
+                              "left": lbl_left, "have": v_have}
+        self._paint_row(it)
 
     # ------------------------------------------------ 行ってきた
     def sync_spend(self):
