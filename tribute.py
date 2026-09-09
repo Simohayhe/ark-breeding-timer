@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import time
 
 # アーティファクト24種。日本語名は ja版ウィキの記事名＝ゲームの表記。
@@ -414,16 +415,115 @@ def search_key(s):
 def hit(query, name):
     """探している字が、その名前に入っているか。
 
-    ひらがなで打っても、ローマ字で打っても当たるようにする。
+    ひらがなでも、ローマ字でも、漢字の読みでも当たるようにする。
     ローマ字は、英語のままの品名（Astral Soul）とぶつかるので、
     そのままの字で当たらなかったときだけ試す。
     """
     q = search_key(query)
     if not q:
         return True
-    key = search_key(name)
-    if q in key:
+    keys = [search_key(name)] + reading_keys(name)
+    if any(q in k for k in keys):
         return True
     if q.isascii() and q.isalpha():
-        return search_key(from_romaji(q)) in key
+        r = search_key(from_romaji(q))
+        return any(r in k for k in keys)
     return False
+
+
+# ------------------------------------------------ 漢字の読み
+# 品名に出てくる漢字は数が限られている（いまのところ44語）。
+# 読みの辞書を丸ごと積むほどではないので、出てくるぶんだけ持つ。
+# 読みが2通りあるものは並べておく。多いぶんには当たりが増えるだけ。
+#
+# 足りない語は tools/fetch_tributes.py が教えてくれる。
+READINGS = {
+    "破壊者": ("ハカイシャ",),
+    "竜脚類": ("リュウキャクルイ",),
+    "追跡者": ("ツイセキシャ",),
+    "仙骨": ("センコツ",),
+    "免疫": ("メンエキ",),
+    "大物": ("オオモノ",),
+    "天帝": ("テンテイ",),
+    "小瘤": ("コブ", "ショウコブ"),
+    "岩山": ("イワヤマ",),
+    "強者": ("キョウシャ", "ツワモノ"),
+    "心臓": ("シンゾウ",),
+    "成長": ("セイチョウ",),
+    "暴食": ("ボウショク",),
+    "汚染": ("オセン",),
+    "混沌": ("コントン",),
+    "狡猾": ("コウカツ",),
+    "狩人": ("カリュウド", "カリウド", "カリビト"),
+    "群集": ("グンシュウ",),
+    "脂肪": ("シボウ",),
+    "虚無": ("キョム",),
+    "触腕": ("ショクワン",),
+    "賢者": ("ケンジャ",),
+    "迷人": ("メイジン", "マヨイビト"),
+    "邪悪": ("ジャアク",),
+    "野獣": ("ヤジュウ",),
+    "鉤爪": ("カギヅメ", "カギツメ"),
+    "門番": ("モンバン",),
+    "帆": ("ホ",),
+    "影": ("カゲ",),
+    "棘": ("トゲ",),
+    "歯": ("ハ",),
+    "毒": ("ドク",),
+    "爪": ("ツメ",),
+    "牙": ("キバ",),
+    "皮": ("カワ",),
+    "目": ("メ",),
+    "羽": ("ハネ",),
+    "肺": ("ハイ",),
+    "脳": ("ノウ",),
+    "腕": ("ウデ",),
+    "腺": ("セン",),
+    "落": ("ラク", "オチ"),
+    "雷": ("カミナリ", "ライ"),
+    "鱗": ("ウロコ",),
+}
+
+_KANJI = re.compile(r"[一-龥々]+")
+MAX_KEYS = 8          # 読みの組み合わせを作りすぎない
+
+
+def missing_readings(names):
+    """読みを持っていない漢字の語。データを作り直したときの見張り用。"""
+    out = set()
+    for name in names:
+        for run in _KANJI.findall(name or ""):
+            if run in READINGS:
+                continue
+            # 長い語が無くても、1字ずつ知っていれば読める
+            if all(c in READINGS for c in run):
+                continue
+            out.add(run)
+    return sorted(out)
+
+
+def _run_yomi(run):
+    """漢字のかたまりを、読みの候補にする。"""
+    if run in READINGS:
+        return list(READINGS[run])
+    got = [""]
+    for c in run:
+        yomi = READINGS.get(c)
+        if not yomi:
+            return []                 # 読めない字があれば、あきらめる
+        got = [a + b for a in got for b in yomi][:MAX_KEYS]
+    return got
+
+
+def reading_keys(name):
+    """その名前の、読みに置きかえた形。くらべる用に均してある。"""
+    runs = _KANJI.findall(name or "")
+    if not runs:
+        return []
+    keys = [name]
+    for run in runs:
+        yomi = _run_yomi(run)
+        if not yomi:
+            continue
+        keys = [k.replace(run, y) for k in keys for y in yomi][:MAX_KEYS]
+    return [search_key(k) for k in keys if k != name]

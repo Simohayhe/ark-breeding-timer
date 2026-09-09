@@ -326,6 +326,21 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     io.open(OUT, "w", encoding="utf-8").write(
         json.dumps(final, ensure_ascii=False, indent=1, sort_keys=True))
+    # 読みを持っていない漢字があると、その品目は検索で当たらない
+    try:
+        sys.path.insert(0, HERE)
+        import tribute as tb
+        every_name = {it["name"] for mp in final.values()
+                      for b in mp["bosses"] for it in b["items"]}
+        lack = tb.missing_readings(every_name)
+        if lack:
+            print("\n⚠ 読みを持っていない漢字: " + "、".join(lack))
+            print("   tribute.py の READINGS に足してください")
+        else:
+            print("\n漢字の読みは足りています")
+    except Exception as e:
+        print("読みの確かめができず: %s" % e)
+
     print("\n書き出し: %s（%d マップ）" % (OUT, len(final)))
     for mp in sorted(final):
         n = sum(len(b["items"]) for b in final[mp]["bosses"])
