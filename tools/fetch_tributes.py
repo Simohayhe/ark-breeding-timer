@@ -36,6 +36,11 @@ MAPS = ("The Island", "Scorched Earth", "Aberration", "Extinction",
 # ボスの一覧に混ざるが、貢物で呼ぶ相手ではないもの
 NOT_BOSS = {"Iceworm Queen", "Lava Elemental", "Rock Elemental"}
 
+# マップページの Bosses に載っていても、ポータルで呼ぶ相手ではないもの。
+# バルゲロのブルードマザーは洞窟に湧いているだけで、貢物は要らない。
+# ページの書き方では見分けられないので、ここに書いておく。
+NOT_BOSS_ON = {("Valguero", "Broodmother Lysrix")}
+
 
 def fetch(page):
     req = urllib.request.Request(
@@ -63,7 +68,7 @@ def num(cell):
 
 
 # ------------------------------------------------ マップ → ボス
-def bosses_of(text):
+def bosses_of(text, map_name=""):
     """マップページの「Bosses」から、ASAにいるボスを拾う。
 
     ページはこう書かれている。
@@ -79,6 +84,9 @@ def bosses_of(text):
     """
     out, lines = [], text.splitlines()
     i, n = 0, len(lines)
+    # 「Other Spawns」の下にある Bosses を落とす手も考えたが、それだと
+    # センターのブルードマザーとメガピテクス（本物のボス）まで落ちる。
+    # 書き方では見分けられないので、除くものは NOT_BOSS_ON に書く。
     while i < n:
         if not re.match(r"^=+\s*Bosses\s*=+\s*$", lines[i].strip()):
             i += 1
@@ -98,7 +106,9 @@ def bosses_of(text):
                     body = t[len("{{ItemList|"):].rstrip("}")
                     for part in body.split("|"):
                         part = part.strip()
-                        if part and "=" not in part and part not in NOT_BOSS:
+                        if (part and "=" not in part
+                                and part not in NOT_BOSS
+                                and (map_name, part) not in NOT_BOSS_ON):
                             out.append(part)
             i += 1
     seen, keep = set(), []
@@ -273,7 +283,7 @@ def main():
         except Exception as e:
             print("%-16s 取れず（%s）" % (mp, e))
             continue
-        names = bosses_of(page)
+        names = bosses_of(page, mp)
         print("%-16s ボス %d: %s" % (mp, len(names), "、".join(names)))
         got = {}
         for boss in names:
