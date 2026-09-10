@@ -78,7 +78,267 @@
     "ja": "ロックウェル"
    }
   ],
-  "src": "Table of story map tributes"
+  "src": "マップページ＋各ボスのページ"
+ },
+ "Aquatica": {
+  "bosses": [
+   {
+    "boss": "Cymathoa",
+    "items": [
+     {
+      "A": 1,
+      "B": 0,
+      "G": 0,
+      "en": "Alpha Mosasaur Tooth",
+      "name": "アルファ・モササウルスの歯"
+     },
+     {
+      "A": 1,
+      "B": 1,
+      "G": 1,
+      "en": "Artifact of the Mighty",
+      "name": "Artifact of the Mighty"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Megalodon Tooth",
+      "name": "メガロドンの歯"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 1,
+      "en": "Onchopristis Blade",
+      "name": "Onchopristis Blade"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 1,
+      "en": "Sarcosuchus Skin",
+      "name": "サルコスクスの皮"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Spinosaurus Sail",
+      "name": "スピノサウルスの帆"
+     }
+    ],
+    "ja": "Cymathoa"
+   },
+   {
+    "boss": "Fractalis",
+    "items": [
+     {
+      "A": 1,
+      "B": 0,
+      "G": 0,
+      "en": "Alpha Megalodon Fin",
+      "name": "アルファ・メガロドンのヒレ"
+     },
+     {
+      "A": 1,
+      "B": 1,
+      "G": 1,
+      "en": "Artifact of the Fallen",
+      "name": "Artifact of the Fallen"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Basilosaurus Blubber",
+      "name": "バシロサウルスの脂肪"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 1,
+      "en": "Monodon Horn",
+      "name": "Monodon Horn"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 1,
+      "en": "Sauropod Vertebra",
+      "name": "竜脚類の仙骨"
+     }
+    ],
+    "ja": "Fractalis"
+   },
+   {
+    "boss": "Pygocentrus",
+    "items": [
+     {
+      "A": 1,
+      "B": 0,
+      "G": 0,
+      "en": "Alpha Cymathoa Trophy",
+      "name": "Alpha Cymathoa Trophy"
+     },
+     {
+      "A": 1,
+      "B": 0,
+      "G": 0,
+      "en": "Alpha Fractalis Trophy",
+      "name": "Alpha Fractalis Trophy"
+     },
+     {
+      "A": 1,
+      "B": 0,
+      "G": 0,
+      "en": "Alpha Karkinos Claw",
+      "name": "アルファ・カルキノスの爪"
+     },
+     {
+      "A": 1,
+      "B": 0,
+      "G": 0,
+      "en": "Alpha Tusoteuthis Eye",
+      "name": "アルファ・トゥソテウティスの目"
+     },
+     {
+      "A": 1,
+      "B": 0,
+      "G": 0,
+      "en": "Alpha Tyrannosaur Tooth",
+      "name": "アルファ・ティラノサウルスの歯"
+     },
+     {
+      "A": 1,
+      "B": 0,
+      "G": 0,
+      "en": "Alpha Vulcanithys Trophy",
+      "name": "Alpha Vulcanithys Trophy"
+     },
+     {
+      "A": 0,
+      "B": 1,
+      "G": 0,
+      "en": "Beta Cymathoa Trophy",
+      "name": "Beta Cymathoa Trophy"
+     },
+     {
+      "A": 0,
+      "B": 1,
+      "G": 0,
+      "en": "Beta Fractalis Trophy",
+      "name": "Beta Fractalis Trophy"
+     },
+     {
+      "A": 0,
+      "B": 1,
+      "G": 0,
+      "en": "Beta Vulcanithys Trophy",
+      "name": "Beta Vulcanithys Trophy"
+     },
+     {
+      "A": 0,
+      "B": 0,
+      "G": 1,
+      "en": "Gamma Cymathoa Trophy",
+      "name": "Gamma Cymathoa Trophy"
+     },
+     {
+      "A": 0,
+      "B": 0,
+      "G": 1,
+      "en": "Gamma Fractalis Trophy",
+      "name": "Gamma Fractalis Trophy"
+     },
+     {
+      "A": 0,
+      "B": 0,
+      "G": 1,
+      "en": "Gamma Vulcanithys Trophy",
+      "name": "Gamma Vulcanithys Trophy"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Megalania Toxin",
+      "name": "メガラニアの毒"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Thylacoleo Hook-Claw",
+      "name": "ティラコレオの鉤爪"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Yutyrannus Lungs",
+      "name": "ユウティラヌスの肺"
+     }
+    ],
+    "ja": "Pygocentrus"
+   },
+   {
+    "boss": "Vulcanithys",
+    "items": [
+     {
+      "A": 1,
+      "B": 0,
+      "G": 0,
+      "en": "Alpha Water Talon",
+      "name": "Alpha Water Talon"
+     },
+     {
+      "A": 1,
+      "B": 1,
+      "G": 1,
+      "en": "Artifact of the Seeking",
+      "name": "Artifact of the Seeking"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 1,
+      "en": "Monodon Horn",
+      "name": "Monodon Horn"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Therizino Claws",
+      "name": "テリジノサウルスの爪"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Tusoteuthis Tentacle",
+      "name": "トゥソテウティスの触腕"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Tyrannosaurus Arm",
+      "name": "ティラノサウルスの腕"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 1,
+      "en": "Water Talon",
+      "name": "Water Talon"
+     }
+    ],
+    "ja": "Vulcanithys"
+   }
+  ],
+  "src": "マップページ＋各ボスのページ"
  },
  "Astraeos": {
   "bosses": [
@@ -200,218 +460,45 @@
     "ja": "Colossus"
    },
    {
-    "boss": "Cymathoa",
+    "boss": "Erymanthian & Kalydonios",
     "items": [
-     {
-      "A": 1,
-      "B": 0,
-      "G": 0,
-      "en": "Alpha Mosasaur Tooth",
-      "name": "アルファ・モササウルスの歯"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Mighty",
-      "name": "Artifact of the Mighty"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Megalodon Tooth",
-      "name": "メガロドンの歯"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 1,
-      "en": "Onchopristis Blade",
-      "name": "Onchopristis Blade"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 1,
-      "en": "Sarcosuchus Skin",
-      "name": "サルコスクスの皮"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Spinosaurus Sail",
-      "name": "スピノサウルスの帆"
-     }
-    ],
-    "ja": "Cymathoa"
-   },
-   {
-    "boss": "Fractalis",
-    "items": [
-     {
-      "A": 1,
-      "B": 0,
-      "G": 0,
-      "en": "Alpha Megalodon Fin",
-      "name": "アルファ・メガロドンのヒレ"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Fallen",
-      "name": "Artifact of the Fallen"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Basilosaurus Blubber",
-      "name": "バシロサウルスの脂肪"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 1,
-      "en": "Monodon Horn",
-      "name": "Monodon Horn"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 1,
-      "en": "Sauropod Vertebra",
-      "name": "竜脚類の仙骨"
-     }
-    ],
-    "ja": "Fractalis"
-   },
-   {
-    "boss": "Grendel",
-    "items": [
-     {
-      "A": 15,
-      "B": 10,
-      "G": 5,
-      "en": "Allosaurus Brain",
-      "name": "アロサウルスの脳"
-     },
-     {
-      "A": 15,
-      "B": 8,
-      "G": 5,
-      "en": "Argentavis Talon",
-      "name": "アルゲンタヴィスの鉤爪"
-     },
-     {
-      "A": 1,
-      "B": 0,
-      "G": 0,
-      "en": "Artifact of the Brute",
-      "name": "野獣のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 0,
-      "G": 0,
-      "en": "Artifact of the Crag",
-      "name": "岩山のアーティファクト"
-     },
-     {
-      "A": 0,
-      "B": 1,
-      "G": 0,
-      "en": "Artifact of the Cunning",
-      "name": "狡猾のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 0,
-      "G": 0,
-      "en": "Artifact of the Destroyer",
-      "name": "破壊者のアーティファクト"
-     },
-     {
-      "A": 0,
-      "B": 0,
-      "G": 1,
-      "en": "Artifact of the Devourer",
-      "name": "暴食のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 0,
-      "G": 0,
-      "en": "Artifact of the Gatekeeper",
-      "name": "門番のアーティファクト"
-     },
-     {
-      "A": 0,
-      "B": 1,
-      "G": 0,
-      "en": "Artifact of the Immune",
-      "name": "免疫のアーティファクト"
-     },
-     {
-      "A": 0,
-      "B": 0,
-      "G": 1,
-      "en": "Artifact of the Pack",
-      "name": "群集のアーティファクト"
-     },
-     {
-      "A": 0,
-      "B": 0,
-      "G": 1,
-      "en": "Artifact of the Skylord",
-      "name": "天帝のアーティファクト"
-     },
-     {
-      "A": 0,
-      "B": 1,
-      "G": 0,
-      "en": "Artifact of the Strong",
-      "name": "強者のアーティファクト"
-     },
      {
       "A": 2,
-      "B": 0,
-      "G": 0,
-      "en": "Giganotosaurus Heart",
-      "name": "ギガノトサウルスの心臓"
+      "B": 2,
+      "G": 2,
+      "en": "Corrupt Heart",
+      "name": "汚染された心臓"
      },
      {
-      "A": 10,
-      "B": 8,
-      "G": 5,
-      "en": "Sarcosuchus Skin",
-      "name": "サルコスクスの皮"
+      "A": 25,
+      "B": 25,
+      "G": 25,
+      "en": "Corrupted Nodule",
+      "name": "汚染された小瘤"
      },
      {
-      "A": 0,
-      "B": 8,
-      "G": 5,
-      "en": "Sauropod Vertebra",
-      "name": "竜脚類の仙骨"
-     },
-     {
-      "A": 10,
+      "A": 5,
       "B": 5,
       "G": 5,
-      "en": "Titanoboa Venom",
-      "name": "ティタノボアの毒"
+      "en": "Fire Talon",
+      "name": "Fire Talon"
      },
      {
-      "A": 15,
+      "A": 5,
+      "B": 5,
+      "G": 5,
+      "en": "Poison Talon",
+      "name": "Poison Talon"
+     },
+     {
+      "A": 10,
       "B": 10,
-      "G": 0,
-      "en": "Tyrannosaurus Arm",
-      "name": "ティラノサウルスの腕"
+      "G": 10,
+      "en": "Therizino Claws",
+      "name": "テリジノサウルスの爪"
      }
     ],
-    "ja": "Grendel"
+    "ja": "Erymanthian & Kalydonios"
    },
    {
     "boss": "Hydraskos",
@@ -538,6 +625,54 @@
     "ja": "Kroaratos"
    },
    {
+    "boss": "Manticore",
+    "items": [
+     {
+      "A": 1,
+      "B": 1,
+      "G": 1,
+      "en": "Artifact of the Crag",
+      "name": "岩山のアーティファクト"
+     },
+     {
+      "A": 1,
+      "B": 1,
+      "G": 1,
+      "en": "Artifact of the Destroyer",
+      "name": "破壊者のアーティファクト"
+     },
+     {
+      "A": 1,
+      "B": 1,
+      "G": 1,
+      "en": "Artifact of the Gatekeeper",
+      "name": "門番のアーティファクト"
+     },
+     {
+      "A": 20,
+      "B": 10,
+      "G": 2,
+      "en": "Fire Talon",
+      "name": "Fire Talon"
+     },
+     {
+      "A": 20,
+      "B": 10,
+      "G": 2,
+      "en": "Lightning Talon",
+      "name": "雷の鉤爪"
+     },
+     {
+      "A": 20,
+      "B": 10,
+      "G": 2,
+      "en": "Poison Talon",
+      "name": "Poison Talon"
+     }
+    ],
+    "ja": "マンティコア"
+   },
+   {
     "boss": "Minotarchos",
     "items": [
      {
@@ -632,152 +767,6 @@
      }
     ],
     "ja": "Natrix"
-   },
-   {
-    "boss": "Nunatak",
-    "items": [
-     {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Argentavis Talon",
-      "name": "アルゲンタヴィスの鉤爪"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Clever",
-      "name": "賢者のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Cunning",
-      "name": "狡猾のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Devious",
-      "name": "邪悪のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Devourer",
-      "name": "暴食のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Hunter",
-      "name": "狩人のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Immune",
-      "name": "免疫のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Massive",
-      "name": "大物のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Pack",
-      "name": "群集のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Skylord",
-      "name": "天帝のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Strong",
-      "name": "強者のアーティファクト"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Basilosaurus Blubber",
-      "name": "バシロサウルスの脂肪"
-     },
-     {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Megalania Toxin",
-      "name": "メガラニアの毒"
-     },
-     {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Megalodon Tooth",
-      "name": "メガロドンの歯"
-     },
-     {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Sarcosuchus Skin",
-      "name": "サルコスクスの皮"
-     },
-     {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Sauropod Vertebra",
-      "name": "竜脚類の仙骨"
-     },
-     {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Spinosaurus Sail",
-      "name": "スピノサウルスの帆"
-     },
-     {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Thylacoleo Hook-Claw",
-      "name": "ティラコレオの鉤爪"
-     },
-     {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Titanoboa Venom",
-      "name": "ティタノボアの毒"
-     },
-     {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Tusoteuthis Tentacle",
-      "name": "トゥソテウティスの触腕"
-     }
-    ],
-    "ja": "Nunatak"
    },
    {
     "boss": "Shallocis",
@@ -916,64 +905,9 @@
      }
     ],
     "ja": "Thodes"
-   },
-   {
-    "boss": "Vulcanithys",
-    "items": [
-     {
-      "A": 1,
-      "B": 0,
-      "G": 0,
-      "en": "Alpha Water Talon",
-      "name": "Alpha Water Talon"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Seeking",
-      "name": "Artifact of the Seeking"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 1,
-      "en": "Monodon Horn",
-      "name": "Monodon Horn"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Therizino Claws",
-      "name": "テリジノサウルスの爪"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Tusoteuthis Tentacle",
-      "name": "トゥソテウティスの触腕"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Tyrannosaurus Arm",
-      "name": "ティラノサウルスの腕"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 1,
-      "en": "Water Talon",
-      "name": "Water Talon"
-     }
-    ],
-    "ja": "Vulcanithys"
    }
   ],
-  "src": "各ボスのページ"
+  "src": "マップページ＋各ボスのページ"
  },
  "Crystal Isles": {
   "bosses": [
@@ -1131,7 +1065,7 @@
     "ja": "クリスタルワイバーンクイーン"
    }
   ],
-  "src": "Table of official mod tributes"
+  "src": "マップページ＋各ボスのページ"
  },
  "Extinction": {
   "bosses": [
@@ -1242,8 +1176,8 @@
     "items": [
      {
       "A": 10,
-      "B": 0,
-      "G": 0,
+      "B": 10,
+      "G": 5,
       "en": "Alpha Tyrannosaur Tooth",
       "name": "アルファ・ティラノサウルスの歯"
      },
@@ -1305,8 +1239,8 @@
      },
      {
       "A": 20,
-      "B": 0,
-      "G": 0,
+      "B": 20,
+      "G": 10,
       "en": "Titanoboa Venom",
       "name": "ティタノボアの毒"
      }
@@ -1314,162 +1248,10 @@
     "ja": "コロッサル・タイタン"
    }
   ],
-  "src": "Table of story map tributes"
+  "src": "マップページ＋各ボスのページ"
  },
  "Fjordur": {
   "bosses": [
-   {
-    "boss": "Broodmother Lysrix",
-    "items": [
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Argentavis Talon",
-      "name": "アルゲンタヴィスの鉤爪"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Clever",
-      "name": "賢者のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Hunter",
-      "name": "狩人のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Massive",
-      "name": "大物のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Beyla Relic",
-      "name": "ベイラ・レリック"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Sarcosuchus Skin",
-      "name": "サルコスクスの皮"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Sauropod Vertebra",
-      "name": "竜脚類の仙骨"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Titanoboa Venom",
-      "name": "ティタノボアの毒"
-     }
-    ],
-    "ja": "ブルードマザー"
-   },
-   {
-    "boss": "Dragon",
-    "items": [
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Allosaurus Brain",
-      "name": "アロサウルスの脳"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Cunning",
-      "name": "狡猾のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Immune",
-      "name": "免疫のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Skylord",
-      "name": "天帝のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Strong",
-      "name": "強者のアーティファクト"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Basilosaurus Blubber",
-      "name": "バシロサウルスの脂肪"
-     },
-     {
-      "A": 2,
-      "B": 1,
-      "G": 0,
-      "en": "Giganotosaurus Heart",
-      "name": "ギガノトサウルスの心臓"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Hati Relic",
-      "name": "ハティ・レリック"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Sköll Relic",
-      "name": "スコル・レリック"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Tusoteuthis Tentacle",
-      "name": "トゥソテウティスの触腕"
-     },
-     {
-      "A": 15,
-      "B": 5,
-      "G": 0,
-      "en": "Tyrannosaurus Arm",
-      "name": "ティラノサウルスの腕"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Yutyrannus Lungs",
-      "name": "ユウティラヌスの肺"
-     }
-    ],
-    "ja": "ドラゴン"
-   },
    {
     "boss": "Fenrisúlfr",
     "items": [
@@ -1538,78 +1320,152 @@
      }
     ],
     "ja": "フェンリル (ボス)"
-   },
-   {
-    "boss": "Megapithecus",
-    "items": [
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Brute",
-      "name": "野獣のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Devourer",
-      "name": "暴食のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Pack",
-      "name": "群集のアーティファクト"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Megalania Toxin",
-      "name": "メガラニアの毒"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Megalodon Tooth",
-      "name": "メガロドンの歯"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Spinosaurus Sail",
-      "name": "スピノサウルスの帆"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Steinbjörn Relic",
-      "name": "スタインヨルン・レリック"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Therizino Claws",
-      "name": "テリジノサウルスの爪"
-     },
-     {
-      "A": 10,
-      "B": 5,
-      "G": 0,
-      "en": "Thylacoleo Hook-Claw",
-      "name": "ティラコレオの鉤爪"
-     }
-    ],
-    "ja": "メガピテクス"
    }
   ],
-  "src": "Table of official mod tributes"
+  "src": "マップページ＋各ボスのページ"
+ },
+ "Lost Colony": {
+  "bosses": [
+   {
+    "boss": "Lost King",
+    "items": [
+     {
+      "A": 5,
+      "B": 1,
+      "G": 0,
+      "en": "Alpha Ossidon Skull",
+      "name": "Alpha Ossidon Skull"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 1,
+      "en": "Alpha Zombie Brains",
+      "name": "Alpha Zombie Brains"
+     },
+     {
+      "A": 0,
+      "B": 150,
+      "G": 0,
+      "en": "Greater Aberrant Sigil",
+      "name": "Greater Aberrant Sigil"
+     },
+     {
+      "A": 0,
+      "B": 150,
+      "G": 0,
+      "en": "Greater Crimson Sigil",
+      "name": "Greater Crimson Sigil"
+     },
+     {
+      "A": 0,
+      "B": 0,
+      "G": 100,
+      "en": "Minor Aberrant Sigil",
+      "name": "Minor Aberrant Sigil"
+     },
+     {
+      "A": 0,
+      "B": 0,
+      "G": 100,
+      "en": "Minor Crimson Sigil",
+      "name": "Minor Crimson Sigil"
+     },
+     {
+      "A": 15,
+      "B": 10,
+      "G": 5,
+      "en": "Neophyte Horns",
+      "name": "Neophyte Horns"
+     },
+     {
+      "A": 200,
+      "B": 0,
+      "G": 0,
+      "en": "Prime Aberrant Sigil",
+      "name": "Prime Aberrant Sigil"
+     },
+     {
+      "A": 200,
+      "B": 0,
+      "G": 0,
+      "en": "Prime Crimson Sigil",
+      "name": "Prime Crimson Sigil"
+     }
+    ],
+    "ja": "Lost King"
+   },
+   {
+    "boss": "Lost Queen",
+    "items": [
+     {
+      "A": 5,
+      "B": 1,
+      "G": 0,
+      "en": "Alpha Ossidon Skull",
+      "name": "Alpha Ossidon Skull"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 1,
+      "en": "Alpha Zombie Brains",
+      "name": "Alpha Zombie Brains"
+     },
+     {
+      "A": 0,
+      "B": 150,
+      "G": 0,
+      "en": "Greater Aberrant Sigil",
+      "name": "Greater Aberrant Sigil"
+     },
+     {
+      "A": 0,
+      "B": 150,
+      "G": 0,
+      "en": "Greater Crimson Sigil",
+      "name": "Greater Crimson Sigil"
+     },
+     {
+      "A": 0,
+      "B": 0,
+      "G": 100,
+      "en": "Minor Aberrant Sigil",
+      "name": "Minor Aberrant Sigil"
+     },
+     {
+      "A": 0,
+      "B": 0,
+      "G": 100,
+      "en": "Minor Crimson Sigil",
+      "name": "Minor Crimson Sigil"
+     },
+     {
+      "A": 15,
+      "B": 10,
+      "G": 5,
+      "en": "Neophyte Horns",
+      "name": "Neophyte Horns"
+     },
+     {
+      "A": 200,
+      "B": 0,
+      "G": 0,
+      "en": "Prime Aberrant Sigil",
+      "name": "Prime Aberrant Sigil"
+     },
+     {
+      "A": 200,
+      "B": 0,
+      "G": 0,
+      "en": "Prime Crimson Sigil",
+      "name": "Prime Crimson Sigil"
+     }
+    ],
+    "ja": "Lost Queen"
+   }
+  ],
+  "src": "マップページ＋各ボスのページ"
  },
  "Lost Island": {
   "bosses": [
@@ -1750,7 +1606,7 @@
       "name": "スピノサウルスの帆"
      },
      {
-      "A": 0,
+      "A": 5,
       "B": 0,
       "G": 3,
       "en": "Therizino Claws",
@@ -1795,12 +1651,12 @@
     "ja": "ディノピテクスキング"
    }
   ],
-  "src": "Table of official mod tributes"
+  "src": "マップページ＋各ボスのページ"
  },
  "Ragnarok": {
   "bosses": [
    {
-    "boss": "Dragon+Manticore",
+    "boss": "Nunatak",
     "items": [
      {
       "A": 25,
@@ -1880,8 +1736,8 @@
       "name": "強者のアーティファクト"
      },
      {
-      "A": 25,
-      "B": 10,
+      "A": 10,
+      "B": 5,
       "G": 0,
       "en": "Basilosaurus Blubber",
       "name": "バシロサウルスの脂肪"
@@ -1943,10 +1799,10 @@
       "name": "トゥソテウティスの触腕"
      }
     ],
-    "ja": "ドラゴン＋マンティコア"
+    "ja": "Nunatak"
    }
   ],
-  "src": "Table of official mod tributes"
+  "src": "マップページ＋各ボスのページ"
  },
  "Scorched Earth": {
   "bosses": [
@@ -1999,16 +1855,16 @@
     "ja": "マンティコア"
    }
   ],
-  "src": "Table of story map tributes"
+  "src": "マップページ＋各ボスのページ"
  },
  "The Center": {
   "bosses": [
    {
-    "boss": "Broodmother Lysrix+Megapithecus",
+    "boss": "Broodmother Lysrix",
     "items": [
      {
-      "A": 25,
-      "B": 10,
+      "A": 10,
+      "B": 5,
       "G": 0,
       "en": "Argentavis Talon",
       "name": "アルゲンタヴィスの鉤爪"
@@ -2017,22 +1873,8 @@
       "A": 1,
       "B": 1,
       "G": 1,
-      "en": "Artifact of the Brute",
-      "name": "野獣のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
       "en": "Artifact of the Clever",
       "name": "賢者のアーティファクト"
-     },
-     {
-      "A": 1,
-      "B": 1,
-      "G": 1,
-      "en": "Artifact of the Devourer",
-      "name": "暴食のアーティファクト"
      },
      {
       "A": 1,
@@ -2049,6 +1891,47 @@
       "name": "大物のアーティファクト"
      },
      {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Sarcosuchus Skin",
+      "name": "サルコスクスの皮"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Sauropod Vertebra",
+      "name": "竜脚類の仙骨"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Titanoboa Venom",
+      "name": "ティタノボアの毒"
+     }
+    ],
+    "ja": "ブルードマザー"
+   },
+   {
+    "boss": "Megapithecus",
+    "items": [
+     {
+      "A": 1,
+      "B": 1,
+      "G": 1,
+      "en": "Artifact of the Brute",
+      "name": "野獣のアーティファクト"
+     },
+     {
+      "A": 1,
+      "B": 1,
+      "G": 1,
+      "en": "Artifact of the Devourer",
+      "name": "暴食のアーティファクト"
+     },
+     {
       "A": 1,
       "B": 1,
       "G": 1,
@@ -2056,73 +1939,45 @@
       "name": "群集のアーティファクト"
      },
      {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Basilosaurus Blubber",
-      "name": "バシロサウルスの脂肪"
-     },
-     {
-      "A": 25,
-      "B": 10,
+      "A": 10,
+      "B": 5,
       "G": 0,
       "en": "Megalania Toxin",
       "name": "メガラニアの毒"
      },
      {
-      "A": 25,
-      "B": 10,
+      "A": 10,
+      "B": 5,
       "G": 0,
       "en": "Megalodon Tooth",
       "name": "メガロドンの歯"
      },
      {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Sarcosuchus Skin",
-      "name": "サルコスクスの皮"
-     },
-     {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Sauropod Vertebra",
-      "name": "竜脚類の仙骨"
-     },
-     {
-      "A": 25,
-      "B": 10,
+      "A": 10,
+      "B": 5,
       "G": 0,
       "en": "Spinosaurus Sail",
       "name": "スピノサウルスの帆"
      },
      {
-      "A": 25,
-      "B": 10,
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Therizino Claws",
+      "name": "テリジノサウルスの爪"
+     },
+     {
+      "A": 10,
+      "B": 5,
       "G": 0,
       "en": "Thylacoleo Hook-Claw",
       "name": "ティラコレオの鉤爪"
-     },
-     {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Titanoboa Venom",
-      "name": "ティタノボアの毒"
-     },
-     {
-      "A": 25,
-      "B": 10,
-      "G": 0,
-      "en": "Tusoteuthis Tentacle",
-      "name": "トゥソテウティスの触腕"
      }
     ],
-    "ja": "ブルードマザー＋メガピテクス"
+    "ja": "メガピテクス"
    }
   ],
-  "src": "Table of official mod tributes"
+  "src": "マップページ＋各ボスのページ"
  },
  "The Island": {
   "bosses": [
@@ -2438,12 +2293,67 @@
     "ja": "監督者"
    }
   ],
-  "src": "Table of story map tributes"
+  "src": "マップページ＋各ボスのページ"
  },
  "Valguero": {
   "bosses": [
    {
-    "boss": "Megapithecus+Dragon+Manticore",
+    "boss": "Broodmother Lysrix",
+    "items": [
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Argentavis Talon",
+      "name": "アルゲンタヴィスの鉤爪"
+     },
+     {
+      "A": 1,
+      "B": 1,
+      "G": 1,
+      "en": "Artifact of the Clever",
+      "name": "賢者のアーティファクト"
+     },
+     {
+      "A": 1,
+      "B": 1,
+      "G": 1,
+      "en": "Artifact of the Hunter",
+      "name": "狩人のアーティファクト"
+     },
+     {
+      "A": 1,
+      "B": 1,
+      "G": 1,
+      "en": "Artifact of the Massive",
+      "name": "大物のアーティファクト"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Sarcosuchus Skin",
+      "name": "サルコスクスの皮"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Sauropod Vertebra",
+      "name": "竜脚類の仙骨"
+     },
+     {
+      "A": 10,
+      "B": 5,
+      "G": 0,
+      "en": "Titanoboa Venom",
+      "name": "ティタノボアの毒"
+     }
+    ],
+    "ja": "ブルードマザー"
+   },
+   {
+    "boss": "Grendel",
     "items": [
      {
       "A": 15,
@@ -2565,9 +2475,9 @@
       "name": "ティラノサウルスの腕"
      }
     ],
-    "ja": "メガピテクス＋ドラゴン＋マンティコア"
+    "ja": "Grendel"
    }
   ],
-  "src": "Table of official mod tributes"
+  "src": "マップページ＋各ボスのページ"
  }
 }

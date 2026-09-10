@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
-"""ウィキから、マップごとの貢物と必要数を作り直す。
+"""ウィキから、マップごとの貢物と必要数を作り直す（ASA版）。
 
     python tools/fetch_tributes.py
 
 要約させずに wikitext をそのまま解析する。表を人（や小さなモデル）に
 読ませると、列を1つずらしただけで別物になり、しかも気づけない。
 
-出来るもの: data/tributes.json
-    {"Ragnarok": {"items": [{"name": ..., "G": 1, "B": 1, "A": 1}, ...],
-                  "src": "..."} , ...}
+大事なのは **どのマップにどのボスがいるか** をこちらで決めないこと。
+ASE と ASA でボスが違う（ラグナロクは ASE がドラゴン＋マンティコアで、
+ASA はヌナタク。バルゲロは ASA でグレンデル）。ウィキのマップページが
+sa / se を分けて書いているので、そこから取る。
+
+必要数はボスのページから。ボスのページはマップごとのタブに分かれている
+ことがあるので、そのマップのタブを選ぶ。
 """
 from __future__ import annotations
 
@@ -25,30 +29,18 @@ JA_API = "https://ark.wiki.gg/ja/api.php"
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(HERE, "data", "tributes.json")
 
-# 物語マップの表は、ボス名しか書いていない。どのマップのボスかを補う。
-BOSS_MAP = {
-    "Broodmother Lysrix": "The Island", "Megapithecus": "The Island",
-    "Dragon": "The Island", "Overseer": "The Island",
-    "Manticore": "Scorched Earth", "Rockwell": "Aberration",
-    "Ice Titan": "Extinction", "Desert Titan": "Extinction",
-    "Forest Titan": "Extinction", "King Titan": "Extinction",
-}
-NOT_A_MAP = set(BOSS_MAP) | {"Titan", "Patch Notes", "Boss Arenas", "bosses"}
+MAPS = ("The Island", "Scorched Earth", "Aberration", "Extinction",
+        "The Center", "Ragnarok", "Valguero", "Astraeos", "Lost Island",
+        "Fjordur", "Crystal Isles", "Aquatica", "Lost Colony")
 
-# アストレオスは一覧表に載っていないので、ボスのページを1つずつ見る。
-ASTRAEOS_BOSSES = (
-    "Natrix", "Nunatak", "Fractalis", "Cymathoa", "Vulcanithys", "Grendel",
-    "Hydraskos", "Shallocis", "Abyssalus", "Minotarchos", "Kroaratos",
-    "Colossus", "Thanatos", "Thodes",
-)
-
-_LINK = re.compile(r"\[\[([^\]|]+)")
-_DLC = re.compile(r"\{\{DLCIcon\|([^}]+)\}\}")
+# ボスの一覧に混ざるが、貢物で呼ぶ相手ではないもの
+NOT_BOSS = {"Iceworm Queen", "Lava Elemental", "Rock Elemental"}
 
 
 def fetch(page):
-    req = urllib.request.Request(RAW % page.replace(" ", "_"),
-                                 headers={"User-Agent": "Meridian/1.0"})
+    req = urllib.request.Request(
+        RAW % urllib.parse.quote(page.replace(" ", "_")),
+        headers={"User-Agent": "Meridian/1.0"})
     with urllib.request.urlopen(req, timeout=30) as r:
         return r.read().decode("utf-8", "replace")
 
@@ -70,104 +62,82 @@ def num(cell):
     return int(m.group(0)) if m else 0
 
 
-def split_cells(line):
-    """1行を「||」で割る。colspan は (値, 何列ぶん) にする。"""
+# ------------------------------------------------ マップ → ボス
+def bosses_of(text):
+    """マップページの「Bosses」から、ASAにいるボスを拾う。
+
+    ページはこう書かれている。
+
+        ==== Bosses ====
+        {{ItemList|Iceworm Queen|Lava Elemental}}
+        {{gamelink|sa}} exclusive:
+        {{ItemList|columnwidth=15em|Nunatak}}
+        {{gamelink|se}} exclusive:
+        {{ItemList|columnwidth=15em|Dragon|Manticore}}
+
+    印の無いものと sa のものを採り、se のものは捨てる。
+    """
+    out, lines = [], text.splitlines()
+    i, n = 0, len(lines)
+    while i < n:
+        if not re.match(r"^=+\s*Bosses\s*=+\s*$", lines[i].strip()):
+            i += 1
+            continue
+        i += 1
+        mode = "both"
+        while i < n:
+            t = lines[i].strip()
+            if t.startswith("=") and "Bosses" not in t:
+                break                          # 次の見出しで終わり
+            if "{{gamelink|sa}}" in t:
+                mode = "sa"
+            elif "{{gamelink|se}}" in t:
+                mode = "se"
+            elif t.startswith("{{ItemList|"):
+                if mode != "se":
+                    body = t[len("{{ItemList|"):].rstrip("}")
+                    for part in body.split("|"):
+                        part = part.strip()
+                        if part and "=" not in part and part not in NOT_BOSS:
+                            out.append(part)
+            i += 1
+    seen, keep = set(), []
+    for b in out:
+        if b not in seen:
+            seen.add(b)
+            keep.append(b)
+    return keep
+
+
+# ------------------------------------------------ ボス → 必要数
+def tabs_of(chunk):
+    """<tabber> を、(タブの名前, 中身) に割る。無ければ 1つだけ返す。"""
+    if "<tabber>" not in chunk:
+        return [("", chunk)]
+    body = chunk.split("<tabber>", 1)[1].split("</tabber>", 1)[0]
     out = []
-    for raw in line.split("||"):
-        raw = raw.strip()
-        m = re.match(r'colspan\s*=\s*"?(\d+)"?\s*(?:style\s*=\s*"[^"]*")?\s*\|(.*)$',
-                     raw)
+    for part in body.split("|-|"):
+        m = re.match(r"\s*([^=\n]{1,40})=", part)
         if m:
-            out.append((m.group(2).strip(), int(m.group(1))))
+            out.append((m.group(1).strip(), part[m.end():]))
         else:
-            out.append((raw, 1))
+            out.append(("", part))
     return out
 
 
-def head_map(head):
-    """見出しから、どのマップかを決める。"""
-    for cand in _LINK.findall(head):
-        if cand not in NOT_A_MAP and not cand.startswith("Patch"):
-            return cand
-    for boss, mp in BOSS_MAP.items():
-        if boss in head:
-            return mp
-    d = _DLC.search(head)
-    return d.group(1).strip() if d else head[:40]
+def rows_of(chunk):
+    """表を升に割って、{名前: {G,B,A}} にする。
 
-
-def parse_wide(text):
-    """マップ×難易度が横に並ぶ大きな表（story / mods）を読む。"""
-    lines = text.splitlines()
-    groups, i = [], 0
-    # colspan がちょうど3の見出しだけを拾う。
-    # "colspan=3" の部分一致だと、表全体の幅 colspan="39" にも当たる。
-    head = re.compile(r"^!\s*colspan\s*=\s*\"?3\"?\s*\|")
-    for i, ln in enumerate(lines):
-        if head.match(ln):
-            break
-    while i < len(lines) and head.match(lines[i]):
-        groups.append(lines[i].split("|", 1)[1].strip())
-        i += 1
-    got = {}          # (マップ, ボス) -> {品目: {G,B,A}}
-    for ln in lines:
-        if not ln.startswith("| style=") or "ItemLink" not in ln:
-            continue
-        cells = split_cells(ln)
-        name = item_name(cells[0][0])
-        if not name:
-            continue
-        col = 0
-        for value, span in cells[1:]:
-            n = num(value)
-            for k in range(span):
-                grp, diff = (col + k) // 3, "GBA"[(col + k) % 3]
-                if grp < len(groups) and n:
-                    head = groups[grp]
-                    key = (head_map(head), head_boss(head))
-                    got.setdefault(key, {}).setdefault(
-                        name, {"G": 0, "B": 0, "A": 0})[diff] = n
-            col += span
-    return got
-
-
-def head_boss(head):
-    """見出しから、ボスの名前を取り出す。「ドラゴン＋マンティコア」もある。"""
-    got = re.findall(r"\{\{(?:ItemLink|IconLink)\|([^}|]+)", head)
-    got = [g.strip() for g in got if g.strip()]
-    if got:
-        return "+".join(got)
-    t = re.sub(r"\{\{[^}]*\}\}", "", head)
-    t = re.sub(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]", r"\1", t)
-    return t.strip(" |") or "?"
-
-
-def parse_boss(text):
-    """ボス1体のページの「Tribute Requirements」を読む。
-
-    書き方が3通りある。
-      * 1行に「| 名前 || G || B || A」と並ぶもの
-      * セルを1行ずつ「|名前」「|5」「|10」「|15」と書くもの
-      * 難易度が無く「必要数」だけのもの
-    どれでも読めるように、行を「|-」で区切って升に分ける。
+    1行に「| 名前 || G || B || A」と並ぶものと、セルを1行ずつ書くものが
+    あるので、行を「|-」で区切ってから読む。
     """
-    lines = text.splitlines()
-    start = None
-    for i, ln in enumerate(lines):
-        t = ln.strip()
-        if re.match(r"^=+\s*Tribute", t, re.I) or \
-                "you will need the following tributes" in t or \
-                "needed to summon" in t or "needed to open" in t:
-            start = i
-            break
-    if start is None:
-        return {}
     three, rows, cur = None, [], []
-    for ln in lines[start:start + 120]:
+    for ln in chunk.splitlines():
         t = ln.strip()
         if t.startswith("|}"):
             rows.append(cur)
-            break
+            cur = []
+            continue
         if t.startswith("!"):
             if "Gamma" in t or "gamma" in t:
                 three = True
@@ -178,24 +148,21 @@ def parse_boss(text):
             continue
         if t.startswith("|"):
             body = t[1:]
-            if "||" in body:
-                cur += [c.strip() for c in body.split("||")]
-            else:
-                cur.append(body.strip())
-    else:
-        rows.append(cur)
+            cur += ([c.strip() for c in body.split("||")] if "||" in body
+                    else [body.strip()])
+    rows.append(cur)
 
     got = {}
     for cells in rows:
         if not cells or "ItemLink" not in cells[0]:
             continue
         name = item_name(cells[0])
-        if not name:
+        if not name or "Player Level" in cells[0]:
             continue
         vals = []
         for c in cells[1:]:
-            m = re.match(r'colspan\s*=\s*"?(\d+)"?\s*(?:style\s*=\s*"[^"]*")?\s*\|(.*)$',
-                         c)
+            m = re.match(r'colspan\s*=\s*"?(\d+)"?\s*'
+                         r'(?:style\s*=\s*"[^"]*")?\s*\|(.*)$', c)
             if m:
                 vals += [num(m.group(2))] * int(m.group(1))
             else:
@@ -211,22 +178,64 @@ def parse_boss(text):
     return got
 
 
-def ja_names(names):
-    """英語名 → 日本語名。ja版の記事名（転送先）がそのまま日本語名になる。
+def tribute_of(text, map_name):
+    """ボスのページから、そのマップぶんの必要数を読む。"""
+    lines = text.splitlines()
+    start = None
+    for i, ln in enumerate(lines):
+        t = ln.strip()
+        if re.match(r"^=+\s*Tribute", t, re.I) or \
+                "you will need the following tributes" in t or \
+                "needed to summon" in t or "needed to open" in t:
+            start = i
+            break
+    if start is None:
+        return {}
+    end = len(lines)
+    for j in range(start + 1, len(lines)):
+        t = lines[j].strip()
+        if t.startswith("=") and not re.match(r"^=+\s*Tribute", t, re.I):
+            end = j
+            break
+    chunk = "\n".join(lines[start:end])
+    tabs = tabs_of(chunk)
+    pick = None
+    for name, part in tabs:
+        if name and map_name.lower() in name.lower():
+            pick = part
+            break
+    if pick is None:
+        for name, part in tabs:
+            if not name or "any map" in name.lower():
+                pick = part
+                break
+    return rows_of(pick if pick is not None else tabs[0][1])
 
-    ゲームの表記と同じものが返る。スクショから読んだ名前と突き合うので、
-    英語のまま持たせるより、こちらのほうがずっと使える。
-    日本語ページが無いもの（Astral Soul など）は英語のまま。
-    """
+
+# ------------------------------------------------ 日本語名
+TIERS = (("Gamma", "ガンマ"), ("Beta", "ベータ"), ("Alpha", "アルファ"))
+
+
+def split_tier(en):
+    for word, ja in TIERS:
+        if en.startswith(word + " "):
+            return ja, en[len(word) + 1:]
+        if en.endswith("(%s)" % word):
+            return ja, en[:-len(word) - 2].strip()
+    return "", en
+
+
+def ja_names(names):
+    """英語名 → 日本語名。ja版の記事名（転送先）がそのまま日本語名になる。"""
     out = {}
     names = sorted(set(names))
-    for i in range(0, len(names), 40):        # APIは一度に50件まで
+    for i in range(0, len(names), 40):
         chunk = names[i:i + 40]
         url = (JA_API + "?action=query&redirects=1&format=json&titles="
                + "|".join(urllib.parse.quote(n) for n in chunk))
         try:
-            req = urllib.request.Request(url,
-                                         headers={"User-Agent": "Meridian/1.0"})
+            req = urllib.request.Request(
+                url, headers={"User-Agent": "Meridian/1.0"})
             with urllib.request.urlopen(req, timeout=30) as r:
                 d = json.loads(r.read().decode("utf-8", "replace"))
         except Exception as e:
@@ -237,28 +246,11 @@ def ja_names(names):
     return out
 
 
-TIERS = (("Gamma", "ガンマ"), ("Beta", "ベータ"), ("Alpha", "アルファ"))
-
-
-def split_tier(en):
-    """英語名から、難易度の別を切り出す。無ければ ("", 名前)。
-
-    「Gamma Broodmother Trophy」「King Titan Trophy (Gamma)」の両方に効く。
-    """
-    for word, ja in TIERS:
-        if en.startswith(word + " "):
-            return ja, en[len(word) + 1:]
-        if en.endswith("(%s)" % word):
-            return ja, en[:-len(word) - 2].strip()
-    return "", en
-
-
 def unclash(ja):
     """同じ日本語名に潰れたものを、見分けられるようにする。
 
     ボスのトロフィーは Gamma / Beta / Alpha で別のアイテムなのに、
-    ja版ウィキではどれも同じ記事に飛ぶ。そのままだと画面で1つに見え、
-    持っている数まで混ざってしまう。難易度の別を後ろに足して分ける。
+    ja版ウィキではどれも同じ記事に飛ぶ。難易度の別を後ろに足して分ける。
     """
     same = {}
     for en, name in ja.items():
@@ -274,80 +266,67 @@ def unclash(ja):
 
 
 def main():
-    out = {}      # マップ -> {"src": .., "bosses": {ボス: {品目: {G,B,A}}}}
-
-    def add(mp, boss, items, src):
-        box = out.setdefault(mp, {"src": src, "bosses": {}})
-        cur = box["bosses"].setdefault(boss, {})
-        for name, d in items.items():
-            row = cur.setdefault(name, {"G": 0, "B": 0, "A": 0})
-            for k in "GBA":
-                row[k] = max(row[k], d[k])
-
-    for page in ("Table of story map tributes", "Table of official mod tributes"):
-        got = parse_wide(fetch(page))
-        for (mp, boss), items in got.items():
-            add(mp, boss, items, page)
-        print("%-34s → %d のボス" % (page, len(got)))
-
-    # アストレオスは一覧に無いので、ボスのページを1体ずつ
-    for boss in ASTRAEOS_BOSSES:
+    out = {}
+    for mp in MAPS:
         try:
-            items = parse_boss(fetch(boss))
+            page = fetch(mp)
         except Exception as e:
-            print("   %-14s 取れず（%s）" % (boss, e))
+            print("%-16s 取れず（%s）" % (mp, e))
             continue
-        print("   %-14s %d品目" % (boss, len(items)))
-        if items:
-            add("Astraeos", boss, items, "各ボスのページ")
+        names = bosses_of(page)
+        print("%-16s ボス %d: %s" % (mp, len(names), "、".join(names)))
+        got = {}
+        for boss in names:
+            try:
+                items = tribute_of(fetch(boss), mp)
+            except Exception as e:
+                print("      %-26s 取れず（%s）" % (boss, e))
+                continue
+            if items:
+                got[boss] = items
+            print("      %-26s %d品目%s"
+                  % (boss, len(items), "" if items else "  ← 貢物なし"))
+        if got:
+            out[mp] = got
 
-    # 品名とボス名を日本語にする
     every, bosses = set(), set()
-    for box in out.values():
-        for boss, items in box["bosses"].items():
-            bosses.update(boss.split("+"))
+    for got in out.values():
+        for boss, items in got.items():
+            bosses.add(boss)
             every |= set(items)
     print("\n日本語名を引きます（品目 %d ／ ボス %d）…" % (len(every), len(bosses)))
     ja = unclash(ja_names(every | bosses))
     print("   %d件に日本語名がありました" % len(ja))
 
-    def boss_ja(boss):
-        return "＋".join(ja.get(b, b) for b in boss.split("+"))
-
     final = {}
-    for mp, box in out.items():
+    for mp, got in out.items():
         rows = []
-        for boss, items in sorted(box["bosses"].items()):
+        for boss, items in sorted(got.items()):
             rows.append({
-                "boss": boss, "ja": boss_ja(boss),
+                "boss": boss, "ja": ja.get(boss, boss),
                 "items": [dict(name=ja.get(n, n), en=n, **d)
                           for n, d in sorted(items.items())]})
-        final[mp] = {"bosses": rows, "src": box["src"]}
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    io.open(OUT, "w", encoding="utf-8").write(
-        json.dumps(final, ensure_ascii=False, indent=1, sort_keys=True))
-    # 読みを持っていない漢字があると、その品目は検索で当たらない
+        final[mp] = {"bosses": rows, "src": "マップページ＋各ボスのページ"}
+
     try:
         sys.path.insert(0, HERE)
         import tribute as tb
-        every_name = {it["name"] for mp in final.values()
-                      for b in mp["bosses"] for it in b["items"]}
-        lack = tb.missing_readings(every_name)
+        lack = tb.missing_readings({it["name"] for mp in final.values()
+                                    for b in mp["bosses"] for it in b["items"]})
+        print("\n読みを持っていない漢字: " + ("、".join(lack) if lack else "なし"))
         if lack:
-            print("\n⚠ 読みを持っていない漢字: " + "、".join(lack))
             print("   tribute.py の READINGS に足してください")
-        else:
-            print("\n漢字の読みは足りています")
     except Exception as e:
         print("読みの確かめができず: %s" % e)
 
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    io.open(OUT, "w", encoding="utf-8").write(
+        json.dumps(final, ensure_ascii=False, indent=1, sort_keys=True))
     print("\n書き出し: %s（%d マップ）" % (OUT, len(final)))
     for mp in sorted(final):
-        n = sum(len(b["items"]) for b in final[mp]["bosses"])
-        print("   %-16s ボス%d体 / のべ%d品目  (%s)"
-              % (mp, len(final[mp]["bosses"]), n, final[mp]["src"]))
+        print("   %-16s ボス%d体" % (mp, len(final[mp]["bosses"])))
         for b in final[mp]["bosses"]:
-            print("        %-34s %d品目" % (b["ja"], len(b["items"])))
+            print("        %-30s %d品目" % (b["ja"], len(b["items"])))
 
 
 if __name__ == "__main__":
