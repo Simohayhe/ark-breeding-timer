@@ -112,6 +112,16 @@ def fmt_span(sec):
     return "%d分%02d秒" % (sec // 60, sec % 60)
 
 
+# 日が変わるゲーム内時刻。公式ウィキに
+#   「New day starts at 0:00」
+# とあるとおり 0:00 で、夜のまんなか（夜は 20:25〜05:15、アベレーションは
+# 17:30〜05:30）。マップが違っても動かない。
+#
+# ここが分かっているので、サーバーの Day が増えた瞬間に「いまゲーム内 0:00」
+# と決められる。時計を手で合わせていなくても、そこから今の時刻を逆算できる。
+DAY_BOUNDARY = 0
+
+
 # マップによって夜明け・日暮れの時刻が違う。既定はラグナロク等の値で、
 # アベレーションだけは地上が燃えはじめる／収まる時刻に合わせる。
 MAP_BOUNDS = {
@@ -236,7 +246,10 @@ class GameClock:
         self.restart_done = float(restart_done or 0)   # ここまでは補正済み
         # ARKの「Day N」が変わるゲーム内時刻。最初の1回で学習して、
         # 以降はそこを基準に自動で合わせ直す。
-        self.day_boundary = day_boundary
+        # 分かっている値を初めから入れておく。昔しまったぶん（None）も
+        # ここで 0:00 になる。ずれていれば、合わせ直したときに直る。
+        self.day_boundary = (DAY_BOUNDARY if day_boundary is None
+                             else day_boundary)
         # Dayの変化から1日の合計を測れたか。測れていれば、合わせ直しのときに
         # 合計はいじらず「昼と夜の配分」だけを解く。
         self.total_measured = bool(total_measured)
@@ -783,8 +796,21 @@ class GameClock:
         now = now if now is not None else time.time()
         if not prev_at and not self._day_mark:
             # 1回目は起点が無い。「見張りを始めてから」の時間は1日ではないので
-            # 何も測らない。次の変化から本物の1日ぶんが測れる。
+            # 速さは測らない。次の変化から本物の1日ぶんが測れる。
+            # ただし時刻は分かる。日が変わるのは 0:00 と決まっているので、
+            # ここで合わせておく（手で合わせていなくても、これで動き出す）。
             self._day_mark = (now, self.held_total)
+            if self.day_boundary is not None:
+                was = self.game_at(now)
+                self.sync(self.day_boundary, now)
+                if was is None:
+                    return ("日付が変わったので %s に合わせました"
+                            "（次の変わり目で速さを測ります）"
+                            % fmt_game_time(self.day_boundary))
+                return ("%s に合わせ直しました（%s のズレ）"
+                        "／次の変わり目で速さを測ります"
+                        % (fmt_game_time(self.day_boundary),
+                           fmt_span(_circ_diff(was, self.day_boundary))))
             return "日付が変わりました（次の変わり目で速さを測ります）"
         done = []
         # 1) 前回の変わり目からの実時間 = ゲーム内1日ぶん。
@@ -1017,7 +1043,12 @@ class ClockSet:
             name = (item.get("name") or "").strip()
             if not name or name in self.clocks:
                 continue
-            self.clocks[name] = GameClock.from_dict(item)
+            c = GameClock.from_dict(item)
+            # 前の版では、しまうときに印を付けていなかった。名前から決まる
+            # ものなので、読むときに付け直す（アベレーションの季節が効く）
+            if not c.aberration:
+                apply_map_defaults(c, name)
+            self.clocks[name] = c
             self.order.append(name)
         self.current = (data or {}).get("current") or ""
         if self.current not in self.clocks:
