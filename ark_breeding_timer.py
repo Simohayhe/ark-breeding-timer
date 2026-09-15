@@ -47,7 +47,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.81.0"
+APP_VERSION = "1.82.0"
 
 
 def _res_dir():
@@ -3525,9 +3525,12 @@ class NewTimerDialog(tk.Toplevel):
         self.calc = None
         self.title("新しいタイマー")
         self.configure(bg=th.BG)
-        # くり返しの欄をひらいても「つくる」が隠れない高さ
-        self.geometry("800x750")
-        self.minsize(700, 620)
+        # くり返しの欄をひらいても「つくる」が隠れない高さ。
+        # 一度いじった大きさは覚えておく（恐竜の名前が長いと狭く感じるので）
+        self.geometry(app.cfg.get("newtimer_geom") or "800x750")
+        self.minsize(640, 560)
+        self.resizable(True, True)
+        self.bind("<Configure>", self._remember_size)
         # 本体をしまっているときは、出どころのウィンドウに紐づける
         self.transient(parent if parent is not None else app)
         self.attributes("-topmost", bool(app.cfg["always_on_top"]))
@@ -3723,6 +3726,17 @@ class NewTimerDialog(tk.Toplevel):
         self.app.add_timer(t)
         self.destroy()
 
+    def _remember_size(self, e=None):
+        """大きさを変えたら覚えておく。次に開くときも同じ大きさで出す。"""
+        if e is not None and e.widget is not self:
+            return
+        try:
+            w, h = self.winfo_width(), self.winfo_height()
+        except tk.TclError:
+            return
+        if w > 200 and h > 200:
+            self.app.cfg["newtimer_geom"] = "%dx%d" % (w, h)
+
     # ------------------------------------------------ ARK
     def _build_ark(self, f):
         F = self.F
@@ -3739,6 +3753,10 @@ class NewTimerDialog(tk.Toplevel):
                               highlightthickness=0, font=F["ui"], activestyle="none")
         self.lst.pack(fill="both", expand=True)
         self.lst.bind("<<ListboxSelect>>", lambda e: self.on_select())
+        # Tkの一覧は、選んだ行の「終わり」を見せようと横へ動く。名前が長いと
+        # 先頭が外に出て読めなくなるので、いつも左端へ戻す
+        self.lst.bind("<<ListboxSelect>>",
+                      lambda e: self.lst.xview_moveto(0), add="+")
         self.lst.bind("<Double-Button-1>", lambda e: self.create_ark())
 
         # 幅は中の部品（計算結果ラベルの width=40 など）にまかせる。
@@ -3919,6 +3937,8 @@ class NewTimerDialog(tk.Toplevel):
                                   activestyle="none")
         self.tm_list.pack(fill="both", expand=True)
         self.tm_list.bind("<<ListboxSelect>>", lambda e: self.tame_select())
+        self.tm_list.bind("<<ListboxSelect>>",
+                          lambda e: self.tm_list.xview_moveto(0), add="+")
 
         right = tk.Frame(f, bg=th.CARD)
         right.pack(side="right", fill="y", padx=(14, 0))
