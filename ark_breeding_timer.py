@@ -47,7 +47,7 @@ from macro_page import MacroPage
 # 既に入っている版が更新できなくなり、入れ直すと二重に入ってしまうため）。
 APP_NAME = "Meridian"
 APP_TAGLINE = "for ARK: Survival Ascended"
-APP_VERSION = "1.80.1"
+APP_VERSION = "1.81.0"
 
 
 def _res_dir():
@@ -97,6 +97,8 @@ DEFAULT_CONFIG = {
     "snooze_sec": 180,         # 「保留」を押したとき、もう一度知らせるまでの秒
     "macro_badge": True,       # 連射が入っているあいだ、左上に出しっぱなしにする
     "macro_badge_pos": [16, 16],   # その札の場所（画面の左上からの距離）
+    "notify_ab_day": True,     # アベレーションで日付が変わったら知らせる
+    "notify_ab_night_only": False,  # 夜が長い日だけ知らせる
     "blip": True,              # 切り替えたときに一瞬だけ出る小さな知らせ
     "blip_sec": 1.4,           # それが消えるまでの秒
     "watch_popup_close": 10,   # サーバーの知らせが自分で消えるまで（秒）
@@ -2726,6 +2728,7 @@ class App(tk.Tk):
         elif kind == "hold":
             c.hold(value)          # 定期再起動ぶんの差し引き
         elif kind == "day":
+            self._aberration_notice(name, c, value)
             _old, _new, prev_at = value
             msg = c.on_day_changed(prev_at)
             if msg:
@@ -2755,6 +2758,37 @@ class App(tk.Tk):
         """貢物の控えをしまう。数をいじるたび呼ばれるので、軽くしておく。"""
         self.cfg["tribute_book"] = self.book.to_dict()
         self.save_cfg()
+
+    def _aberration_notice(self, name, c, value):
+        """アベレーションで日付が変わったら、その日の昼夜の割合を知らせる。
+
+        末尾7〜9は夜が9割で、地上へ出られる日。ここを逃したくないので、
+        その日だけは強めに出す。
+        """
+        if not c.aberration or not self.cfg.get("notify_ab_day", True):
+            return
+        try:
+            _old, new, _prev = value
+        except (TypeError, ValueError):
+            return
+        c.day_number = new
+        share = c.night_share()
+        if share is None:
+            return
+        long_night = share >= 0.8
+        if self.cfg.get("notify_ab_night_only") and not long_night:
+            return
+        where = gametime.map_label(name)
+        head = "🌙 %s Day %s ／ 夜が長い日です" % (where, new) if long_night \
+            else "🌗 %s Day %s ／ %s" % (where, new, c.season_name())
+        body = c.season_share_text()
+        if long_night:
+            body += "　地上へ行けます"
+        else:
+            left = gametime.days_until_tail(new)
+            if left:
+                body += "　夜が長い日まで あと%d日" % left
+        self.watch_notices.append((head, body, bool(long_night), "up"))
 
     def save_clocks(self):
         self.cfg["game_clocks"] = self.clocks.to_dict()
@@ -4569,6 +4603,20 @@ class SettingsDialog(tk.Toplevel):
         self._check(f, "サーバーが落ちているあいだタイマーも止める",
                     self.v_pause_down).pack(anchor="w", pady=(0, 10))
 
+        tk.Label(f, text="アベレーションの日付が変わったとき", bg=th.CARD,
+                 fg=th.INK, font=F["cute_b"]).pack(anchor="w", pady=(0, 2))
+        self.v_abday = tk.BooleanVar(value=bool(cfg.get("notify_ab_day", True)))
+        self._check(f, "その日の昼夜の割合を知らせる",
+                    self.v_abday).pack(anchor="w")
+        self.v_abnight = tk.BooleanVar(
+            value=bool(cfg.get("notify_ab_night_only", False)))
+        self._check(f, "　└ 夜が長い日（末尾7〜9）だけにする",
+                    self.v_abnight).pack(anchor="w")
+        tk.Label(f, text="アベレーションは10日で一巡します。末尾7〜9は夜が9割で、"
+                         "地上へ出られる日です",
+                 bg=th.CARD, fg=th.INK_SUB, font=F["small"], wraplength=540,
+                 justify="left").pack(anchor="w", pady=(0, 10))
+
         self.v_snooze = tk.BooleanVar(value=bool(cfg.get("snooze_button", True)))
         self._check(f, "鳴ったときの知らせに「完了 / 保留」を出す",
                     self.v_snooze).pack(anchor="w")
@@ -4703,6 +4751,8 @@ class SettingsDialog(tk.Toplevel):
         c["confirm_delete"] = bool(self.v_confirm.get())
         c["default_map"] = self.pick_map.get_map()
         c["pause_timers_on_down"] = bool(self.v_pause_down.get())
+        c["notify_ab_day"] = bool(self.v_abday.get())
+        c["notify_ab_night_only"] = bool(self.v_abnight.get())
         c["snooze_button"] = bool(self.v_snooze.get())
         try:
             c["snooze_sec"] = max(10, int(float(self.v_snooze_min.get()) * 60))

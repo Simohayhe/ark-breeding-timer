@@ -452,12 +452,41 @@ class GameClock:
         ratio, _name = season_of(self.day_number)
         return max(1.0, total * ratio), max(1.0, total * (1.0 - ratio))
 
-    def season_name(self):
+    def season_name(self, share=False):
+        """その日の呼び名。share=True なら割合も付ける。
+
+        割合は season_share_text() でも出すので、既定では名前だけにする。
+        両方で出すと「夜が長い（昼10%/夜90%）（昼10%／夜90%…）」になる。
+        """
         if not self.aberration:
             return ""
         ratio, name = season_of(self.day_number)
+        if not share:
+            return name
         return "%s（昼%d%% / 夜%d%%）" % (name, round(ratio * 100),
                                           round((1 - ratio) * 100))
+
+    def night_share(self):
+        """その日の夜の割合（0〜1）。アベレーション以外は None。"""
+        if not self.aberration or self.day_number is None:
+            return None
+        day_ratio, _name = season_of(self.day_number)
+        return 1.0 - day_ratio
+
+    def season_share_text(self):
+        """「昼10% ／ 夜90%（約54分）」。測れていなければ割合だけ。
+
+        季節は時刻の境目を動かさず、進む速さを変える。1日にかかる実時間の
+        うち、どれだけが夜かがそのまま割合になる。
+        """
+        share = self.night_share()
+        if share is None:
+            return ""
+        txt = "昼%d%% ／ 夜%d%%" % (round((1 - share) * 100), round(share * 100))
+        total = self.full_day_real()
+        if total > 0:
+            txt += "（夜 約%s）" % fmt_span_long(total * share)
+        return txt
 
     def season_note(self, now=None):
         """アベレーションの季節と、次の「夜が長い日」までの案内。
@@ -467,7 +496,8 @@ class GameClock:
         """
         if not self.aberration or self.day_number is None:
             return ""
-        txt = "Day %s ／ %s" % (self.day_number, self.season_name())
+        txt = "Day %s ／ %s ／ %s" % (self.day_number, self.season_name(),
+                                      self.season_share_text())
         left = days_until_tail(self.day_number)
         if left == 0:
             return txt + " ← いま地上へ行ける日です"
@@ -997,7 +1027,11 @@ class ClockSet:
         name = (name or "").strip()
         if not name or name in self.clocks:
             return False
-        self.clocks[name] = GameClock()
+        c = GameClock()
+        # 名前から決まるもの（夜明け・日暮れの時刻、アベレーションの季節）は
+        # ここで当てる。呼ぶ側に任せると、手で足したマップだけ抜ける。
+        apply_map_defaults(c, name)
+        self.clocks[name] = c
         self.order.append(name)
         self.current = name
         return True
