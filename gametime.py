@@ -125,8 +125,35 @@ DAY_BOUNDARY = 0
 # マップによって夜明け・日暮れの時刻が違う。既定はラグナロク等の値で、
 # アベレーションだけは地上が燃えはじめる／収まる時刻に合わせる。
 MAP_BOUNDS = {
-    "aberration": (5 * 3600 + 30 * 60, 17 * 3600 + 30 * 60),
+    # 既定は 50%/50% の季節ぶん。日数が分かれば、下の表で季節ごとに動く
+    "aberration": (6 * 3600 + 50 * 60, 18 * 3600 + 50 * 60),
 }
+
+# ASA のアベレーションは、季節で **夜明け・日暮れの時刻そのもの** が動く。
+# ASE は時刻を動かさず進む速さだけ変えていたので、そこが違う。
+# 公式ウィキ「Aberration Ascended DLC Seasons」の表より。
+#   末尾 0〜3  昼50%/夜50%   夜明け 06:50  日暮れ 18:50
+#   末尾 4〜6  昼90%/夜10%   夜明け 02:25  日暮れ 23:10
+#   末尾 7〜9  昼10%/夜90%   夜明け 11:10  日暮れ 14:25
+# ウィキに「Dawn と Dusk はおおよその値で、日によって多少ぶれる」と
+# 断りがあるので、ぴったりではない。
+ABERRATION_BOUNDS = {
+    0: (6 * 3600 + 50 * 60, 18 * 3600 + 50 * 60),
+    4: (2 * 3600 + 25 * 60, 23 * 3600 + 10 * 60),
+    7: (11 * 3600 + 10 * 60, 14 * 3600 + 25 * 60),
+}
+
+
+def aberration_bounds(day_number):
+    """その日の (夜明け, 日暮れ)。日数が分からなければ 50%/50% のぶん。"""
+    try:
+        tail = int(day_number) % 10
+    except (TypeError, ValueError):
+        return ABERRATION_BOUNDS[0]
+    for start in (7, 4, 0):
+        if tail >= start:
+            return ABERRATION_BOUNDS[start]
+    return ABERRATION_BOUNDS[0]
 
 # アベレーションは10日で一巡する「季節」がある。ゲーム内の日数の**末尾**で
 # 昼と夜の割合が変わる（時刻の境目は動かず、進む速さが変わる）。
@@ -221,7 +248,7 @@ class GameClock:
         self.aberration = bool(aberration)
         self.day_number = None       # 見張りが教えてくれる「Day N」
         # このマップの夜明け・日暮れ（ゲーム内秒）
-        self.bounds = tuple(bounds) if bounds else (DAY_START, NIGHT_START)
+        self._bounds = tuple(bounds) if bounds else (DAY_START, NIGHT_START)
         self.paused_at = 0.0
         # 止めた合計（実秒）。日の変わり目どうしの間隔から落ちていた分を
         # 引くのに使う。sync_real は hold() で後ろへずれるので、
@@ -436,6 +463,17 @@ class GameClock:
 
     # ---- このマップの昼夜 ----
     @property
+    def bounds(self):
+        """(夜明け, 日暮れ)。アベレーションは季節で動く。"""
+        if self.aberration:
+            return aberration_bounds(self.day_number)
+        return self._bounds
+
+    @bounds.setter
+    def bounds(self, value):
+        self._bounds = tuple(value)
+
+    @property
     def day_start(self):
         return self.bounds[0]
 
@@ -456,14 +494,16 @@ class GameClock:
     def rates(self):
         """(昼ぜんぶの実秒, 夜ぜんぶの実秒)。
 
-        アベレーションは季節で割合が変わるので、1日の合計は変えずに
-        そのぶんだけ振り分け直す。
+        ASA のアベレーションは、季節で夜明け・日暮れの時刻そのものが動く。
+        時計の進む速さは変えずに、昼と夜の「長さ」が入れ替わる作りなので、
+        実時間もゲーム内の時間の割合どおりに分ければよい。
+        （ASE は時刻を動かさず速さを変えていた。そちらとは別物）
         """
         if not self.aberration:
             return self.day_real, self.night_real
         total = self.full_day_real()
-        ratio, _name = season_of(self.day_number)
-        return max(1.0, total * ratio), max(1.0, total * (1.0 - ratio))
+        share = self.day_span() / float(DAY_SECONDS)
+        return max(1.0, total * share), max(1.0, total * (1.0 - share))
 
     def season_name(self, share=False):
         """その日の呼び名。share=True なら割合も付ける。
@@ -480,11 +520,15 @@ class GameClock:
                                           round((1 - ratio) * 100))
 
     def night_share(self):
-        """その日の夜の割合（0〜1）。アベレーション以外は None。"""
+        """その日の夜の割合（0〜1）。アベレーション以外は None。
+
+        季節の呼び名（90%/10% など）はおおまかな名前で、実際の割合は
+        夜明け・日暮れの時刻から決まる。時計はこちらで動いているので、
+        見せる数字もこちらに合わせる。
+        """
         if not self.aberration or self.day_number is None:
             return None
-        day_ratio, _name = season_of(self.day_number)
-        return 1.0 - day_ratio
+        return self.night_span() / float(DAY_SECONDS)
 
     def season_share_text(self):
         """「昼10% ／ 夜90%（約54分）」。測れていなければ割合だけ。
@@ -995,7 +1039,7 @@ class GameClock:
                 "measure_since": self.measure_since,
                 "notify": self.notify,
                 "aberration": self.aberration,
-                "bounds": list(self.bounds),
+                "bounds": list(self._bounds),
                 "boundary_votes": self.boundary_votes,
                 "samples": self.samples,
                 "model": 2}
